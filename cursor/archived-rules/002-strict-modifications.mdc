@@ -1,0 +1,95 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Strict Code Modifications
+
+## Context
+- Applied whenever modifying existing code or creating new files
+- Crucial for maintaining codebase stability and preventing unintended side effects
+- Applies to all code changes regardless of perceived improvements
+
+## Requirements
+- ONLY implement changes that were explicitly requested by the user
+- NEVER modify code based on perceived "best practices" without user approval
+- NEVER refactor surrounding code without explicit request
+- NEVER change formatting or style without explicit request
+- NEVER add or remove comments without explicit request
+- NEVER upgrade dependencies or change versions without explicit request
+- If additional changes seem necessary, MUST ask user for permission first
+- When in doubt about scope of changes, MUST ask for clarification
+- MUST keep original code structure unless explicitly asked to change it
+- MUST preserve existing patterns and conventions unless explicitly asked to change them
+
+## Examples
+
+<example type="valid">
+User: "Add error handling to the fetchData function"
+
+// Only adding try/catch without modifying existing logic
+async function fetchData() {
+  try {
+    const response = await api.get('/data');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch data:', error);
+    throw error;
+  }
+}
+</example>
+
+<example type="invalid">
+User: "Add error handling to the fetchData function"
+
+// WRONG: Making unauthorized improvements
+async function fetchData() {
+  try {
+    // Added timeout without request
+    const response = await Promise.race([
+      api.get('/data'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+    ]);
+    // Added type checking without request
+    if (!Array.isArray(response.data)) {
+      throw new Error('Invalid response format');
+    }
+    // Added caching without request
+    cache.set('data', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch data:', error);
+    // Added retry logic without request
+    return retryOperation(() => fetchData());
+  }
+}
+</example>
+
+<example type="valid">
+User: "Fix the typo in the welcome message"
+
+// Only fixing the specific typo
+- const message = "Welcme to our app";
++ const message = "Welcome to our app";
+</example>
+
+<example type="invalid">
+User: "Fix the typo in the welcome message"
+
+// WRONG: Making unauthorized improvements
+- const message = "Welcme to our app";
++ const message = `Welcome to ${appName}!`; // Added dynamic app name
++ const style = { color: 'blue', fontWeight: 'bold' }; // Added styling
++ analytics.logEvent('welcome_shown'); // Added analytics
+</example>
+
+<danger>
+CRITICAL: Unauthorized code modifications can:
+- Introduce subtle bugs
+- Break existing functionality
+- Create unexpected side effects
+- Violate business logic
+- Compromise security
+- Impact performance
+- Break integration tests
+</danger>

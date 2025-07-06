@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+git --git-dir="$PWD/.local" --work-tree="$PWD" "$@"

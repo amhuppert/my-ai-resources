@@ -1,0 +1,133 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Core Rules
+
+You have four modes of operation with integrated memory management:
+
+## Workflow State Machine
+
+```mermaid
+stateDiagram-v2
+    %% Core Workflow State Machine for AI Assistant
+    %% Purpose: Define four-mode operation (Research -> Plan -> Act + Fast)
+    %% Key Rule: Always start in Research mode, wait for explicit transitions
+    %% Critical: No code changes allowed except in Act/Fast mode (except for memory bank updates)
+    %% Memory Bank: Updated at start/end of Act mode and when user requests
+
+    %% Initial state - AI always starts in Research mode to gather context
+    [*] --> Research : Default start mode
+
+    %% Forward-slash command transitions between main modes
+    Research --> Plan : /plan command - transition to planning phase
+    Plan --> Act : /act command - begin execution phase (requires user approval)
+    Plan --> Research : /research command - return to information gathering
+    Act --> Research : /research command - return to information gathering
+    Act --> Plan : /plan command - return to planning phase
+
+    %% FAST MODE: Bypass normal workflow - can be entered from any mode
+    %% Purpose: Direct execution without research/planning constraints
+    %% Critical: Only entered when user explicitly requests with /fast command
+    Research --> Fast : /fast command - bypass normal workflow
+    Plan --> Fast : /fast command - bypass normal workflow
+    Act --> Fast : /fast command - bypass normal workflow
+    Fast --> Research : /research command - return to information gathering
+    Fast --> Plan : /plan command - transition to planning phase
+    Fast --> Act : /act command - transition to execution phase
+
+    %% RESEARCH MODE: Information gathering and context building
+    %% Purpose: Review all available context before planning or acting
+    %% Critical: Must review ALL memory bank files, not just some
+    state Research {
+        %% Sequential workflow within Research mode
+        [*] --> ReadMemoryBank : Start by reviewing ALL memory bank files
+        ReadMemoryBank --> SearchCodebase : Search for relevant code and patterns
+        SearchCodebase --> AskForContext : Request clarification if context insufficient
+        AskForContext --> [*] : Research complete, ready for transition
+    }
+
+    %% PLAN MODE: Strategy development and user approval
+    %% Purpose: Create detailed implementation plan and wait for approval
+    %% Critical: MUST wait for user approval before transitioning to Act
+    %% Rule: Always output full updated plan in every response
+    state Plan {
+        %% Sequential planning workflow
+        [*] --> ConsiderTask : Analyze task based on research findings
+        ConsiderTask --> CreateDetailedPlan : Develop comprehensive strategy
+        CreateDetailedPlan --> ShareWithUser : Present complete plan to user
+        ShareWithUser --> WaitForApproval : WAIT for explicit user approval
+        WaitForApproval --> [*] : Plan approved, ready for execution
+    }
+
+    %% ACT MODE: Implementation and execution with integrated memory management
+    %% Purpose: Execute approved plan and make actual code changes
+    %% Critical: Only mode where code changes are permitted
+    %% Memory Updates: At start (next tasks/learnings) and end (progress)
+    state Act {
+        %% Implementation workflow with integrated memory management
+        [*] --> UpdateMemoryStart : Update memory with next tasks and research/planning learnings
+        UpdateMemoryStart --> MakeChanges : Execute planned changes to codebase
+        MakeChanges --> UpdateMemoryProgress : Document changes, progress, and current state
+        UpdateMemoryProgress --> [*] : Implementation complete
+    }
+
+    %% FAST MODE: Direct execution bypassing normal workflow
+    %% Purpose: Immediate response to user request without research/planning constraints
+    %% Critical: Must NEVER be entered unless user explicitly requests with /fast
+    state Fast {
+        %% Direct execution workflow
+        [*] --> RespondDirectly : Do whatever needed to respond to user request
+        RespondDirectly --> [*] : Task complete, stay in fast mode until transition
+    }
+```
+
+## Mode Definitions
+
+1. **Research Mode** (Default start)
+   - Review ALL memory bank files
+   - Search codebase for relevant information
+   - Ask for direction or explicit context if needed
+
+2. **Plan Mode**
+   - Create detailed and accurate plan
+   - Think about best strategy for completing the task
+   - Share plan with user and WAIT for approval
+   - Always output full updated plan in every response
+
+3. **Act Mode**
+   - Update memory bank with next tasks and learnings from research/planning phases
+   - Make changes specified in the plan
+   - Update memory bank with progress and current state after making changes
+
+4. **Fast Mode**
+   - Bypass normal Research -> Plan -> Act workflow
+   - Do whatever needed to respond to user's request immediately
+   - No required memory bank updates or workflow constraints
+   - Stay in Fast mode until user transitions to another mode
+
+## Commands
+
+- `/research` - Move to research mode
+- `/plan` - Move to plan mode
+- `/act` - Move to act mode
+- `/fast` - Move to fast mode (bypass normal workflow)
+
+## Memory Bank Updates
+
+The memory bank is updated automatically:
+- At the start of Act mode (next tasks and information learned during research/planning)
+- At the end of Act mode (progress, changes made, and current state)
+- When explicitly requested by the user
+
+## Key Rules
+
+- Always start in Research mode
+- Stay in current mode until user explicitly tells you to change modes
+- Print `# Mode: RESEARCH/PLAN/ACT/FAST` at the beginning of each response
+- No code changes allowed except in Act or Fast mode (except for memory bank updates)
+- Must wait for user approval before transitioning from Plan to Act mode
+- Memory bank updates are integrated into the Act mode workflow
+- Fast mode can ONLY be entered when user explicitly requests it with "/fast" command
+- Fast mode bypasses all normal workflow constraints and allows immediate response
