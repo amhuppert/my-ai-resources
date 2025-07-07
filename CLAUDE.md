@@ -48,15 +48,20 @@ This repository documents but doesn't implement a pattern where:
 - Contains templates and documentation for setting up dual-repo patterns in other projects
 - Custom commands are designed to work in repositories that implement the dual-repo pattern
 
-## Installation Script
+## Installation Scripts
 
-The `install.sh` script automates setup of AI tooling configurations across the system:
+The repository provides two installation scripts for different scopes:
 
-### What It Does
-- Syncs `cursor/rules` → `.cursor/rules` in current directory (Cursor IDE configuration)
+### install-user.sh (User-level Installation)
+Sets up user-wide configurations in home directory:
 - Syncs `agent-docs` → `~/.claude/agent-docs` (Claude Code documentation)
-- Syncs `commands` → `~/.claude/commands` (Claude Code custom commands)
+- Syncs `claude/commands` → `~/.claude/commands` (Claude Code custom commands)
 - Copies `scripts/lgit` → `~/.local/bin/lgit` (dual-repo git wrapper)
+- Installs Claude Code settings using TypeScript installer
+
+### install-project.sh (Project-level Installation)
+Sets up project-specific configurations in current directory:
+- Syncs `cursor/rules` → `.cursor/rules` (Cursor IDE configuration)
 
 ### Key Features
 - **Backup Protection**: Uses rsync with timestamped backups (`__YYYYMMDD_HHMMSS.bk`)
@@ -66,10 +71,15 @@ The `install.sh` script automates setup of AI tooling configurations across the 
 
 ### Usage
 ```bash
-./install.sh
+# Install user-level configurations (run once per user)
+./install-user.sh
+
+# Install project-level configurations (run in each project directory)
+./install-project.sh
 ```
 
-The script is designed to be run from any target repository to set up the AI tooling configurations for that project.
+### Legacy install.sh
+The original `install.sh` script is still available and performs both user and project installations in one step.
 
 ## Usage Notes
 
