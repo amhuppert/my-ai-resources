@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Permissions configuration for Claude Code
@@ -13,7 +13,7 @@ export const PermissionsSchema = z.object({
   /** Default permission mode */
   defaultMode: z.string().optional(),
   /** Disable bypass permissions mode */
-  disableBypassPermissionsMode: z.literal('disable').optional(),
+  disableBypassPermissionsMode: z.literal("disable").optional(),
 });
 
 /**
@@ -38,6 +38,7 @@ export type ClaudeCodeSettings = z.infer<typeof ClaudeCodeSettingsSchema>;
 
 /**
  * Validate Claude Code settings
+ * TODO: We don't need this function, just use the Zod schema directly.
  */
 export function validateSettings(settings: unknown): ClaudeCodeSettings {
   return ClaudeCodeSettingsSchema.parse(settings);
@@ -45,6 +46,7 @@ export function validateSettings(settings: unknown): ClaudeCodeSettings {
 
 /**
  * Parse Claude Code settings with error handling
+ * TODO: We don't need this function, just use the Zod schema directly.
  */
 export function parseSettings(settings: unknown): {
   success: boolean;
@@ -61,6 +63,7 @@ export function parseSettings(settings: unknown): {
 
 /**
  * Create default Claude Code settings
+ * TODO: Turn this into a const object instead of a function.
  */
 export function createDefaultSettings(): ClaudeCodeSettings {
   return ClaudeCodeSettingsSchema.parse({});
