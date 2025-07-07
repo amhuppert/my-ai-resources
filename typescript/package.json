@@ -1,0 +1,39 @@
+{
+  "name": "my-ai-resources-ts",
+  "version": "1.0.0",
+  "description": "TypeScript types and utilities for Claude Code settings.json configuration",
+  "main": "lib/claude-code-settings.js",
+  "module": "lib/claude-code-settings.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "bun build scripts/install-settings.ts --outdir=dist --target=bun",
+    "install-settings": "bun run scripts/install-settings.ts",
+    "dev": "bun run scripts/install-settings.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "bin": {
+    "claude-settings": "dist/install-settings.js"
+  },
+  "files": [
+    "lib/",
+    "dist/",
+    "scripts/"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "settings",
+    "typescript",
+    "configuration"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "zod": "^3.25.74"
+  }
+}

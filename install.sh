@@ -72,6 +72,21 @@ if [[ -f "$SCRIPT_DIR/scripts/lgit" ]]; then
     chmod +x "$HOME/.local/bin/lgit"
 fi
 
+# 5. Install Claude Code settings using TypeScript installer
+if [[ -f "$SCRIPT_DIR/claude/settings.json" && -f "$SCRIPT_DIR/typescript/scripts/install-settings.ts" ]]; then
+    echo "Installing Claude Code settings..."
+    if command -v bun &> /dev/null; then
+        if bun run "$SCRIPT_DIR/typescript/scripts/install-settings.ts" "$SCRIPT_DIR/claude/settings.json"; then
+            echo "Claude Code settings installed successfully"
+        else
+            echo "Warning: Failed to install Claude Code settings"
+        fi
+    else
+        echo "Warning: bun not found, skipping Claude Code settings installation"
+        echo "Install bun to enable settings installation: https://bun.sh"
+    fi
+fi
+
 echo ""
 echo "Installation complete!"
 

@@ -1,0 +1,38 @@
+{
+  "apiKeyHelper": "/usr/local/bin/generate-claude-key.sh",
+  "cleanupPeriodDays": 20,
+  "includeCoAuthoredBy": false,
+  "env": {
+    "NODE_ENV": "development",
+    "DEBUG": "true",
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1"
+  },
+  "permissions": {
+    "allow": [
+      "WebFetch",
+      "WebSearch",
+      "Bash(npm run lint)",
+      "Bash(npm run test:*)",
+      "Bash(bun run type-check)",
+      "Bash(bun run lint)",
+      "Bash(bun run test)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(pwd:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(echo:*)"
+    ],
+    "deny": [
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(rm:*)"
+    ],
+    "additionalDirectories": [
+      "~/projects",
+      "~/workspace"
+    ],
+    "defaultMode": "strict"
+  }
+}

@@ -1,0 +1,132 @@
+# Claude Code Settings Manager
+
+TypeScript types and utilities for managing Claude Code settings.json configuration files.
+
+## Features
+
+- **Complete TypeScript Types**: Comprehensive type definitions for Claude Code settings using Zod
+- **Settings Installation**: Deep merge functionality for installing settings while preserving existing configuration
+- **Validation**: Runtime validation of settings files using Zod schemas
+- **CLI Interface**: Command-line tool for installing settings files
+
+## Installation
+
+```bash
+bun install
+```
+
+## Usage
+
+### CLI Usage
+
+Install settings from a JSON file:
+
+```bash
+bun run install-settings example-settings.json
+```
+
+Or use the built version:
+
+```bash
+bun run build
+./dist/install-settings.js example-settings.json
+```
+
+### Programmatic Usage
+
+```typescript
+import { 
+  ClaudeCodeSettings, 
+  validateSettings, 
+  installSettings 
+} from './lib/claude-code-settings.js';
+
+// Validate settings
+const settings = validateSettings({
+  permissions: {
+    tools: {
+      filesystem: true,
+      bash: true
+    }
+  }
+});
+
+// Install settings programmatically
+installSettings(settings);
+```
+
+## Type Definitions
+
+The library provides comprehensive TypeScript types for:
+
+- `ClaudeCodeSettings` - Main settings interface
+- `Permissions` - Permission configuration with allow/deny rules
+
+## Settings Structure
+
+```json
+{
+  "apiKeyHelper": "/usr/local/bin/generate-claude-key.sh",
+  "cleanupPeriodDays": 20,
+  "includeCoAuthoredBy": false,
+  "env": {
+    "NODE_ENV": "development",
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1"
+  },
+  "permissions": {
+    "allow": [
+      "WebFetch",
+      "WebSearch",
+      "Bash(npm run lint)",
+      "Bash(npm run test:*)",
+      "Bash(git diff:*)"
+    ],
+    "deny": [
+      "Bash(curl:*)",
+      "Bash(rm:*)"
+    ],
+    "additionalDirectories": [
+      "~/projects",
+      "~/workspace"
+    ],
+    "defaultMode": "strict"
+  }
+}
+```
+
+## Available Settings
+
+- **`apiKeyHelper`** - Path to script for generating auth value
+- **`cleanupPeriodDays`** - Days to retain chat transcripts (default: 30)
+- **`includeCoAuthoredBy`** - Include "co-authored-by Claude" in git commits (default: true)
+- **`env`** - Environment variables to set
+- **`permissions.allow`** - Array of allowed permission rules
+- **`permissions.deny`** - Array of denied permission rules
+- **`permissions.additionalDirectories`** - Extra directories that can be accessed
+- **`permissions.defaultMode`** - Default permission mode
+- **`permissions.disableBypassPermissionsMode`** - Set to "disable" to prevent bypass mode
+
+## Permission Rules
+
+Permission rules follow the format `Tool(pattern)`:
+- `WebFetch` - Allow web fetching
+- `WebSearch` - Allow web searching
+- `Bash(npm run lint)` - Allow specific bash command
+- `Bash(git diff:*)` - Allow git diff with any arguments
+- `Bash(curl:*)` - Allow curl with any arguments (often denied for security)
+
+## Scripts
+
+- `bun run build` - Build the CLI tool
+- `bun run install-settings <file>` - Install settings from a file
+- `bun run type-check` - Type check the project
+- `bun run dev <file>` - Run the installer in development mode
+
+## Deep Merge Behavior
+
+The installer performs a deep merge of settings:
+
+- Objects are merged recursively
+- Arrays are replaced entirely (not merged)
+- Primitive values are replaced
+- Existing configuration is preserved where not overwritten

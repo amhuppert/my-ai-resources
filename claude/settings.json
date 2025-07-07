@@ -1,0 +1,24 @@
+{
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Bash(bun run lint)",
+      "Bash(bun run test)",
+      "Bash(bun run type-check)",
+      "Bash(cat:*)",
+      "Bash(cd:*)",
+      "Bash(echo:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git status:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run test)",
+      "Bash(npm run type-check)",
+      "Bash(pwd:*)",
+      "WebFetch",
+      "WebSearch"
+    ]
+  }
+}
