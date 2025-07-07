@@ -60,10 +60,10 @@ if [[ -d "$SCRIPT_DIR/agent-docs" ]]; then
     sync_directory "$SCRIPT_DIR/agent-docs" "$HOME/.claude/agent-docs"
 fi
 
-# 3. commands/ -> ~/.claude/commands
-if [[ -d "$SCRIPT_DIR/commands" ]]; then
-    echo "Syncing commands -> ~/.claude/commands"
-    sync_directory "$SCRIPT_DIR/commands" "$HOME/.claude/commands"
+# 3. claude/commands/ -> ~/.claude/commands
+if [[ -d "$SCRIPT_DIR/claude/commands" ]]; then
+    echo "Syncing claude/commands -> ~/.claude/commands"
+    sync_directory "$SCRIPT_DIR/claude/commands" "$HOME/.claude/commands"
 fi
 
 # 4. scripts/lgit -> ~/.local/bin/lgit
