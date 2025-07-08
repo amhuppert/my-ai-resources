@@ -35,18 +35,31 @@ fi
 
 # 5. Install MCP servers for Claude Code
 echo "Adding Context7 MCP server"
-claude mcp add --transport http context7 https://mcp.context7.com/mcp
+claude mcp add --transport http context7 https://mcp.context7.com/mcp --scope user
 
 # 6. Install Hooks
 echo "Installing Hooks"
 
-echo "Installing rins_hooks"
-bun install -g rins_hooks
+echo "Installing rins_hooks from fork"
+# Clone the rins_hooks fork if it doesn't exist
+if [ ! -d "$HOME/rins_hooks" ]; then
+    echo "Cloning rins_hooks fork..."
+    git clone https://github.com/amhuppert/rins_hooks.git "$HOME/rins_hooks"
+else
+    echo "rins_hooks fork already exists, updating..."
+    cd "$HOME/rins_hooks"
+    git pull
+    cd - > /dev/null
+fi
 
-echo "Installing notifications hook with rins_hooks"
-rins_hooks install notification
+# Install globally with bun link
+echo "Installing rins_hooks globally with bun link..."
+cd "$HOME/rins_hooks"
+bun install
+bun link
+cd - > /dev/null
 
-echo "Installing code formatter hook with rins_hooks"
-rins_hooks install code-formatter
+echo "Installing notifications and code-formatter hooks with rins_hooks"
+rins_hooks install notification code-formatter --user
 
 print_installation_footer "user-level"
