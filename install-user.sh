@@ -33,4 +33,20 @@ else
     echo "Install bun to enable settings installation: https://bun.sh"
 fi
 
+# 5. Install MCP servers for Claude Code
+echo "Adding Context7 MCP server"
+claude mcp add --transport http context7 https://mcp.context7.com/mcp
+
+# 6. Install Hooks
+echo "Installing Hooks"
+
+echo "Installing rins_hooks"
+bun install -g rins_hooks
+
+echo "Installing notifications hook with rins_hooks"
+rins_hooks install notification
+
+echo "Installing code formatter hook with rins_hooks"
+rins_hooks install code-formatter
+
 print_installation_footer "user-level"
