@@ -3,12 +3,11 @@
 ## Auto-Checkpointing
 
 <critical>
-  BEFORE making any edits, create a checkpoint commit using:
-  `git commit -am "[AUTO] Before {brief summary of intended changes}"`
+  ALWAYS create checkpoints making BEFORE edits: `git commit -am "[AUTO] Before {brief summary}"`
+  
+  NEVER commit to `main` branch. If on `main`, create `feat/{branch-name}` branch first.
 </critical>
 
-<critical>
-  Do not commit to the `main` branch. If the current branch is `main`, first create a new branch named 'feat/{some-branch-name}' then make the auto-checkpoint commit.
-</critical>
+## MCP Tools
 
-This ensures you can always revert changes if needed.
+- Use context7 MCP tools for latest 3rd party library docs.
