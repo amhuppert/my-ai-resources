@@ -41,3 +41,31 @@ When you `git switch feature/foo`, private repo also switches to `feature/foo`.
 - Use `lgit` for any operations on `.cursor/`, `memory-bank/`, or other private files
 - Use regular `git` for shared project files
 - Private files are invisible to teammates (in `.gitignore`)
+
+## Common Issues & Fixes
+
+**Problem**: Can't see remote branches or pull changes from origin
+
+**Symptoms**:
+
+- `lgit branch -r` shows no remote branches
+- `lgit pull` fails or doesn't sync changes
+- `lgit push` works but pull doesn't
+
+**Root Cause**: Missing remote fetch configuration in `.local` repository
+
+**Fix**:
+
+```bash
+# Add fetch refspec for remote tracking branches
+git --git-dir=".local" --work-tree="." config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+
+# Fetch to set up remote tracking branches
+git --git-dir=".local" --work-tree="." fetch origin
+```
+
+**Verification**:
+
+- `lgit branch -r` should show `origin/main` and other remote branches
+- `lgit branch -vv` should show local `main` tracking `[origin/main]`
+- `lgit pull` should work correctly
