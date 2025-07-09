@@ -35,7 +35,7 @@ fi
 
 # 5. Install MCP servers for Claude Code
 echo "Adding Context7 MCP server"
-claude mcp add --transport http context7 https://mcp.context7.com/mcp --scope user
+claude mcp add --transport sse context7 https://mcp.context7.com/sse --scope user
 
 # 6. Install Hooks
 echo "Installing Hooks"

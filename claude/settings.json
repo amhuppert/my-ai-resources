@@ -18,7 +18,9 @@
       "Bash(npm run type-check)",
       "Bash(pwd:*)",
       "WebFetch",
-      "WebSearch"
+      "WebSearch",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs"
     ]
   }
 }
