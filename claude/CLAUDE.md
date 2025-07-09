@@ -11,3 +11,7 @@
 ## MCP Tools
 
 - Use context7 MCP tools for latest 3rd party library docs.
+
+## Rules
+
+- Code formatter runs automatically in PostToolUse hook; do NOT run formatter again.
