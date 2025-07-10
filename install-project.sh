@@ -14,4 +14,7 @@ print_installation_header "project-level" "$SCRIPT_DIR"
 # 1. cursor/rules -> .cursor/rules in current working directory
 install_directory "$SCRIPT_DIR/cursor/rules" "$(pwd)/.cursor/rules" "Syncing cursor/rules -> $(pwd)/.cursor/rules"
 
+# 2. claude/CLAUDE-project.md -> CLAUDE.md in current working directory
+install_claude_md "$SCRIPT_DIR/claude/CLAUDE-project.md" "$(pwd)/CLAUDE.md" "Installing project-level CLAUDE.md -> $(pwd)/CLAUDE.md" "project-instructions"
+
 print_installation_footer "project-level"

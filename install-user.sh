@@ -17,10 +17,14 @@ install_directory "$SCRIPT_DIR/agent-docs" "$HOME/.claude/agent-docs" "Syncing a
 # 2. claude/commands/ -> ~/.claude/commands
 install_directory "$SCRIPT_DIR/claude/commands" "$HOME/.claude/commands" "Syncing claude/commands -> ~/.claude/commands"
 
-# 3. scripts/lgit -> ~/.local/bin/lgit
-install_file "$SCRIPT_DIR/scripts/lgit" "$HOME/.local/bin/lgit" "Installing lgit -> ~/.local/bin/lgit" "true"
+# 3. claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md
+install_claude_md "$SCRIPT_DIR/claude/CLAUDE-user.md" "$HOME/.claude/CLAUDE.md" "Installing claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md"
 
-# 4. Install Claude Code settings using TypeScript installer
+# 4. Install scripts
+install_file "$SCRIPT_DIR/scripts/lgit" "$HOME/.local/bin/lgit" "Installing lgit -> ~/.local/bin/lgit" "true"
+install_file "$SCRIPT_DIR/scripts/code-tree" "$HOME/.local/bin/code-tree" "Installing code-tree -> ~/.local/bin/code-tree" "true"
+
+# 5. Install Claude Code settings using TypeScript installer
 echo "Installing Claude Code user-level settings..."
 if command -v bun &> /dev/null; then
     if bun run "$SCRIPT_DIR/typescript/scripts/install-settings.ts" "$SCRIPT_DIR/claude/settings.json"; then
@@ -33,11 +37,11 @@ else
     echo "Install bun to enable settings installation: https://bun.sh"
 fi
 
-# 5. Install MCP servers for Claude Code
+# 6. Install MCP servers for Claude Code
 echo "Adding Context7 MCP server"
 claude mcp add --transport sse context7 https://mcp.context7.com/sse --scope user
 
-# 6. Install Hooks
+# 7. Install Hooks
 echo "Installing Hooks"
 
 echo "Installing rins_hooks from fork"

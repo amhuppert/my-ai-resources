@@ -56,7 +56,9 @@ Here's an example of a good commit message format:
 ```
 Implement user authentication feature
 
-Add login and registration endpoints, create user model, and set up JWT token generation
+- Add login and registration endpoints
+- Create user model
+- Set up JWT token generation
 ```
 
 Remember, the key is to be descriptive yet concise, focusing on what was changed and why.

@@ -105,3 +105,48 @@ install_file() {
         echo "Warning: $src_file not found"
     fi
 }
+
+# Function to install CLAUDE.md with XML tag handling
+install_claude_md() {
+    local src_file="$1"
+    local dest_file="$2"
+    local description="$3"
+    local xml_tag="${4:-user-instructions}"
+    
+    if [[ ! -f "$src_file" ]]; then
+        echo "Warning: $src_file not found"
+        return 1
+    fi
+    
+    echo "$description"
+    
+    # Create destination directory if it doesn't exist
+    mkdir -p "$(dirname "$dest_file")"
+    
+    # If destination file doesn't exist, simply copy the source
+    if [[ ! -f "$dest_file" ]]; then
+        cp "$src_file" "$dest_file"
+        return 0
+    fi
+    
+    # Check if destination file contains the specified XML tag
+    if grep -q "<${xml_tag}>" "$dest_file"; then
+        # Create backup
+        local backup_path="${dest_file}__${DATETIME}.bk"
+        cp "$dest_file" "$backup_path"
+        BACKED_UP_FILES+=("$backup_path")
+        
+        # Replace the existing XML tag section
+        # Use sed to delete everything between and including the tags, then append new content
+        sed -i "/<${xml_tag}>/,/<\/${xml_tag}>/d" "$dest_file"
+        cat "$src_file" >> "$dest_file"
+    else
+        # Create backup
+        local backup_path="${dest_file}__${DATETIME}.bk"
+        cp "$dest_file" "$backup_path"
+        BACKED_UP_FILES+=("$backup_path")
+        
+        # Append the new content to the existing file
+        cat "$src_file" >> "$dest_file"
+    fi
+}

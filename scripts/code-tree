@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# Default depth
+DEPTH=3
+
+# Help function
+show_help() {
+    cat << EOF
+Usage: code-tree [DEPTH] [--help]
+
+Description:
+    Display codebase directory structure using tree command.
+    Filters out common build artifacts, dependencies, and hidden files.
+
+Arguments:
+    DEPTH       Maximum depth to display (default: 3)
+    --help      Show this help message
+
+Examples:
+    code-tree           # Show structure with depth 3
+    code-tree 5         # Show structure with depth 5
+    code-tree --help    # Show this help message
+
+EOF
+}
+
+# Parse arguments
+for arg in "$@"; do
+    case $arg in
+        --help)
+            show_help
+            exit 0
+            ;;
+        *)
+            if [[ $arg =~ ^[0-9]+$ ]]; then
+                DEPTH=$arg
+            else
+                echo "Error: Invalid argument '$arg'"
+                echo "Use --help for usage information"
+                exit 1
+            fi
+            ;;
+    esac
+done
+
+tree -d -L $DEPTH \
+     -I '.*|node_modules|dist|build|coverage|__pycache__|venv|.venv|env|.git'
