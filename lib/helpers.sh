@@ -59,7 +59,7 @@ print_installation_footer() {
     local install_type="$1"
     
     echo ""
-    echo "${install_type^} installation complete!"
+    echo "${install_type} installation complete!"
     
     # Print list of backed up files
     if [[ ${#BACKED_UP_FILES[@]} -gt 0 ]]; then
