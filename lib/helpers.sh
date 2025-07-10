@@ -138,7 +138,11 @@ install_claude_md() {
         
         # Replace the existing XML tag section
         # Use sed to delete everything between and including the tags, then append new content
-        sed -i "\|<${xml_tag}>|,\|</${xml_tag}>|d" "$dest_file"
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "/<${xml_tag}>/,/<\/${xml_tag}>/d" "$dest_file"
+        else
+            sed -i "/<${xml_tag}>/,/<\/${xml_tag}>/d" "$dest_file"
+        fi
         cat "$src_file" >> "$dest_file"
     else
         # Create backup
