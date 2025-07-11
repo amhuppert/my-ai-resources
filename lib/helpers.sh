@@ -111,7 +111,7 @@ install_claude_md() {
     local src_file="$1"
     local dest_file="$2"
     local description="$3"
-    local xml_tag="${4:-user-instructions}"
+    local xml_tag="${4:-user-level-instructions}"
     
     if [[ ! -f "$src_file" ]]; then
         echo "Warning: $src_file not found"

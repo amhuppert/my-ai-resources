@@ -1,4 +1,4 @@
-<project-instructions>
+<project-level-instructions>
 
 ## Memory Bank
 
@@ -9,4 +9,4 @@ Files:
 - @memory-bank/project-brief.md - Project brief (directory structure and foundational information about the project)
 - @memory-bank/focus.md - Current focus: work-in-progress, progress, remaining tasks
 
-</project-instructions>
+</project-level-instructions>
