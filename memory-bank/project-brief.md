@@ -2,48 +2,85 @@
 
 ## Purpose
 
-The repository serves as a centralized collection of AI workflow resources that can be installed across different development environments to provide consistent tooling and configuration for AI-assisted development.
+Centralized AI workflow resources for consistent tooling across development environments.
 
 ## Directory Structure
 
 ```
 .
-├── agent-docs/                    # Docs intended for AI
-├── claude/                        # Support for Claude Code
-│   └── commands/                  # Custom Claude Code slash commands
-│       └── local/                 # Dual-repo specific commands
-├── cursor/                        # Support for Cursor IDE
-│   ├── archived-rules/            # Rules that won't be installed
-│   └── rules/                     # General Cursor project rules
-├── lib/                           # Shared utility functions
-├── prompts/                       # LLM prompt templates
-│   ├── explain/                   # Content creation templates
-│   └── optimize-instructions-for-ai/ # Instruction optimization templates
-├── scripts/                       # Utility scripts
-└── typescript/                    # TypeScript utilities
-    ├── lib/                       # Core TypeScript library
-    └── scripts/                   # TypeScript scripts
+├── agent-docs/                    # AI docs: permissions, dual-repo workflows
+├── claude/commands/               # Custom slash commands (6 total)
+│   ├── commit.md                  # Smart git commits + branch protection
+│   ├── compress.md                # AI instruction optimizer
+│   ├── reflection.md              # CLAUDE.md improvement advisor
+│   ├── update-project-brief.md    # Project doc updater
+│   └── local/                     # Dual-repo commands
+│       ├── local-commit.md        # Private repo commits
+│       └── local-init.md          # Private repo setup
+├── cursor/rules/                  # Cursor IDE workflow system (5 active)
+│   ├── core.mdc                   # Four-mode workflow: Research→Plan→Act+Fast
+│   ├── memory-bank.mdc            # Persistent project context
+│   └── archived-rules/            # Deprecated rules
+├── lib/helpers.sh                 # Installer utilities + backup management
+├── memory-bank/project-brief.md   # Persistent context for Claude Code
+├── prompts/                       # LLM templates (4 files)
+│   ├── explain/                   # Technical guide generators
+│   └── optimize-instructions-for-ai/ # Three-tier optimization system
+├── scripts/                       # Utilities
+│   ├── code-tree                  # Directory visualizer
+│   └── lgit                       # Local git wrapper
+└── typescript/                    # Settings management package
+    ├── lib/claude-code-settings.ts # Zod schemas + type definitions
+    ├── scripts/install-settings.ts # CLI settings installer
+    └── dist/install-settings.js   # Built executable
 ```
 
 ## Key Components
 
-### TypeScript Tools (`typescript/`)
+<critical>
+**Claude Code Commands** - 6 slash commands for git, optimization, reflection, docs
+**Cursor Rules** - Research→Plan→Act+Fast workflow with persistent memory
+**TypeScript Tools** - Type-safe settings management with Zod validation
+**Installation System** - User/project-level with automatic backups
+</critical>
 
-- **CLI Interface**: Command-line tools for settings management / installation helpers
+### Commands
 
-## Installation System
+- `/commit` - Smart git commits with branch protection
+- `/compress` - AI instruction optimizer
+- `/reflection` - CLAUDE.md improvement suggestions
+- `/update-project-brief` - Automated project documentation
+- `/local-commit` - Private repo commits via lgit
+- `/local-init` - Dual-repo setup
 
-The repository provides two installation scripts:
+### Cursor Workflow
 
-### User-Level Installation (`install-user.sh`)
+- **Four modes**: Research → Plan → Act + Fast
+- **Memory bank**: Hierarchical persistent context
+- **TypeScript standards**: Type safety enforcement
+- **Rule framework**: Meta-rules for configuration
 
-- Syncs agent-docs → ~/.claude/agent-docs
-- Syncs claude/commands → ~/.claude/commands
-- Installs lgit script → ~/.local/bin/lgit
-- Installs Claude Code settings using TypeScript utilities
-- Installs user-level CLAUDE.md
+### TypeScript Package
 
-### Project-Level Installation (`install-project.sh`)
+- **Type safety**: Zod-based schemas for settings validation
+- **CLI tools**: Settings installation/merging utilities
+- **Permissions**: Granular tool control
+- **Build**: Bun-compiled executables
 
-- Syncs cursor/rules → .cursor/rules (Cursor IDE configuration)
-- Installs project-level CLAUDE.md
+## Installation
+
+<required>
+**User-level** (`install-user.sh`):
+- agent-docs → ~/.claude/agent-docs
+- claude/commands → ~/.claude/commands
+- lgit → ~/.local/bin/lgit
+- Claude Code settings (TypeScript)
+- User-level CLAUDE.md
+
+**Project-level** (`install-project.sh`):
+
+- cursor/rules → .cursor/rules
+- Project-level CLAUDE.md
+
+**Safety**: Automatic timestamped backups, cross-platform, merge support
+</required>
