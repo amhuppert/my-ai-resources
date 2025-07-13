@@ -7,14 +7,16 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "bun build scripts/install-settings.ts --outdir=dist --target=bun && bun build scripts/json-to-zod-to-json-schema.ts --outdir=dist --target=bun",
+    "build": "bun build scripts/install-settings.ts --outdir=dist --target=bun && bun build scripts/install-hooks.ts --outdir=dist --target=bun && bun build scripts/json-to-zod-to-json-schema.ts --outdir=dist --target=bun",
     "install-settings": "bun run scripts/install-settings.ts",
+    "install-hooks": "bun run scripts/install-hooks.ts",
     "dev": "bun run scripts/install-settings.ts",
     "type-check": "tsc --noEmit",
     "json-to-schema": "bun run scripts/json-to-zod-to-json-schema.ts"
   },
   "bin": {
     "claude-settings": "dist/install-settings.js",
+    "claude-hooks": "dist/install-hooks.js",
     "json-to-schema": "dist/json-to-zod-to-json-schema.js"
   },
   "files": [

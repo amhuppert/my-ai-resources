@@ -1,6 +1,40 @@
 import { z } from "zod";
 
 /**
+ * Individual hook configuration
+ */
+export const HookConfigSchema = z.object({
+  /** Hook type (e.g., "shell") */
+  type: z.string(),
+  /** Command to execute */
+  command: z.string(),
+  /** Timeout in milliseconds */
+  timeout: z.number(),
+});
+
+/**
+ * Hook matcher configuration
+ */
+export const HookMatcherSchema = z.object({
+  /** Pattern to match against */
+  matcher: z.string(),
+  /** Array of hooks to execute */
+  hooks: z.array(HookConfigSchema),
+});
+
+/**
+ * Hooks configuration for Claude Code
+ */
+export const HooksSchema = z
+  .object({
+    /** Notification hooks */
+    Notification: z.array(HookMatcherSchema).optional(),
+    /** Post-tool-use hooks */
+    PostToolUse: z.array(HookMatcherSchema).optional(),
+  })
+  .strict();
+
+/**
  * Permissions configuration for Claude Code
  */
 export const PermissionsSchema = z.object({
@@ -30,9 +64,14 @@ export const ClaudeCodeSettingsSchema = z.object({
   includeCoAuthoredBy: z.boolean().optional(),
   /** Permissions configuration */
   permissions: PermissionsSchema.optional(),
+  /** Hooks configuration */
+  hooks: HooksSchema.optional(),
 });
 
 // Export types
+export type HookConfig = z.infer<typeof HookConfigSchema>;
+export type HookMatcher = z.infer<typeof HookMatcherSchema>;
+export type Hooks = z.infer<typeof HooksSchema>;
 export type Permissions = z.infer<typeof PermissionsSchema>;
 export type ClaudeCodeSettings = z.infer<typeof ClaudeCodeSettingsSchema>;
 

@@ -17,4 +17,24 @@ install_directory "$SCRIPT_DIR/cursor/rules" "$(pwd)/.cursor/rules" "Syncing cur
 # 2. claude/CLAUDE-project.md -> CLAUDE.md in current working directory
 install_claude_md "$SCRIPT_DIR/claude/CLAUDE-project.md" "$(pwd)/CLAUDE.md" "Installing project-level CLAUDE.md -> $(pwd)/CLAUDE.md" "project-level-instructions"
 
+# 3. Install notification hook if audio file exists
+if [[ -f ".claude/notification.mp3" ]]; then
+    echo "Installing notification hook for .claude/notification.mp3"
+    if command -v bun &> /dev/null; then
+        if bun run "$SCRIPT_DIR/typescript/scripts/install-hooks.ts" \
+            "Notification" "*" \
+            "ffplay -nodisp -autoexit -loglevel quiet ./.claude/notification.mp3 < /dev/null" \
+            --project --timeout=5000; then
+            echo "Notification hook installed successfully"
+        else
+            echo "Warning: Failed to install notification hook"
+        fi
+    else
+        echo "Warning: bun not found, skipping notification hook installation"
+        echo "Install bun to enable hook installation: https://bun.sh"
+    fi
+else
+    echo "No .claude/notification.mp3 found, skipping notification hook installation"
+fi
+
 print_installation_footer "project-level"
