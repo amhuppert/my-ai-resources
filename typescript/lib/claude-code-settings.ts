@@ -1,15 +1,32 @@
 import { z } from "zod";
 
 /**
+ * Valid hook types for Claude Code
+ */
+export const HookTypeSchema = z.literal("command");
+
+/**
+ * Valid hook events for Claude Code
+ */
+export const HookEventSchema = z.enum([
+  "PreToolUse",
+  "PostToolUse",
+  "Notification",
+  "Stop",
+  "SubagentStop",
+  "PreCompact",
+]);
+
+/**
  * Individual hook configuration
  */
 export const HookConfigSchema = z.object({
-  /** Hook type (e.g., "shell") */
-  type: z.string(),
+  /** Hook type - must be "command" */
+  type: HookTypeSchema,
   /** Command to execute */
   command: z.string(),
-  /** Timeout in milliseconds */
-  timeout: z.number(),
+  /** Timeout in seconds (optional) */
+  timeout: z.number().positive().optional(),
 });
 
 /**
@@ -27,10 +44,18 @@ export const HookMatcherSchema = z.object({
  */
 export const HooksSchema = z
   .object({
-    /** Notification hooks */
-    Notification: z.array(HookMatcherSchema).optional(),
+    /** Pre-tool-use hooks */
+    PreToolUse: z.array(HookMatcherSchema).optional(),
     /** Post-tool-use hooks */
     PostToolUse: z.array(HookMatcherSchema).optional(),
+    /** Notification hooks */
+    Notification: z.array(HookMatcherSchema).optional(),
+    /** Stop hooks */
+    Stop: z.array(HookMatcherSchema).optional(),
+    /** Subagent stop hooks */
+    SubagentStop: z.array(HookMatcherSchema).optional(),
+    /** Pre-compact hooks */
+    PreCompact: z.array(HookMatcherSchema).optional(),
   })
   .strict();
 
@@ -69,6 +94,8 @@ export const ClaudeCodeSettingsSchema = z.object({
 });
 
 // Export types
+export type HookType = z.infer<typeof HookTypeSchema>;
+export type HookEvent = z.infer<typeof HookEventSchema>;
 export type HookConfig = z.infer<typeof HookConfigSchema>;
 export type HookMatcher = z.infer<typeof HookMatcherSchema>;
 export type Hooks = z.infer<typeof HooksSchema>;

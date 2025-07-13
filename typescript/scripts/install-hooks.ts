@@ -5,12 +5,18 @@ import { join } from "path";
 import { homedir } from "os";
 import { deepMerge } from "@/scripts/install-settings.js";
 import type {
+  HookEvent,
+  HookType,
   HookConfig,
   HookMatcher,
   Hooks,
   ClaudeCodeSettings,
 } from "@/lib/claude-code-settings.js";
-import { ClaudeCodeSettingsSchema } from "@/lib/claude-code-settings.js";
+import {
+  ClaudeCodeSettingsSchema,
+  HookEventSchema,
+  HookTypeSchema,
+} from "@/lib/claude-code-settings.js";
 
 /**
  * Get Claude Code settings directory for project-level
@@ -108,11 +114,11 @@ function hookExists(
  * Install a hook to Claude Code settings
  */
 function installHook(
-  hookType: keyof Hooks,
+  hookType: HookEvent,
   matcher: string,
   command: string,
-  type: string = "shell",
-  timeout: number = 5000,
+  type: HookType = "command",
+  timeout?: number,
   isProject: boolean = false,
 ): void {
   // Load existing settings
@@ -145,7 +151,7 @@ function installHook(
   const newHookConfig: HookConfig = {
     type,
     command,
-    timeout,
+    ...(timeout !== undefined && { timeout }),
   };
 
   // Find existing matcher or create new one
@@ -180,40 +186,56 @@ function installHook(
 function parseArgs(args: string[]) {
   if (args.length < 3) {
     throw new Error(
-      "Usage: bun run install-hooks.ts <hook-type> <matcher> <command> [--project|--user] [--type=shell] [--timeout=5000]",
+      "Usage: bun run install-hooks.ts <hook-type> <matcher> <command> [--project|--user] [--type=command] [--timeout=5]",
     );
   }
 
-  const hookType = args[0] as keyof Hooks;
+  const hookType = args[0] as HookEvent;
   const matcher = args[1];
   const command = args[2];
 
   // Validate hook type
-  if (!["Notification", "PostToolUse"].includes(hookType)) {
+  const validHookTypes = HookEventSchema.options;
+  if (!validHookTypes.includes(hookType)) {
     throw new Error(
-      `Invalid hook type: ${hookType}. Must be "Notification" or "PostToolUse"`,
+      `Invalid hook type: ${hookType}. Must be one of: ${validHookTypes.join(", ")}`,
     );
   }
 
   // Parse options
   let isProject = false;
-  let type = "shell";
-  let timeout = 5000;
+  let type: HookType = "command";
+  let timeout: number | undefined = undefined;
 
   for (let i = 3; i < args.length; i++) {
-    const arg = args[i];
+    const arg = args[i]!; // Safe because we're within bounds
 
     if (arg === "--project") {
       isProject = true;
     } else if (arg === "--user") {
       isProject = false;
     } else if (arg.startsWith("--type=")) {
-      type = arg.split("=")[1];
-    } else if (arg.startsWith("--timeout=")) {
-      timeout = parseInt(arg.split("=")[1], 10);
-      if (isNaN(timeout)) {
-        throw new Error(`Invalid timeout value: ${arg.split("=")[1]}`);
+      const parts = arg.split("=");
+      if (parts.length !== 2 || !parts[1]) {
+        throw new Error("Invalid --type option format. Use --type=command");
       }
+      const typeValue = parts[1] as HookType;
+      if (typeValue !== "command") {
+        throw new Error(`Invalid type value: ${typeValue}. Must be "command"`);
+      }
+      type = typeValue;
+    } else if (arg.startsWith("--timeout=")) {
+      const parts = arg.split("=");
+      if (parts.length !== 2 || !parts[1]) {
+        throw new Error("Invalid --timeout option format. Use --timeout=5");
+      }
+      const timeoutValue = parseInt(parts[1], 10);
+      if (isNaN(timeoutValue) || timeoutValue <= 0) {
+        throw new Error(
+          `Invalid timeout value: ${parts[1]}. Must be a positive number in seconds`,
+        );
+      }
+      timeout = timeoutValue;
     } else {
       throw new Error(`Unknown option: ${arg}`);
     }

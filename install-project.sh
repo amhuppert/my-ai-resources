@@ -24,7 +24,7 @@ if [[ -f ".claude/notification.mp3" ]]; then
         if bun run "$SCRIPT_DIR/typescript/scripts/install-hooks.ts" \
             "Notification" "*" \
             "ffplay -nodisp -autoexit -loglevel quiet ./.claude/notification.mp3 < /dev/null" \
-            --project --timeout=5000; then
+            --project --timeout=5; then
             echo "Notification hook installed successfully"
         else
             echo "Warning: Failed to install notification hook"
