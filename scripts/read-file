@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+# Read file and output in XML format for LLM context
+# Replacement for Claude Code @syntax in user-level commands
+
+# Help function
+show_help() {
+    cat << EOF
+Usage: read-file <FILE_PATH> [DESCRIPTION] [--help]
+
+Description:
+    Read file contents and output in XML format for LLM context.
+    Replacement for Claude Code @syntax that allows project-relative paths in user-level commands.
+
+Arguments:
+    FILE_PATH   Path to the file to read
+    DESCRIPTION Optional description for the file (added as XML attribute)
+    --help      Show this help message
+
+Output Format:
+    For existing files:
+    <file path="{PATH}" exists="true" description="{DESCRIPTION}">
+    {file content}
+    </file>
+
+    For existing files without description:
+    <file path="{PATH}" exists="true">
+    {file content}
+    </file>
+
+    For non-existent files:
+    <file path="{PATH}" exists="false" />
+
+Examples:
+    read-file docs/readme.md                    # Read docs/readme.md
+    read-file src/main.js "Main application"    # Read with description
+    read-file missing.txt                       # Non-existent file
+    read-file --help                            # Show this help message
+
+EOF
+}
+
+# Parse arguments
+if [[ $# -eq 0 ]]; then
+    echo "Error: No file path provided"
+    echo "Use --help for usage information"
+    exit 1
+fi
+
+file_path=""
+description=""
+arg_count=0
+
+for arg in "$@"; do
+    case $arg in
+        --help)
+            show_help
+            exit 0
+            ;;
+        *)
+            arg_count=$((arg_count + 1))
+            if [[ $arg_count -eq 1 ]]; then
+                file_path="$arg"
+            elif [[ $arg_count -eq 2 ]]; then
+                description="$arg"
+            else
+                echo "Error: Too many arguments. Maximum two arguments allowed."
+                echo "Use --help for usage information"
+                exit 1
+            fi
+            ;;
+    esac
+done
+
+# Validate file path provided
+if [[ -z "$file_path" ]]; then
+    echo "Error: No file path provided"
+    echo "Use --help for usage information"
+    exit 1
+fi
+
+# Check if file exists and is readable
+if [[ ! -f "$file_path" ]]; then
+    # File doesn't exist - output XML with exists="false"
+    if [[ -n "$description" ]]; then
+        echo "<file path=\"$file_path\" exists=\"false\" description=\"$description\" />"
+    else
+        echo "<file path=\"$file_path\" exists=\"false\" />"
+    fi
+    exit 0
+fi
+
+if [[ ! -r "$file_path" ]]; then
+    echo "Error: File '$file_path' is not readable"
+    exit 1
+fi
+
+# Output file content in XML format with exists="true"
+if [[ -n "$description" ]]; then
+    echo "<file path=\"$file_path\" exists=\"true\" description=\"$description\">"
+else
+    echo "<file path=\"$file_path\" exists=\"true\">"
+fi
+cat "$file_path"
+echo "</file>" 

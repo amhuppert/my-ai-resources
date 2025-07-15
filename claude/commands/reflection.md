@@ -8,9 +8,14 @@ You are an expert in prompt engineering, specializing in optimizing AI code assi
    Review the chat history in your context window.
 
 Then, examine the current Claude instructions:
-<claude_instructions>
-@CLAUDE.md
-</claude_instructions>
+User-level CLAUDE.md:
+!`read-file ~/.claude/CLAUDE.md "User-level Claude instructions"`
+
+Project-level CLAUDE.md:
+!`read-file ./CLAUDE.md "Project-level Claude instructions"`
+
+Project-level CLAUDE.local.md:
+!`read-file ./CLAUDE.local.md "Local project-level Claude instructions"`
 
 Analyze the chat history and instructions to identify areas that could be improved. Look for:
 

@@ -23,6 +23,7 @@ install_claude_md "$SCRIPT_DIR/claude/CLAUDE-user.md" "$HOME/.claude/CLAUDE.md" 
 # 4. Install scripts
 install_file "$SCRIPT_DIR/scripts/lgit" "$HOME/.local/bin/lgit" "Installing lgit -> ~/.local/bin/lgit" "true"
 install_file "$SCRIPT_DIR/scripts/code-tree" "$HOME/.local/bin/code-tree" "Installing code-tree -> ~/.local/bin/code-tree" "true"
+install_file "$SCRIPT_DIR/scripts/read-file" "$HOME/.local/bin/read-file" "Installing read-file -> ~/.local/bin/read-file" "true"
 
 # 5. Install Claude Code settings using TypeScript installer
 echo "Installing Claude Code user-level settings..."

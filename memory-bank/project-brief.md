@@ -28,7 +28,8 @@ Centralized AI workflow resources for consistent tooling across development envi
 │   └── optimize-instructions-for-ai/ # Three-tier optimization system
 ├── scripts/                       # Utilities
 │   ├── code-tree                  # Directory visualizer
-│   └── lgit                       # Local git wrapper
+│   ├── lgit                       # Local git wrapper
+│   └── read-file                  # File reader for LLM context (cat with XML formatting)
 └── typescript/                    # Settings management package
     ├── lib/claude-code-settings.ts # Zod schemas + type definitions
     ├── scripts/install-settings.ts # CLI settings installer
@@ -52,6 +53,12 @@ Centralized AI workflow resources for consistent tooling across development envi
 - `/update-project-brief` - Automated project documentation
 - `/local-commit` - Private repo commits via lgit
 - `/local-init` - Dual-repo setup
+
+### Scripts
+
+- `code-tree` - Directory visualizer with depth control
+- `lgit` - Local git wrapper for dual-repo workflows
+- `read-file` - File reader for LLM context (cat with XML formatting)
 
 ### Cursor Workflow
 
