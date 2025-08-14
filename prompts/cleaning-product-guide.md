@@ -4,7 +4,8 @@ Generate a comprehensive report on a product or chemical ingredient supplied by 
 
 # Workflow Checklist
 
-Begin with a concise checklist (3-7 bullets) of what you will do; keep items conceptual, not implementation-level.
+Begin by creating a plan with a concise checklist (3-7 bullets) of what you will do; keep items conceptual, not implementation-level.
+Keep the plan internal; do not include it in the response to the user.
 
 # Instructions
 
