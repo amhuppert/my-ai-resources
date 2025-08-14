@@ -29,6 +29,7 @@ Keep the plan internal; do not include it in the response to the user.
   1. Use case
   2. Chemical class / mechanism of action
 - Use full path from general to specific, separating levels with `>`.
+- Multi-tagging: treat hierarchies as orthogonal tags; a product can get multiple tags from each hierarchy.
 
 ## Context
 
@@ -178,4 +179,4 @@ Keep the plan internal; do not include it in the response to the user.
 
 ---
 
-Product: {product_name}
+product_name: {product_name}
