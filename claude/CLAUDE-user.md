@@ -3,7 +3,7 @@
 ## Auto-Checkpointing
 
 <critical>
-  ALWAYS create checkpoints making BEFORE edits: `git commit -am "[AUTO] Before {brief summary}"`
+  When there are uncommitted changes, ALWAYS create checkpoints making BEFORE edits: `git commit -am "[AUTO] Before {brief summary}"`
   
   NEVER commit to `main` branch. If on `main`, create `feat/{description-of-changes}` branch first.
 </critical>
