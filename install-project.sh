@@ -37,4 +37,9 @@ else
     echo "No .claude/notification.mp3 found, skipping notification hook installation"
 fi
 
+
+echo "Installing code-formatter hook with rins_hooks"
+rins_hooks install code-formatter --project
+
+
 print_installation_footer "project-level"

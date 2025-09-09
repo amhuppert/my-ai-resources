@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/home/alex/rins_hooks/hooks/code-formatter/index.js\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

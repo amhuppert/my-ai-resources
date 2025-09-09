@@ -64,7 +64,4 @@ bun install
 bun link
 cd - > /dev/null
 
-echo "Installing notifications and code-formatter hooks with rins_hooks"
-rins_hooks install notification code-formatter --user
-
 print_installation_footer "user-level"
