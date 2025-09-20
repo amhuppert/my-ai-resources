@@ -1,0 +1,29 @@
+{
+  "name": "cursor-shortcuts-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Cursor IDE keyboard shortcut management",
+  "main": "src/server.ts",
+  "type": "module",
+  "bin": {
+    "cursor-shortcuts-mcp": "./bin/cursor-shortcuts-mcp"
+  },
+  "scripts": {
+    "dev": "bun run src/server.ts",
+    "build": "bun build src/server.ts --compile --outfile=bin/cursor-shortcuts-mcp",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.5",
+    "jsonc-parser": "^3.2.0",
+    "openai": "^5.22.0",
+    "proper-lockfile": "^4.1.0",
+    "write-file-atomic": "^5.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/proper-lockfile": "^4.1.4",
+    "@types/write-file-atomic": "^4.0.3",
+    "typescript": "^5.0.0"
+  }
+}
