@@ -7,9 +7,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "bun build scripts/install-settings.ts --outdir=dist --target=bun && bun build scripts/install-hooks.ts --outdir=dist --target=bun && bun build scripts/json-to-zod-to-json-schema.ts --outdir=dist --target=bun",
+    "build": "bun build scripts/install-settings.ts --outdir=dist --target=bun && bun build scripts/install-hooks.ts --outdir=dist --target=bun && bun build scripts/json-to-zod-to-json-schema.ts --outdir=dist --target=bun && bun build scripts/init-document-map.ts --outdir=dist --target=bun",
     "install-settings": "bun run scripts/install-settings.ts",
     "install-hooks": "bun run scripts/install-hooks.ts",
+    "init-document-map": "bun run scripts/init-document-map.ts",
     "dev": "bun run scripts/install-settings.ts",
     "type-check": "tsc --noEmit",
     "json-to-schema": "bun run scripts/json-to-zod-to-json-schema.ts"
@@ -17,7 +18,8 @@
   "bin": {
     "claude-settings": "dist/install-settings.js",
     "claude-hooks": "dist/install-hooks.js",
-    "json-to-schema": "dist/json-to-zod-to-json-schema.js"
+    "json-to-schema": "dist/json-to-zod-to-json-schema.js",
+    "init-document-map": "dist/init-document-map.js"
   },
   "files": [
     "lib/",
@@ -39,6 +41,8 @@
   },
   "dependencies": {
     "@types/node": "^24.0.13",
+    "commander": "^14.0.1",
+    "eta": "^4.0.1",
     "json-to-zod": "^1.1.2",
     "prettier": "^3.6.2",
     "zod": "^3.25.74",

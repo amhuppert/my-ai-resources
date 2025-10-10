@@ -1,0 +1,79 @@
+Your task is to create a document map for <%= it.targetDesc %> following the format defined in the reference documentation below.
+
+## Reference Documentation
+
+@agent-docs/document-map-format.md
+@agent-docs/document-map-template.md
+
+## Target Analysis
+
+Directory tree:
+```
+!`cd <%= it.targetPath %> && code-tree <%= it.depth %>`
+```
+
+<% if (it.customInstructions) { %>
+## Custom Instructions
+
+<%= it.customInstructions %>
+<% } %>
+
+## Instructions
+
+1. **Analyze the directory tree** to identify major subsystems/directories (3-5 max)
+2. **Launch parallel Task agents** (ONE ROUND ONLY) to research each subsystem:
+   - Each agent analyzes one subsystem/directory
+   - Each agent identifies **ONLY the most critical 3-8 files**:
+     - Entry points (main.*, index.*, server.*)
+     - Configuration files
+     - Core domain models/types
+     - Key adapters/integrations
+     - Critical README/documentation
+   - Each agent reads those files and writes purpose blurbs
+   - Each agent returns a complete formatted section per the document map format
+
+3. **Wait for all agents** to complete, then merge their sections
+4. **Write the document map** to `<%= it.outputPath %>`
+
+<critical>
+**SELECTIVITY IS KEY**: The document map should be SHORT. Only 3-8 files per subsystem. Omit utilities, tests, generated files, vendor code, and minor components.
+</critical>
+
+## Sub-Agent Prompt Template
+
+Use this structure when creating Task calls:
+
+```
+Task: "Research [SUBSYSTEM/DIRECTORY NAME]"
+Prompt: "Analyze [directory/subsystem] and create a document map section following @agent-docs/document-map-format.md.
+
+**CRITICAL: Only include 3-8 MOST IMPORTANT files. Be highly selective.**
+
+For each selected file:
+1. Read the file
+2. Write 1-2 sentence purpose blurb (~30 words: what/where/why)
+3. For documentation files ONLY: extract markdown headings as bullets
+4. For code files: NO BULLETS, just the purpose blurb
+
+Prioritize:
+- Entry points (main.*, index.*, server.*)
+- Configuration files
+- Core domain models/types
+- Key adapters/integrations
+- Critical README/documentation
+
+OMIT: utilities, tests, generated files, vendor code, minor components.
+
+Return a complete ## section ready to merge into final document map."
+```
+
+## Merging Sub-Agent Output
+
+1. Collect all `## Subsystem` sections from agents
+2. Order sections logically (core → features → utilities → config)
+3. Add document header from @agent-docs/document-map-template.md
+4. Write to `<%= it.outputPath %>`
+
+## Output Location
+
+Write the final document map to: `<%= it.outputPath %>`
