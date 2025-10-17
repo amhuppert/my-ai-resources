@@ -23,20 +23,24 @@ Directory tree:
 1. **Analyze the directory tree** to identify major subsystems/directories (3-5 max)
 2. **Launch parallel Task agents** (ONE ROUND ONLY) to research each subsystem:
    - Each agent analyzes one subsystem/directory
-   - Each agent identifies **ONLY the most critical 3-8 files**:
+   - Each agent **first decides** whether to create a directory-only section or list files:
+     - **Directory-only:** If the directory has a clear role and files are just instances of that role
+     - **File listing:** If specific files have unique significance worth calling out
+   - For directory-only sections: Write 1-2 sentence purpose blurb, mark with `(Directory)`
+   - For file listings: Identify **ONLY the most critical 0-8 files**:
      - Entry points (main.*, index.*, server.*)
      - Configuration files
      - Core domain models/types
      - Key adapters/integrations
      - Critical README/documentation
-   - Each agent reads those files and writes purpose blurbs
+   - Each agent reads selected files and writes purpose blurbs
    - Each agent returns a complete formatted section per the document map format
 
 3. **Wait for all agents** to complete, then merge their sections
 4. **Write the document map** to `<%= it.outputPath %>`
 
 <critical>
-**SELECTIVITY IS KEY**: The document map should be SHORT. Only 3-8 files per subsystem. Omit utilities, tests, generated files, vendor code, and minor components.
+**SELECTIVITY IS KEY**: The document map should be SHORT. Only 0-8 files per subsystem (or just directory blurb). Omit utilities, tests, generated files, vendor code, and minor components.
 </critical>
 
 ## Sub-Agent Prompt Template
@@ -47,13 +51,23 @@ Use this structure when creating Task calls:
 Task: "Research [SUBSYSTEM/DIRECTORY NAME]"
 Prompt: "Analyze [directory/subsystem] and create a document map section following @agent-docs/document-map-format.md.
 
-**CRITICAL: Only include 3-8 MOST IMPORTANT files. Be highly selective.**
+**STEP 0: Decide section type**
+- If the directory has a clear role and files are just instances of that role → Create directory-only section
+- If specific files have unique significance → List those files (0-8 max)
 
-For each selected file:
-1. Read the file
-2. Write 1-2 sentence purpose blurb (~30 words: what/where/why)
-3. For documentation files ONLY: extract markdown headings as bullets
-4. For code files: NO BULLETS, just the purpose blurb
+**For directory-only sections:**
+- Format: `## path/to/directory (Directory)`
+- Write 1-2 sentence purpose blurb explaining directory role, contents, and when to explore it
+- Do NOT list any files
+- Return complete ## section
+
+**For file-listing sections:**
+- Identify ONLY the 0-8 MOST IMPORTANT files
+- For each selected file:
+  1. Read the file
+  2. Write 1-2 sentence purpose blurb (~30 words: what/where/why)
+  3. For documentation files ONLY: extract markdown headings as bullets
+  4. For code files: NO BULLETS, just the purpose blurb
 
 Prioritize:
 - Entry points (main.*, index.*, server.*)
@@ -63,6 +77,10 @@ Prioritize:
 - Critical README/documentation
 
 OMIT: utilities, tests, generated files, vendor code, minor components.
+
+**Important notes:**
+- Subdirectories remain at ## level (do NOT nest within parent sections)
+- A directory can appear as directory-only AND have subdirectories listed separately
 
 Return a complete ## section ready to merge into final document map."
 ```

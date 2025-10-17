@@ -22,27 +22,6 @@ Comprehensive reference for Claude Code tool-specific permission syntax, enablin
 - WebFetch Tool Permissions - Domain-specific restrictions
 - MCP (Model Context Protocol) Tool Permissions - Server-level and tool-level matching
 
-### [agent-docs/local-files-pattern.md](agent-docs/local-files-pattern.md)
-
-Dual-repository architecture guide enabling private versioning of personal files (.cursor/, memory-bank/, CLAUDE.md) alongside team repositories using lgit wrapper and separate .local bare repository.
-
-- Local Changes Versioning Pattern - Dual-repo setup with shared public + private repos
-- Key Commands - lgit wrapper for git operations on private files
-- What's Tracked Privately - Whitelisted private files (.cursor/, memory-bank/, etc.)
-- Branch Sync - Post-checkout hook auto-follows public repo branches
-- Usage for Claude Code - When to use lgit vs regular git
-- Common Issues & Fixes - Remote fetch configuration troubleshooting
-
-### [cursor/rules/core.mdc](cursor/rules/core.mdc)
-
-Defines four-mode workflow state machine (Research → Plan → Act + Fast) with integrated memory management, enforcing systematic context gathering before planning and requiring user approval before code changes.
-
-- Workflow State Machine - Mermaid diagram showing mode transitions and rules
-- Mode Definitions - Research (context), Plan (strategy), Act (execution), Fast (bypass)
-- Commands - Mode transition slash commands (/research, /plan, /act, /fast)
-- Memory Bank Updates - Automatic updates at Act mode start/end
-- Key Rules - Mode transition constraints and workflow enforcement
-
 ### [cursor/rules/memory-bank.mdc](cursor/rules/memory-bank.mdc)
 
 Memory bank architecture specification defining hierarchical file structure (project-brief → productContext/systemPatterns/techContext → activeContext → progress) that provides persistent context across Cursor sessions.

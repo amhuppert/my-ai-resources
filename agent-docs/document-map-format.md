@@ -15,8 +15,34 @@ This file explains the purpose of the **document map** and **exactly how it’s 
   - **###** marks **individual files** within a group.
   - **Nested bullets** show internal structure **for documentation files only**.
   - Each file heading **links to the file** in the repo.
+- Directory sections may have an **optional purpose blurb** without file listings (see "Directory-Level Sections" below).
 
-## Per-File Section Format (Required)
+## Directory-Level Sections
+
+For directories that have a clear, self-contained role in the system, you may provide **only a directory-level purpose blurb** without listing individual files.
+
+**When to use directory-only sections:**
+
+- The directory's purpose is clear and well-defined
+- Individual files are just concrete instances of the directory's role with no special significance of their own
+- Listing files would add noise rather than useful navigation signals
+
+**Format:**
+
+```
+## path/to/directory (Directory)
+
+<1–2 sentences explaining the directory's role, what it contains, and when to explore it.>
+```
+
+**Important notes:**
+
+- Mark directory sections with `(Directory)` after the path in the heading
+- Subdirectories remain at `##` level—do NOT nest them within parent directory sections
+- A directory can appear both as a directory-level section AND have its subdirectories listed separately at `##` level
+- You can still mix directory-only sections with file-listing sections in the same document map
+
+## Per-File Section Format (When Listing Files)
 
 ### Documentation Files (.md, .txt, docs)
 
@@ -81,6 +107,14 @@ Examples:
 - “Implements auth token verification and session hydration for API requests. Read before modifying login/signup or adding protected routes.”
 
 ## Examples
+
+### Directory-only section example
+
+```
+## src/models (Directory)
+
+Domain model definitions for core business entities (User, Account, Product). All files export TypeScript interfaces and Zod schemas. Read when adding new entities or understanding data structure.
+```
 
 ### Documentation file example
 
