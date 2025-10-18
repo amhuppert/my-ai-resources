@@ -1,126 +1,74 @@
 ---
-description: Study project directory structure and update docs (optional depth argument)
-allowed-tools: Bash(code-tree:*), Agent, Write(memory-bank/project-brief.md), MultiEdit(memory-bank/project-brief.md), Edit(memory-bank/project-brief.md)
+description: Update project brief with current high-level project information
+allowed-tools: Bash(bun:*), Read(**/package.json), Edit(memory-bank/project-brief.md), Write(memory-bank/project-brief.md)
 ---
 
-Your task is to update the project brief based on the current directory structure and existing project information.
+Your task is to update the project brief with current high-level strategic information.
 
-First, review the following information:
+## Reference Documents
 
-1. Current directory tree:
-   <directory_tree>
-   !`code-tree $ARGUMENTS`
-   </directory_tree>
+Review these files to understand the expected format and current state:
 
-2. Existing project brief:
-   <existing_brief_location>
-   @memory-bank/project-brief.md
-   </existing_brief_location>
+1. **Current project brief**: @memory-bank/project-brief.md
+2. **Document map** (for reference only - do NOT duplicate its content): @document-map.md
 
-Instructions:
+## Project Brief Structure
 
-1. Analyze the directory tree and existing project brief.
-2. **Use the Task tool to conduct parallel research on the project structure in ONE ROUND**. Create separate tasks analyzing each major directory/component based on the project context.
-3. Wait for all tasks to complete, then collect and merge their findings.
-4. Based on the merged findings, create or update the project brief to ensure it is fully up-to-date.
-5. Include a directory tree in the updated brief, augmented with terse, one-line descriptions of each directory.
+The project brief should be concise (~60-120 lines) with four sections:
 
-<critical>
-  **ONE-ROUND RESEARCH ONLY**: Each sub-agent must gather ALL information needed for their area in their single response
-</critical>
+### 1. Overview
 
-## Sub-Agent Research Instructions
+- What this project is and its purpose
+- Who uses it and how
+- Core use cases (2-4 sentences)
 
-### **Task Tool Usage**
+### 2. Tech Stack
 
-Create parallel Task calls for major areas you identify from the directory structure and project context. Each sub-agent MUST provide comprehensive analysis in their single response.
+- Programming languages
+- Runtime environment
+- Key libraries and frameworks
+- Build tools
 
-### **Sub-Agent Output Format**
+### 3. Key Architectural Decisions
 
-<critical>
-  **MANDATORY FORMAT**: Each sub-agent MUST structure their response exactly as follows:
-</critical>
+- 0-10 most important architectural choices
+- Each decision should explain WHAT and WHY
+- Focus on non-obvious decisions that shape the codebase
+- Avoid implementation details
 
-```
-## [AREA NAME] Analysis
+### 4. Key Commands
 
-### Description
-[Overall purpose and architecture of this area - 2-3 sentences]
+- Most important commands for working with the project
+- Group by category: Installation, Build, Test, Deploy, Utilities, etc.
+- Only include commands an AI would actually run
+- Brief descriptions for each command
 
-### Key Files
-- **`path/to/file.py`** - [Specific role/purpose]
-- **`path/to/config.yml`** - [Configuration role]
-- **`path/to/routes/`** - [Directory role]
-- **`path/to/models/`** - [Models/data structures role]
+## Instructions
 
-### Integration Points
-[How this area connects to other parts of the system]
+1. Read the existing project brief at @memory-bank/project-brief.md
+2. **Optional**: Review project configuration files to identify tech stack changes
+3. **Optional**: Review build scripts to identify key commands
+4. Update the project brief, maintaining the four-section structure
+5. Keep it strategic and high-level - do NOT include:
+   - Directory trees or file paths (that's in document-map.md)
+   - Line counts or file sizes
+   - Detailed installation procedures
+   - Implementation details of specific components
 
-### Notable Patterns
-[Important architectural patterns, conventions, or observations]
-```
+## Important Distinctions
 
-### **Required Information from Each Sub-Agent**
+**Project Brief** (this file):
 
-Each sub-agent must identify and report:
+- Strategic overview
+- High-level architecture
+- Tech stack and key decisions
+- Important commands
 
-- **Primary implementation files** with their specific roles
-- **Configuration files** with what they configure
-- **Key directories** with their purposes
-- **Current vs. legacy** components (mark which to use)
-- **Integration points** with other system parts
+**Document Map** (document-map.md):
 
-### **Sub-Agent Prompt Template**
+- Tactical navigation
+- File locations and purposes
+- When to read specific files
+- Code structure details
 
-When creating Task calls, use this structure:
-
-```
-Task: "Research [AREA NAME]"
-Prompt: "Analyze the [AREA/DIRECTORY] in detail. Using the mandatory output format, provide:
-1. DESCRIPTION: Overall purpose and architecture
-2. KEY FILES: List important files with their specific roles
-3. INTEGRATION POINTS: How this connects to other system parts
-4. NOTABLE PATTERNS: Key architectural patterns or conventions
-
-Focus on identifying primary files, configuration locations, and actionable file paths."
-```
-
-<critical>
-  **ACTIONABLE FILE LINKING REQUIRED**: Transform abstract descriptions into specific file paths with roles
-</critical>
-
-## Making Project Briefs Actionable
-
-### **Context Annotations**
-
-Always include parenthetical context in final brief:
-
-- `(main logic)` - Primary business logic
-- `(current)` - Current/recommended version
-- `(legacy)` - Deprecated but still present
-- `(config)` - Configuration settings
-- `(what to look for)` - Specific patterns/variables
-
-### **Actionable Format Requirements**
-
-<example type="valid">
-**Feature Format**: "**Feature Name** - `path/to/main/file.py` (purpose), `path/to/config.yml` (settings)"
-- JWT authentication - `src/public_api/auth_token_validation.py` (main validation)
-- DataDog config - `appconfig/config.yml` (DD_* environment variables)
-</example>
-
-<example type="invalid">
-**Avoid**: "JWT-based authentication" 
-**Problem**: No guidance on where to find implementation
-</example>
-
-Before providing the updated project brief, in <project_analysis> tags inside your thinking block:
-
-- List out the key directories and files from the directory tree.
-- Quote relevant sections from the existing project brief.
-- Compare the directory structure with the existing brief to identify any discrepancies.
-- Summarize the findings from the Agent/Task tool research.
-- **Identify primary files for each major feature** from sub-agent reports.
-- **Map abstract features to specific file paths** with context annotations.
-
-This will help ensure a thorough understanding of the project structure and create actionable documentation.
+Do NOT duplicate information from the document map. Keep the project brief focused on WHY and HOW the project is architected, not WHERE things are located.
