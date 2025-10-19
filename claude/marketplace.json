@@ -1,0 +1,13 @@
+{
+  "name": "ai-workflow-resources",
+  "owner": {
+    "name": "Alex Huppert"
+  },
+  "plugins": [
+    {
+      "name": "ai-workflow-resources",
+      "source": "./plugin",
+      "description": "AI-enhanced git workflows, memory banks, and development utilities"
+    }
+  ]
+}

@@ -23,28 +23,30 @@ Core use cases: automating git workflows with AI-aware commits, managing persist
 
 ## Key Architectural Decisions
 
-1. **Dual Repository Pattern** - Projects maintain two git repos: `.git` (team code) and `.local` (private AI configs). The `lgit` wrapper script manages the private repo while `git` handles team code. This allows personal AI configurations to be versioned without exposing them to the team.
+1. **Hybrid Plugin + Installation Architecture** - Slash commands are distributed via Claude Code plugin system (`claude/plugin/`) for easy sharing, while installation scripts handle broader tooling ecosystem (binary utilities, agent-docs, MCP servers, hooks). This maximizes plugin benefits while preserving full functionality.
 
-2. **Markdown-Based Slash Commands** - Custom Claude Code commands are implemented as Markdown files with YAML frontmatter for permissions. The `allowed-tools` frontmatter uses pattern matching (e.g., `Bash(git add:*)`) for granular tool control. Commands can inject dynamic content via `` !`command` `` syntax and reference files via `@path/to/file` syntax.
+2. **Dual Repository Pattern** - Projects maintain two git repos: `.git` (team code) and `.local` (private AI configs). The `lgit` wrapper script manages the private repo while `git` handles team code. This allows personal AI configurations to be versioned without exposing them to the team.
 
-3. **MCP Protocol for Tool Integration** - External tools (like keyboard shortcut recommendations) are implemented as MCP servers communicating via stdio. This provides a standard protocol for extending Claude Code and Cursor with custom capabilities.
+3. **Markdown-Based Slash Commands** - Custom Claude Code commands are implemented as Markdown files with YAML frontmatter for permissions. The `allowed-tools` frontmatter uses pattern matching (e.g., `Bash(git add:*)`) for granular tool control. Commands can inject dynamic content via `` !`command` `` syntax and reference files via `@path/to/file` syntax.
 
-4. **Deep Merge Settings Management** - Settings installers preserve existing user configurations by deep-merging new settings rather than overwriting. Uses Zod schemas for validation before merge to ensure type safety.
+4. **MCP Protocol for Tool Integration** - External tools (like keyboard shortcut recommendations) are implemented as MCP servers communicating via stdio. The cursor-shortcuts-mcp server is installed globally via `bun link` and registered as a user-level MCP server.
 
-5. **Separation of User vs Project Installation** - Two distinct installers: `install-user.sh` (commands, scripts, agent-docs to home directory) and `install-project.sh` (Cursor rules, project-level configs to current directory). This allows shared tooling across projects while supporting project-specific customization.
+5. **Deep Merge Settings Management** - Settings installers preserve existing user configurations by deep-merging new settings rather than overwriting. Uses Zod schemas for validation before merge to ensure type safety.
 
-6. **Document Map Pattern** - Separate navigation aid (document-map.md) from strategic overview (project-brief.md). Document map provides tactical file navigation; project brief provides strategic context. Reduces redundancy and improves maintainability.
+6. **Separation of User vs Project Installation** - Two distinct installers: `install-user.ts` (binary utilities, agent-docs, MCP servers to home directory) and `install-project.ts` (plugin installation, Cursor rules, project-level configs). This allows shared tooling across projects while supporting project-specific customization.
 
-7. **Bun-Compiled Executables** - TypeScript CLI tools are compiled to standalone executables in `dist/` directories. This eliminates the need for Node.js/npm in target environments and simplifies deployment.
+7. **Document Map Pattern** - Separate navigation aid (document-map.md) from strategic overview (project-brief.md). Document map provides tactical file navigation; project brief provides strategic context. Reduces redundancy and improves maintainability.
 
-8. **XML Tag-Based Merging** - CLAUDE.md files use XML tags (`<project-level-instructions>`, `<user-level-instructions>`) to enable safe merging of user-level and project-level instructions without conflicts.
+8. **Bun-Compiled Executables** - TypeScript CLI tools and MCP servers are compiled to standalone executables. MCP servers are globally linked via `bun link` for system-wide availability.
+
+9. **XML Tag-Based Merging** - CLAUDE.md files use XML tags (`<project-level-instructions>`, `<user-level-instructions>`) to enable safe merging of user-level and project-level instructions without conflicts.
 
 ## Key Commands
 
 **Installation**:
 
-- `./install-user.sh` - Install commands, scripts, and agent-docs to home directory (`~/.claude/`, `~/.local/bin/`)
-- `./install-project.sh` - Install Cursor rules and project configs to current directory
+- `./install-user.ts` - Install binary utilities, agent-docs, MCP servers to home directory (`~/.claude/`, `~/.local/bin/`)
+- `./install-project.ts` - Install plugin, Cursor rules, and project configs to current directory
 
 **Build**:
 

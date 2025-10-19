@@ -6,7 +6,7 @@ The memory bank is a set of files with critical context. It gives Claude a persi
 
 Files:
 
-- @memory-bank/project-brief.md - Project brief (directory structure and foundational information about the project)
+- @memory-bank/project-brief.md - Project brief (high-level overview, tech stack, key architectural decisions, and important commands)
 - @memory-bank/focus.md - Current focus: work-in-progress, progress, remaining tasks
 
 </project-level-instructions>

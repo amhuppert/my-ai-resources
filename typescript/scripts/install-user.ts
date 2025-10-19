@@ -45,21 +45,14 @@ async function main(): Promise<void> {
     "Syncing agent-docs -> ~/.claude/agent-docs",
   );
 
-  // 2. claude/commands/ -> ~/.claude/commands
-  await installDirectory(
-    join(SCRIPT_DIR, "claude", "commands"),
-    join(homedir(), ".claude", "commands"),
-    "Syncing claude/commands -> ~/.claude/commands",
-  );
-
-  // 3. claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md
+  // 2. claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md
   await installClaudeMd(
     join(SCRIPT_DIR, "claude", "CLAUDE-user.md"),
     join(homedir(), ".claude", "CLAUDE.md"),
     "Installing claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md",
   );
 
-  // 4. Install scripts
+  // 3. Install scripts
   await installFile(
     join(SCRIPT_DIR, "scripts", "lgit"),
     join(homedir(), ".local", "bin", "lgit"),
@@ -88,6 +81,46 @@ async function main(): Promise<void> {
     true,
   );
 
+  // 4. Install cursor-shortcuts-mcp globally
+  console.log("Installing cursor-shortcuts-mcp globally...");
+  const mcpDir = join(SCRIPT_DIR, "cursor-shortcuts-mcp");
+
+  if (await commandExists("bun")) {
+    try {
+      console.log("Building cursor-shortcuts-mcp...");
+      const buildResult = await execCommand("bun", ["run", "build"], {
+        cwd: mcpDir,
+      });
+
+      if (!buildResult.success) {
+        console.log("Warning: Failed to build cursor-shortcuts-mcp");
+        console.error(buildResult.stderr);
+      } else {
+        console.log("Linking cursor-shortcuts-mcp globally...");
+        const linkResult = await execCommand("bun", ["link"], {
+          cwd: mcpDir,
+        });
+
+        if (!linkResult.success) {
+          console.log("Warning: Failed to link cursor-shortcuts-mcp");
+          console.error(linkResult.stderr);
+        } else {
+          console.log("cursor-shortcuts-mcp installed successfully");
+        }
+      }
+    } catch (error) {
+      console.log("Warning: Failed to install cursor-shortcuts-mcp");
+      console.error(error);
+    }
+  } else {
+    console.log(
+      "Warning: bun not found, skipping cursor-shortcuts-mcp installation",
+    );
+    console.log(
+      "Install bun to enable MCP server installation: https://bun.sh",
+    );
+  }
+
   // 5. Install Claude Code settings using TypeScript installer
   console.log("Installing Claude Code user-level settings...");
   if (await commandExists("bun")) {
@@ -106,8 +139,25 @@ async function main(): Promise<void> {
   }
 
   // 6. Install MCP servers for Claude Code
-  console.log("Adding Context7 MCP server");
-  const mcpResult = await execCommand("claude", [
+  console.log("Adding MCP servers to Claude Code");
+
+  // Add cursor-shortcuts-mcp (globally linked via bun)
+  const cursorShortcutsResult = await execCommand("claude", [
+    "mcp",
+    "add",
+    "cursor-shortcuts",
+    "cursor-shortcuts-mcp",
+    "--scope",
+    "user",
+  ]);
+
+  if (!cursorShortcutsResult.success) {
+    console.log("Warning: Failed to add cursor-shortcuts MCP server");
+    console.error(cursorShortcutsResult.stderr);
+  }
+
+  // Add Context7 MCP server
+  const context7Result = await execCommand("claude", [
     "mcp",
     "add",
     "--transport",
@@ -118,9 +168,9 @@ async function main(): Promise<void> {
     "user",
   ]);
 
-  if (!mcpResult.success) {
+  if (!context7Result.success) {
     console.log("Warning: Failed to add Context7 MCP server");
-    console.error(mcpResult.stderr);
+    console.error(context7Result.stderr);
   }
 
   // 7. Install Hooks
@@ -171,6 +221,38 @@ async function main(): Promise<void> {
   if (!linkResult.success) {
     console.log("Warning: Failed to link rins_hooks");
     console.error(linkResult.stderr);
+  }
+
+  // 8. Install ai-workflow-resources plugin
+  console.log("Installing ai-workflow-resources plugin...");
+
+  const pluginPath = join(SCRIPT_DIR, "claude", "plugin");
+
+  // Add this repository as a plugin marketplace
+  const marketplaceResult = await execCommand("claude", [
+    "plugin",
+    "marketplace",
+    "add",
+    pluginPath,
+  ]);
+
+  if (!marketplaceResult.success) {
+    console.log("Warning: Failed to add plugin marketplace");
+    console.error(marketplaceResult.stderr);
+  } else {
+    // Install the plugin from the local marketplace
+    const pluginInstallResult = await execCommand("claude", [
+      "plugin",
+      "install",
+      "ai-workflow-resources@ai-workflow-resources",
+    ]);
+
+    if (!pluginInstallResult.success) {
+      console.log("Warning: Failed to install ai-workflow-resources plugin");
+      console.error(pluginInstallResult.stderr);
+    } else {
+      console.log("ai-workflow-resources plugin installed successfully");
+    }
   }
 
   printInstallationFooter("user-level");

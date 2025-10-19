@@ -3,6 +3,7 @@ description:
 globs:
 alwaysApply: true
 ---
+
 # Cursor's Memory Bank
 
 I am Cursor, an expert software engineer with a unique characteristic: my memory resets completely between sessions. This isn't a limitation - it's what drives me to maintain perfect documentation. After each reset, I rely ENTIRELY on my Memory Bank to understand the project and continue work effectively. I MUST read ALL memory bank files at the start of EVERY task - this is not optional.
@@ -30,9 +31,10 @@ PB --> TC[techContext.md]
 1. `project-brief.md`
 
    - Foundation document that shapes all other files
-   - Created at project start if it doesn't exist
-   - Defines core requirements and goals
-   - Source of truth for project scope
+   - High-level strategic overview (what, why, how)
+   - Tech stack and key architectural decisions
+   - Important project commands (build, test, deploy)
+   - Source of truth for project scope and architecture
 
 2. `productContext.md`
 
@@ -81,11 +83,13 @@ Create additional files/folders within memory-bank/ when they help organize:
 ## Integration with Core Workflow
 
 ### Research Mode
+
 - MUST read ALL memory bank files at the start of every task
 - Review context before planning or acting
 - Understand current project state and history
 
 ### Act Mode Memory Updates
+
 Memory Bank updates are integrated into Act mode workflow:
 
 \```mermaid

@@ -1,26 +1,44 @@
 # Current Focus
 
-Installation scripts have been successfully ported from Bash to TypeScript.
+Migrating to hybrid plugin + installation script architecture to leverage Claude Code's Plugin system while preserving full functionality.
 
-## Completed
+## Architecture Decision
 
-✓ Created `typescript/lib/installer-utils.ts` with core utility functions for file operations, backups, and CLAUDE.md merging
-✓ Ported `install-user.sh` → `typescript/scripts/install-user.ts` with all 7 installation steps
-✓ Ported `install-project.sh` → `typescript/scripts/install-project.ts` with all installation steps
-✓ Updated `package.json` build configuration to compile new scripts
-✓ Removed old bash scripts (`install-user.sh`, `install-project.sh`, `lib/helpers.sh`)
-✓ Created new TypeScript entry points (`install-user.ts`, `install-project.ts`)
-✓ Tested project-level installation successfully
+**Hybrid Model (Option A)**: Plugin for Claude Code-specific features + installation scripts for broader tooling ecosystem.
 
-## Key Implementation Details
+### Plugin Contains (claude/plugin/)
 
-- Used Bun.spawn() for subprocess execution (rsync, git, claude, bun)
-- Preserved exact backup naming convention (`__YYYYMMDD_HHMMSS.bk`)
-- Maintained same rsync flags for consistency
-- Added proper TypeScript type safety throughout
-- Compiled executables work standalone in `typescript/dist/`
+- All 7 slash commands (commit, reflection, update-project-brief, compress, init-document-map, local-init, local-commit)
+- Shareable via `/plugin install` to other projects
 
-## Next Steps
+### User Installation Provides
 
-- Update documentation if needed to reference new TypeScript installation scripts
-- Consider whether to add integration tests for installation process
+- agent-docs → ~/.claude/agent-docs (preserves @agent-docs/ reference pattern)
+- Binary utilities → ~/.local/bin/ (lgit, code-tree, read-file, push-main)
+- cursor-shortcuts-mcp → global via bun link
+- CLAUDE-user.md with XML tag merging
+- Settings with deep-merge logic
+- MCP servers (cursor-shortcuts + context7)
+- rins_hooks
+- Plugin marketplace registration and installation (commands available globally)
+
+### Project Installation Provides
+
+- Cursor rules → .cursor/rules
+- CLAUDE-project.md with XML tag merging
+- Conditional notification hook
+- Code-formatter hook
+
+## Implementation Tasks
+
+- [x] Create plugin directory structure (claude/plugin/.claude-plugin/)
+- [x] Create plugin.json manifest
+- [x] Create marketplace.json manifest
+- [x] Move claude/commands/ to claude/plugin/commands/
+- [x] Update install-user.ts: remove commands sync
+- [x] Update install-user.ts: add cursor-shortcuts-mcp global installation (bun build + bun link)
+- [x] Update install-user.ts: add cursor-shortcuts-mcp MCP server registration
+- [x] Update install-user.ts: add plugin marketplace registration and installation
+- [x] Remove plugin installation from install-project.ts
+- [x] Update project-brief.md to document plugin architecture
+- [x] Update focus.md to reflect user-level plugin installation
