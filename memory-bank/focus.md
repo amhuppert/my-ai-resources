@@ -1,15 +1,26 @@
 # Current Focus
 
-Create a TypeScript helper for implementing Claude Code custom slash commands.
+Installation scripts have been successfully ported from Bash to TypeScript.
 
-Custom Slash command documentation: https://docs.claude.com/en/docs/claude-code/slash-commands
+## Completed
 
-## Usage:
+✓ Created `typescript/lib/installer-utils.ts` with core utility functions for file operations, backups, and CLAUDE.md merging
+✓ Ported `install-user.sh` → `typescript/scripts/install-user.ts` with all 7 installation steps
+✓ Ported `install-project.sh` → `typescript/scripts/install-project.ts` with all installation steps
+✓ Updated `package.json` build configuration to compile new scripts
+✓ Removed old bash scripts (`install-user.sh`, `install-project.sh`, `lib/helpers.sh`)
+✓ Created new TypeScript entry points (`install-user.ts`, `install-project.ts`)
+✓ Tested project-level installation successfully
 
-To implement a custom slash command, the command file will invoke a script written in TypeScript with the command logic:
+## Key Implementation Details
 
-!`some-typescript-script $ARGUMENTS`
+- Used Bun.spawn() for subprocess execution (rsync, git, claude, bun)
+- Preserved exact backup naming convention (`__YYYYMMDD_HHMMSS.bk`)
+- Maintained same rsync flags for consistency
+- Added proper TypeScript type safety throughout
+- Compiled executables work standalone in `typescript/dist/`
 
-- Need to verify that the above syntax is correct and will correctly make the arguments passed to the slash command accessible to the typescript script.
+## Next Steps
 
-The typescript script be implemented using a utility we will create that parses the arguments in the same way a bash script would.
+- Update documentation if needed to reference new TypeScript installation scripts
+- Consider whether to add integration tests for installation process

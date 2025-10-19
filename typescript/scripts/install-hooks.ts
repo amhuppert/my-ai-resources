@@ -3,6 +3,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
+import { Command } from "commander";
 import { deepMerge } from "@/scripts/install-settings.js";
 import type {
   HookEvent,
@@ -180,82 +181,69 @@ function installHook(
   console.log(`Added ${hookType} hook with matcher "${matcher}"`);
 }
 
-/**
- * Parse command line arguments
- */
-function parseArgs(args: string[]) {
-  if (args.length < 3) {
-    throw new Error(
-      "Usage: bun run install-hooks.ts <hook-type> <matcher> <command> [--project|--user] [--type=command] [--timeout=5]",
-    );
-  }
-
-  const hookType = args[0] as HookEvent;
-  const matcher = args[1];
-  const command = args[2];
-
-  // Validate hook type
-  const validHookTypes = HookEventSchema.options;
-  if (!validHookTypes.includes(hookType)) {
-    throw new Error(
-      `Invalid hook type: ${hookType}. Must be one of: ${validHookTypes.join(", ")}`,
-    );
-  }
-
-  // Parse options
-  let isProject = false;
-  let type: HookType = "command";
-  let timeout: number | undefined = undefined;
-
-  for (let i = 3; i < args.length; i++) {
-    const arg = args[i]!; // Safe because we're within bounds
-
-    if (arg === "--project") {
-      isProject = true;
-    } else if (arg === "--user") {
-      isProject = false;
-    } else if (arg.startsWith("--type=")) {
-      const parts = arg.split("=");
-      if (parts.length !== 2 || !parts[1]) {
-        throw new Error("Invalid --type option format. Use --type=command");
-      }
-      const typeValue = parts[1] as HookType;
-      if (typeValue !== "command") {
-        throw new Error(`Invalid type value: ${typeValue}. Must be "command"`);
-      }
-      type = typeValue;
-    } else if (arg.startsWith("--timeout=")) {
-      const parts = arg.split("=");
-      if (parts.length !== 2 || !parts[1]) {
-        throw new Error("Invalid --timeout option format. Use --timeout=5");
-      }
-      const timeoutValue = parseInt(parts[1], 10);
-      if (isNaN(timeoutValue) || timeoutValue <= 0) {
-        throw new Error(
-          `Invalid timeout value: ${parts[1]}. Must be a positive number in seconds`,
-        );
-      }
-      timeout = timeoutValue;
-    } else {
-      throw new Error(`Unknown option: ${arg}`);
-    }
-  }
-
-  return { hookType, matcher, command, type, timeout, isProject };
-}
-
 // CLI interface
 if (import.meta.main) {
-  const args = process.argv.slice(2);
+  const program = new Command();
 
-  try {
-    const { hookType, matcher, command, type, timeout, isProject } =
-      parseArgs(args);
-    installHook(hookType, matcher, command, type, timeout, isProject);
-  } catch (error) {
-    console.error("Error installing hook:", error);
-    process.exit(1);
-  }
+  program
+    .name("install-hooks")
+    .description("Install a hook to Claude Code settings")
+    .argument("<hook-type>", "Hook event type (e.g., Notification, ToolCall)")
+    .argument("<matcher>", "Hook matcher pattern")
+    .argument("<command>", "Command to execute")
+    .option("--project", "Install to project-level settings")
+    .option("--user", "Install to user-level settings (default)")
+    .option("--type <type>", "Hook type", "command")
+    .option("--timeout <seconds>", "Timeout in seconds", parseInt)
+    .action(
+      (
+        hookType: string,
+        matcher: string,
+        command: string,
+        options: {
+          project?: boolean;
+          user?: boolean;
+          type: string;
+          timeout?: number;
+        },
+      ) => {
+        try {
+          // Validate hook type
+          const validHookTypes = HookEventSchema.options;
+          if (!validHookTypes.includes(hookType as HookEvent)) {
+            throw new Error(
+              `Invalid hook type: ${hookType}. Must be one of: ${validHookTypes.join(", ")}`,
+            );
+          }
+
+          // Validate hook type value
+          const typeValue = options.type as HookType;
+          if (typeValue !== "command") {
+            throw new Error(
+              `Invalid type value: ${typeValue}. Must be "command"`,
+            );
+          }
+
+          // Determine scope (--project takes precedence)
+          const isProject = options.project === true;
+
+          // Install the hook
+          installHook(
+            hookType as HookEvent,
+            matcher,
+            command,
+            typeValue,
+            options.timeout,
+            isProject,
+          );
+        } catch (error) {
+          console.error("Error installing hook:", error);
+          process.exit(1);
+        }
+      },
+    );
+
+  program.parse();
 }
 
 // Export functions for programmatic use
@@ -267,5 +255,4 @@ export {
   saveHookSettings,
   installHook,
   hookExists,
-  parseArgs,
 };

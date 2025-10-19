@@ -7,7 +7,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "bun build scripts/install-settings.ts --outdir=dist --target=bun && bun build scripts/install-hooks.ts --outdir=dist --target=bun && bun build scripts/json-to-zod-to-json-schema.ts --outdir=dist --target=bun && bun build scripts/init-document-map.ts --outdir=dist --target=bun",
+    "build": "bun build scripts/install-settings.ts --outdir=dist --target=bun && bun build scripts/install-hooks.ts --outdir=dist --target=bun && bun build scripts/json-to-zod-to-json-schema.ts --outdir=dist --target=bun && bun build scripts/init-document-map.ts --outdir=dist --target=bun && bun build scripts/install-user.ts --outdir=dist --target=bun && bun build scripts/install-project.ts --outdir=dist --target=bun",
+    "install-user": "bun run scripts/install-user.ts",
+    "install-project": "bun run scripts/install-project.ts",
     "install-settings": "bun run scripts/install-settings.ts",
     "install-hooks": "bun run scripts/install-hooks.ts",
     "init-document-map": "bun run scripts/init-document-map.ts",
@@ -16,6 +18,8 @@
     "json-to-schema": "bun run scripts/json-to-zod-to-json-schema.ts"
   },
   "bin": {
+    "install-user": "dist/install-user.js",
+    "install-project": "dist/install-project.js",
     "claude-settings": "dist/install-settings.js",
     "claude-hooks": "dist/install-hooks.js",
     "json-to-schema": "dist/json-to-zod-to-json-schema.js",
