@@ -42,14 +42,14 @@ async function main(): Promise<void> {
   await installDirectory(
     join(SCRIPT_DIR, "agent-docs"),
     join(homedir(), ".claude", "agent-docs"),
-    "Syncing agent-docs -> ~/.claude/agent-docs",
+    "Syncing agent-docs -> ~/.claude/agent-docs"
   );
 
   // 2. claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md
   await installClaudeMd(
     join(SCRIPT_DIR, "claude", "CLAUDE-user.md"),
     join(homedir(), ".claude", "CLAUDE.md"),
-    "Installing claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md",
+    "Installing claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md"
   );
 
   // 3. Install scripts
@@ -57,28 +57,28 @@ async function main(): Promise<void> {
     join(SCRIPT_DIR, "scripts", "lgit"),
     join(homedir(), ".local", "bin", "lgit"),
     "Installing lgit -> ~/.local/bin/lgit",
-    true,
+    true
   );
 
   await installFile(
     join(SCRIPT_DIR, "scripts", "code-tree"),
     join(homedir(), ".local", "bin", "code-tree"),
     "Installing code-tree -> ~/.local/bin/code-tree",
-    true,
+    true
   );
 
   await installFile(
     join(SCRIPT_DIR, "scripts", "read-file"),
     join(homedir(), ".local", "bin", "read-file"),
     "Installing read-file -> ~/.local/bin/read-file",
-    true,
+    true
   );
 
   await installFile(
     join(SCRIPT_DIR, "scripts", "push-main"),
     join(homedir(), ".local", "bin", "push-main"),
     "Installing push-main -> ~/.local/bin/push-main",
-    true,
+    true
   );
 
   // 4. Install cursor-shortcuts-mcp globally
@@ -114,10 +114,10 @@ async function main(): Promise<void> {
     }
   } else {
     console.log(
-      "Warning: bun not found, skipping cursor-shortcuts-mcp installation",
+      "Warning: bun not found, skipping cursor-shortcuts-mcp installation"
     );
     console.log(
-      "Install bun to enable MCP server installation: https://bun.sh",
+      "Install bun to enable MCP server installation: https://bun.sh"
     );
   }
 
@@ -133,7 +133,7 @@ async function main(): Promise<void> {
     }
   } else {
     console.log(
-      "Warning: bun not found, skipping Claude Code settings installation",
+      "Warning: bun not found, skipping Claude Code settings installation"
     );
     console.log("Install bun to enable settings installation: https://bun.sh");
   }
@@ -226,14 +226,14 @@ async function main(): Promise<void> {
   // 8. Install ai-workflow-resources plugin
   console.log("Installing ai-workflow-resources plugin...");
 
-  const pluginPath = join(SCRIPT_DIR, "claude", "plugin");
+  const claudeDirPath = join(SCRIPT_DIR, "claude");
 
   // Add this repository as a plugin marketplace
   const marketplaceResult = await execCommand("claude", [
     "plugin",
     "marketplace",
     "add",
-    pluginPath,
+    claudeDirPath,
   ]);
 
   if (!marketplaceResult.success) {
