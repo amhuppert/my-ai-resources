@@ -18,6 +18,13 @@ program
 
     console.log("\nRaw process.argv:");
     console.log(`  ${JSON.stringify(process.argv)}`);
+
+    console.log("\n=== @ File Reference Syntax ===");
+    console.log("To read test-file.txt using @ syntax:");
+    console.log("@test-file.txt");
+
+    console.log("\n=== read-file Tool Output ===");
+    console.log("!`read-file test-file.txt`");
   });
 
 program.parse();
