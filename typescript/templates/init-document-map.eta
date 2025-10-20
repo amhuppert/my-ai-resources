@@ -2,8 +2,8 @@ Your task is to create a document map for <%= it.targetDesc %> following the for
 
 ## Reference Documentation
 
-@agent-docs/document-map-format.md
-@agent-docs/document-map-template.md
+!`read-file ~/.claude/agent-docs/document-map-format.md "Description of document map format"`
+!`read-file ~/.claude/agent-docs/document-map-template.md "Document map template to follow"`
 
 ## Target Analysis
 
@@ -49,7 +49,7 @@ Use this structure when creating Task calls:
 
 ```
 Task: "Research [SUBSYSTEM/DIRECTORY NAME]"
-Prompt: "Analyze [directory/subsystem] and create a document map section following @agent-docs/document-map-format.md.
+Prompt: "Analyze [directory/subsystem] and create a document map section following document-map-format.md.
 
 **STEP 0: Decide section type**
 - If the directory has a clear role and files are just instances of that role → Create directory-only section
@@ -89,7 +89,7 @@ Return a complete ## section ready to merge into final document map."
 
 1. Collect all `## Subsystem` sections from agents
 2. Order sections logically (core → features → utilities → config)
-3. Add document header from @agent-docs/document-map-template.md
+3. Add document header from document-map-template.md
 4. Write to `<%= it.outputPath %>`
 
 ## Output Location

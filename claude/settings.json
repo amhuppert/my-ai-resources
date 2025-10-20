@@ -24,7 +24,7 @@
       "Bash(lgit status:*)",
       "Bash(lgit diff:*)",
       "Bash(lgit log:*)",
-      "Bash(init-document-map:*)",
+      "Bash(ai:*)",
       "WebFetch",
       "WebSearch",
       "mcp__context7__resolve-library-id",

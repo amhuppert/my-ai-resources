@@ -29,29 +29,39 @@ bun run build
 bun link
 
 # Now you can use the utilities from anywhere
+ai install --scope user
 echo '{"example": "data"}' | json-to-schema
 ```
 
 This will make the following commands available globally:
 
+- `ai` - Unified CLI for AI workflow resources
 - `json-to-schema` - Convert JSON to JSON Schema via Zod
-- `claude-settings` - Install Claude Code settings
 
 ## Usage
 
 ### CLI Usage
 
-Install settings from a JSON file:
+The `ai` command provides a unified interface for all AI workflow resources:
 
 ```bash
-bun run install-settings example-settings.json
+# Install user-level resources (home directory)
+ai install --scope user
+
+# Install project-level resources (current directory)
+ai install --scope project
+
+# Generate document map instructions
+ai init-document-map
+ai init-document-map -d ./src -i "Focus on API endpoints"
 ```
 
-Or use the built version:
+Or use npm scripts during development:
 
 ```bash
-bun run build
-./dist/install-settings.js example-settings.json
+bun run install-user
+bun run install-project
+bun run init-document-map
 ```
 
 ### Programmatic Usage
@@ -135,9 +145,10 @@ Permission rules follow the format `Tool(pattern)`:
 ## Scripts
 
 - `bun run build` - Build the CLI tool
-- `bun run install-settings <file>` - Install settings from a file
+- `bun run install-user` - Install user-level resources (runs `ai install --scope user`)
+- `bun run install-project` - Install project-level resources (runs `ai install --scope project`)
+- `bun run init-document-map` - Generate document map instructions (runs `ai init-document-map`)
 - `bun run type-check` - Type check the project
-- `bun run dev <file>` - Run the installer in development mode
 - `bun run json-to-schema` - Convert JSON from stdin to JSON Schema via Zod
 
 ## JSON to Schema Converter

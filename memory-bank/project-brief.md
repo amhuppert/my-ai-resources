@@ -45,8 +45,8 @@ Core use cases: automating git workflows with AI-aware commits, managing persist
 
 **Installation**:
 
-- `./install-user.ts` - Install binary utilities, agent-docs, MCP servers to home directory (`~/.claude/`, `~/.local/bin/`)
-- `./install-project.ts` - Install plugin, Cursor rules, and project configs to current directory
+- `ai install --scope user` - Install binary utilities, agent-docs, MCP servers to home directory (`~/.claude/`, `~/.local/bin/`)
+- `ai install --scope project` - Install plugin, Cursor rules, and project configs to current directory (default scope)
 
 **Build**:
 
@@ -55,6 +55,7 @@ Core use cases: automating git workflows with AI-aware commits, managing persist
 
 **Utilities**:
 
+- `ai init-document-map [-d <directory>] [-i <instructions>]` - Generate document map for a codebase
 - `code-tree [depth]` - Visualize directory structure (filters build artifacts)
 - `lgit <git-command>` - Run git commands on `.local` private repository
 - `read-file <path>` - Format file contents as XML for LLM context
@@ -62,4 +63,4 @@ Core use cases: automating git workflows with AI-aware commits, managing persist
 **Document Management**:
 
 - `/update-project-brief` - Claude Code slash command to update this file
-- `/init-document-map` - Generate document map for a codebase
+- `/init-document-map [-d <directory>] [-i <instructions>]` - Claude Code slash command to generate document map (calls `ai init-document-map`)

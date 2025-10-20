@@ -7,23 +7,16 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "bun build scripts/install-settings.ts --outdir=dist --target=bun && bun build scripts/install-hooks.ts --outdir=dist --target=bun && bun build scripts/json-to-zod-to-json-schema.ts --outdir=dist --target=bun && bun build scripts/init-document-map.ts --outdir=dist --target=bun && bun build scripts/install-user.ts --outdir=dist --target=bun && bun build scripts/install-project.ts --outdir=dist --target=bun",
-    "install-user": "bun run scripts/install-user.ts",
-    "install-project": "bun run scripts/install-project.ts",
-    "install-settings": "bun run scripts/install-settings.ts",
-    "install-hooks": "bun run scripts/install-hooks.ts",
-    "init-document-map": "bun run scripts/init-document-map.ts",
-    "dev": "bun run scripts/install-settings.ts",
+    "build": "bun build scripts/ai.ts --outdir=dist --target=bun && bun build scripts/json-to-zod-to-json-schema.ts --outdir=dist --target=bun",
+    "install-user": "bun run scripts/ai.ts install --scope user",
+    "install-project": "bun run scripts/ai.ts install --scope project",
+    "init-document-map": "bun run scripts/ai.ts init-document-map",
     "type-check": "tsc --noEmit",
     "json-to-schema": "bun run scripts/json-to-zod-to-json-schema.ts"
   },
   "bin": {
-    "install-user": "dist/install-user.js",
-    "install-project": "dist/install-project.js",
-    "claude-settings": "dist/install-settings.js",
-    "claude-hooks": "dist/install-hooks.js",
-    "json-to-schema": "dist/json-to-zod-to-json-schema.js",
-    "init-document-map": "dist/init-document-map.js"
+    "ai": "dist/ai.js",
+    "json-to-schema": "dist/json-to-zod-to-json-schema.js"
   },
   "files": [
     "lib/",

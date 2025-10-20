@@ -4,4 +4,4 @@ argument-hint: "[-d <directory>] [-i <instructions>]"
 allowed-tools: Bash(bun run:*), Bash(code-tree:*), Agent, Write(*/DOCUMENT-MAP.md), Read, Glob, Grep
 ---
 
-!`init-document-map $ARGUMENTS`
+!`ai init-document-map $ARGUMENTS`

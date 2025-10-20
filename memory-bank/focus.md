@@ -1,44 +1,40 @@
 # Current Focus
 
-Migrating to hybrid plugin + installation script architecture to leverage Claude Code's Plugin system while preserving full functionality.
+✅ **Completed**: Consolidated TypeScript scripts into unified `ai` CLI tool
 
-## Architecture Decision
+The consolidation is complete. All scripts have been successfully integrated into a single CLI tool using commander.js.
 
-**Hybrid Model (Option A)**: Plugin for Claude Code-specific features + installation scripts for broader tooling ecosystem.
+## Implementation Summary
 
-### Plugin Contains (claude/plugin/)
+**Created**:
 
-- All 7 slash commands (commit, reflection, update-project-brief, compress, init-document-map, local-init, local-commit)
-- Shareable via `/plugin install` to other projects
+- `typescript/scripts/ai.ts` - Main CLI entry point with commander.js routing
 
-### User Installation Provides
+**Updated**:
 
-- agent-docs → ~/.claude/agent-docs (preserves @agent-docs/ reference pattern)
-- Binary utilities → ~/.local/bin/ (lgit, code-tree, read-file, push-main)
-- cursor-shortcuts-mcp → global via bun link
-- CLAUDE-user.md with XML tag merging
-- Settings with deep-merge logic
-- MCP servers (cursor-shortcuts + context7)
-- rins_hooks
-- Plugin marketplace registration and installation (commands available globally)
+- `typescript/package.json` - Updated scripts, bin entries, and build process
+- `claude/plugin/commands/init-document-map.md` - Updated to call `ai init-document-map`
+- `typescript/README.md` - Updated documentation for new CLI usage
+- `memory-bank/project-brief.md` - Updated key commands section
 
-### Project Installation Provides
+**Commands**:
 
-- Cursor rules → .cursor/rules
-- CLAUDE-project.md with XML tag merging
-- Conditional notification hook
-- Code-formatter hook
+- `ai install --scope [project|user]` - Install resources (defaults to project)
+- `ai init-document-map [-d <directory>] [-i <instructions>]` - Generate document map
 
-## Implementation Tasks
+**Independent Tools** (as specified):
 
-- [x] Create plugin directory structure (claude/plugin/.claude-plugin/)
-- [x] Create plugin.json manifest
-- [x] Create marketplace.json manifest
-- [x] Move claude/commands/ to claude/plugin/commands/
-- [x] Update install-user.ts: remove commands sync
-- [x] Update install-user.ts: add cursor-shortcuts-mcp global installation (bun build + bun link)
-- [x] Update install-user.ts: add cursor-shortcuts-mcp MCP server registration
-- [x] Update install-user.ts: add plugin marketplace registration and installation
-- [x] Remove plugin installation from install-project.ts
-- [x] Update project-brief.md to document plugin architecture
-- [x] Update focus.md to reflect user-level plugin installation
+- `json-to-schema` - General purpose JSON to JSON Schema converter
+- `install-hooks` and `install-settings` - Internal utilities (not exposed in CLI)
+
+## Verification
+
+All functionality tested and working:
+
+- ✅ `ai --help` shows correct help text
+- ✅ `ai install --scope user` command structure validated
+- ✅ `ai install --scope project` command structure validated (default scope)
+- ✅ `ai init-document-map` generates expected output
+- ✅ Old binaries removed from global installation
+- ✅ npm scripts (`bun run install-user`, `bun run init-document-map`, etc.) work correctly
+- ✅ Slash command `/init-document-map` updated to use new CLI
