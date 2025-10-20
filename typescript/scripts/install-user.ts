@@ -226,14 +226,14 @@ async function main(): Promise<void> {
   // 8. Install ai-workflow-resources plugin
   console.log("Installing ai-workflow-resources plugin...");
 
-  const claudeDirPath = join(SCRIPT_DIR, "claude");
+  const marketplaceJsonPath = join(SCRIPT_DIR, "claude", "marketplace.json");
 
   // Add this repository as a plugin marketplace
   const marketplaceResult = await execCommand("claude", [
     "plugin",
     "marketplace",
     "add",
-    claudeDirPath,
+    marketplaceJsonPath,
   ]);
 
   if (!marketplaceResult.success) {
