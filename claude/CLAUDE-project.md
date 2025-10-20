@@ -1,5 +1,9 @@
 <project-level-instructions>
 
+## Document Map
+
+@document-map.md
+
 ## Memory Bank
 
 The memory bank is a set of files with critical context. It gives Claude a persistent memory.
