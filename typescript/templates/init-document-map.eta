@@ -2,8 +2,8 @@ Your task is to create a document map for <%= it.targetDesc %> following the for
 
 ## Reference Documentation
 
-!`read-file ~/.claude/agent-docs/document-map-format.md "Description of document map format"`
-!`read-file ~/.claude/agent-docs/document-map-template.md "Document map template to follow"`
+<%= it.documentMapFormat %>
+<%= it.documentMapTemplate %>
 
 ## Target Analysis
 

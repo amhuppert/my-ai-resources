@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { Eta } from "eta";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { readFile } from "../src/utils/read-file.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,17 +17,39 @@ program
   .option(
     "-d, --directory <path>",
     "target directory to map (default: current directory)",
-    "."
+    ".",
   )
   .option(
     "-i, --instructions <text>",
-    "custom instructions for identifying notable files"
+    "custom instructions for identifying notable files",
   )
   .action(async (options) => {
     const templatePath = path.join(
       __dirname,
-      "../templates/init-document-map.eta"
+      "../templates/init-document-map.eta",
     );
+
+    // Path to plugin resources (bundled with plugin distribution)
+    const pluginResourcesPath = path.join(
+      __dirname,
+      "../../claude/plugin/resources",
+    );
+    const documentMapFormatPath = path.join(
+      pluginResourcesPath,
+      "document-map-format.md",
+    );
+    const documentMapTemplatePath = path.join(
+      pluginResourcesPath,
+      "document-map-template.md",
+    );
+
+    // Read plugin resource files using the readFile utility
+    const documentMapFormat = readFile(documentMapFormatPath, {
+      description: "Description of document map format",
+    });
+    const documentMapTemplate = readFile(documentMapTemplatePath, {
+      description: "Document map template to follow",
+    });
 
     // Determine target path and output location
     const targetPath = options.directory;
@@ -54,6 +77,8 @@ program
       documentTitle,
       customInstructions: options.instructions || null,
       depth: 1, // default depth for code-tree
+      documentMapFormat,
+      documentMapTemplate,
     });
 
     // Output the rendered command instructions

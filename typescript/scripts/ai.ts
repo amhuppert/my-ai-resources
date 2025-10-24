@@ -61,6 +61,7 @@ program
     const { Eta } = await import("eta");
     const path = await import("path");
     const { fileURLToPath } = await import("url");
+    const { readFile } = await import("../src/utils/read-file.js");
 
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
@@ -71,6 +72,28 @@ program
       __dirname,
       "../templates/init-document-map.eta",
     );
+
+    // Path to plugin resources (bundled with plugin distribution)
+    const pluginResourcesPath = path.join(
+      __dirname,
+      "../../claude/plugin/resources",
+    );
+    const documentMapFormatPath = path.join(
+      pluginResourcesPath,
+      "document-map-format.md",
+    );
+    const documentMapTemplatePath = path.join(
+      pluginResourcesPath,
+      "document-map-template.md",
+    );
+
+    // Read plugin resource files using the readFile utility
+    const documentMapFormat = readFile(documentMapFormatPath, {
+      description: "Description of document map format",
+    });
+    const documentMapTemplate = readFile(documentMapTemplatePath, {
+      description: "Document map template to follow",
+    });
 
     const targetPath = options.directory;
     const isCurrentDir = targetPath === ".";
@@ -94,6 +117,8 @@ program
       documentTitle,
       customInstructions: options.instructions || null,
       depth: 1,
+      documentMapFormat,
+      documentMapTemplate,
     });
 
     console.log(rendered);
