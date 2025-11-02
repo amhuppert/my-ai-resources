@@ -5,7 +5,6 @@ import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 import {
   printInstallationHeader,
-  printInstallationFooter,
   installDirectory,
   installClaudeMd,
   execCommand,
@@ -97,7 +96,8 @@ async function main(): Promise<void> {
     console.error(rinsResult.stderr);
   }
 
-  printInstallationFooter("project-level");
+  console.log("");
+  console.log("project-level installation complete!");
 }
 
 // CLI interface

@@ -10,3 +10,7 @@ Files:
 - @memory-bank/focus.md - Current focus: work-in-progress, progress, remaining tasks
 
 </project-level-instructions>
+
+# Project Standards
+
+- When writing TypeScript code, follow all TypeScript standards in 'agent-docs/code-standards/typescript/typescript-general.md'

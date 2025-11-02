@@ -9,41 +9,6 @@ import { dirname, join } from "path";
 import { platform } from "os";
 
 /**
- * Tracked backup files for reporting
- */
-const backedUpFiles: string[] = [];
-
-/**
- * Global timestamp for consistent backup naming
- */
-const DATETIME = new Date()
-  .toISOString()
-  .replace(/[T:]/g, "_")
-  .replace(/\..+/, "")
-  .replace(/-/g, "");
-
-/**
- * Get the global datetime stamp used for backups
- */
-export function getDatetimeStamp(): string {
-  return DATETIME;
-}
-
-/**
- * Get list of backed up files
- */
-export function getBackedUpFiles(): readonly string[] {
-  return [...backedUpFiles];
-}
-
-/**
- * Clear the backed up files list
- */
-export function clearBackedUpFiles(): void {
-  backedUpFiles.length = 0;
-}
-
-/**
  * Execute a shell command and return the result
  */
 export async function execCommand(
@@ -91,7 +56,7 @@ export async function commandExists(command: string): Promise<boolean> {
 }
 
 /**
- * Sync directory with backup using rsync
+ * Sync directory using rsync
  */
 export async function syncDirectory(
   srcDir: string,
@@ -104,12 +69,9 @@ export async function syncDirectory(
   // Ensure destination directory exists
   mkdirSync(destDir, { recursive: true });
 
-  // Use rsync with backup
-  const suffix = `__${DATETIME}.bk`;
+  // Use rsync to sync
   const result = await execCommand("rsync", [
     "-a",
-    "--backup",
-    `--suffix=${suffix}`,
     `${srcDir}/`,
     `${destDir}/`,
   ]);
@@ -117,29 +79,12 @@ export async function syncDirectory(
   if (!result.success) {
     throw new Error(`Failed to sync directory: ${result.stderr}`);
   }
-
-  // Find backup files created by rsync
-  const findResult = await execCommand("find", [
-    destDir,
-    "-name",
-    `*${suffix}`,
-    "-type",
-    "f",
-  ]);
-
-  if (findResult.success && findResult.stdout) {
-    const backups = findResult.stdout.split("\n").filter((line) => line.trim());
-    backedUpFiles.push(...backups);
-  }
 }
 
 /**
- * Copy single file with backup
+ * Copy single file
  */
-export async function copyFileWithBackup(
-  src: string,
-  dest: string,
-): Promise<void> {
+export async function copyFile(src: string, dest: string): Promise<void> {
   if (!existsSync(src)) {
     throw new Error(`Source file not found: ${src}`);
   }
@@ -147,24 +92,11 @@ export async function copyFileWithBackup(
   // Ensure destination directory exists
   mkdirSync(dirname(dest), { recursive: true });
 
-  // Use rsync for consistency with bash version
-  const suffix = `__${DATETIME}.bk`;
-  const result = await execCommand("rsync", [
-    "-a",
-    "--backup",
-    `--suffix=${suffix}`,
-    src,
-    dest,
-  ]);
+  // Use rsync for file copy
+  const result = await execCommand("rsync", ["-a", src, dest]);
 
   if (!result.success) {
     throw new Error(`Failed to copy file: ${result.stderr}`);
-  }
-
-  // Check if backup was created
-  const backupPath = `${dest}${suffix}`;
-  if (existsSync(backupPath)) {
-    backedUpFiles.push(backupPath);
   }
 }
 
@@ -183,24 +115,13 @@ export function printInstallationHeader(
 }
 
 /**
- * Print installation footer with backup report
+ * Print installation footer
  */
 export function printInstallationFooter(
   installType: "user-level" | "project-level",
 ): void {
   console.log("");
   console.log(`${installType} installation complete!`);
-
-  if (backedUpFiles.length > 0) {
-    console.log("");
-    console.log("Files backed up:");
-    for (const backup of backedUpFiles) {
-      console.log(`  - ${backup}`);
-    }
-  } else {
-    console.log("");
-    console.log("No files were backed up (no conflicts found).");
-  }
 }
 
 /**
@@ -230,7 +151,7 @@ export async function installFile(
 ): Promise<void> {
   if (existsSync(srcFile)) {
     console.log(description);
-    await copyFileWithBackup(srcFile, destFile);
+    await copyFile(srcFile, destFile);
     if (makeExecutable) {
       chmodSync(destFile, 0o755);
     }
@@ -272,11 +193,6 @@ export async function installClaudeMd(
 
   // Check if destination file contains the specified XML tag
   if (destContent.includes(openTag)) {
-    // Create backup
-    const backupPath = `${destFile}__${DATETIME}.bk`;
-    writeFileSync(backupPath, destContent, "utf-8");
-    backedUpFiles.push(backupPath);
-
     // Replace the existing XML tag section
     // Remove everything between and including the tags, plus any trailing newlines
     const tagRegex = new RegExp(
@@ -287,11 +203,6 @@ export async function installClaudeMd(
     const merged = withoutOldTag + sourceContent;
     writeFileSync(destFile, merged, "utf-8");
   } else {
-    // Create backup
-    const backupPath = `${destFile}__${DATETIME}.bk`;
-    writeFileSync(backupPath, destContent, "utf-8");
-    backedUpFiles.push(backupPath);
-
     // Append the new content to the existing file
     const merged = destContent + sourceContent;
     writeFileSync(destFile, merged, "utf-8");
