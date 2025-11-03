@@ -7,6 +7,13 @@ import {
 } from "fs";
 import { dirname, join } from "path";
 import { platform } from "os";
+import {
+  type CommandExecutor,
+  type CommandResult,
+  type InstallConfig,
+  createDefaultExecutor,
+  createDefaultConfig,
+} from "./install-types";
 
 /**
  * Execute a shell command and return the result
@@ -14,45 +21,20 @@ import { platform } from "os";
 export async function execCommand(
   command: string,
   args: string[],
+  executor: CommandExecutor,
   options?: { cwd?: string; env?: Record<string, string> },
-): Promise<{
-  success: boolean;
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-}> {
-  const proc = Bun.spawn([command, ...args], {
-    cwd: options?.cwd,
-    env: options?.env,
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  const [stdout, stderr] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-  ]);
-
-  const exitCode = await proc.exited;
-
-  return {
-    success: exitCode === 0,
-    stdout: stdout.trim(),
-    stderr: stderr.trim(),
-    exitCode,
-  };
+): Promise<CommandResult> {
+  return executor.exec(command, args, options);
 }
 
 /**
  * Check if a command is available in PATH
  */
-export async function commandExists(command: string): Promise<boolean> {
-  try {
-    const result = await execCommand("which", [command]);
-    return result.success;
-  } catch {
-    return false;
-  }
+export async function commandExists(
+  command: string,
+  executor: CommandExecutor,
+): Promise<boolean> {
+  return executor.exists(command);
 }
 
 /**
@@ -61,6 +43,8 @@ export async function commandExists(command: string): Promise<boolean> {
 export async function syncDirectory(
   srcDir: string,
   destDir: string,
+  config: InstallConfig,
+  executor: CommandExecutor,
 ): Promise<void> {
   if (!existsSync(srcDir)) {
     throw new Error(`Source directory not found: ${srcDir}`);
@@ -70,8 +54,8 @@ export async function syncDirectory(
   mkdirSync(destDir, { recursive: true });
 
   // Use rsync to sync
-  const result = await execCommand("rsync", [
-    "-a",
+  const result = await executor.exec("rsync", [
+    ...config.commands.rsyncFlags,
     `${srcDir}/`,
     `${destDir}/`,
   ]);
@@ -84,7 +68,12 @@ export async function syncDirectory(
 /**
  * Copy single file
  */
-export async function copyFile(src: string, dest: string): Promise<void> {
+export async function copyFile(
+  src: string,
+  dest: string,
+  config: InstallConfig,
+  executor: CommandExecutor,
+): Promise<void> {
   if (!existsSync(src)) {
     throw new Error(`Source file not found: ${src}`);
   }
@@ -93,7 +82,11 @@ export async function copyFile(src: string, dest: string): Promise<void> {
   mkdirSync(dirname(dest), { recursive: true });
 
   // Use rsync for file copy
-  const result = await execCommand("rsync", ["-a", src, dest]);
+  const result = await executor.exec("rsync", [
+    ...config.commands.rsyncFlags,
+    src,
+    dest,
+  ]);
 
   if (!result.success) {
     throw new Error(`Failed to copy file: ${result.stderr}`);
@@ -131,10 +124,12 @@ export async function installDirectory(
   srcDir: string,
   destDir: string,
   description: string,
+  config: InstallConfig,
+  executor: CommandExecutor,
 ): Promise<void> {
   if (existsSync(srcDir)) {
     console.log(description);
-    await syncDirectory(srcDir, destDir);
+    await syncDirectory(srcDir, destDir, config, executor);
   } else {
     console.log(`Warning: ${srcDir} directory not found`);
   }
@@ -147,16 +142,47 @@ export async function installFile(
   srcFile: string,
   destFile: string,
   description: string,
+  config: InstallConfig,
+  executor: CommandExecutor,
   makeExecutable: boolean = false,
 ): Promise<void> {
   if (existsSync(srcFile)) {
     console.log(description);
-    await copyFile(srcFile, destFile);
+    await copyFile(srcFile, destFile, config, executor);
     if (makeExecutable) {
-      chmodSync(destFile, 0o755);
+      chmodSync(destFile, config.commands.chmodExecutable);
     }
   } else {
     console.log(`Warning: ${srcFile} not found`);
+  }
+}
+
+/**
+ * Pure function to merge content with XML tag replacement
+ * If destContent contains the XML tag, replaces that section with sourceContent
+ * Otherwise, appends sourceContent to destContent
+ */
+export function replaceXmlTaggedSection(
+  destContent: string,
+  sourceContent: string,
+  xmlTag: string,
+): string {
+  const openTag = `<${xmlTag}>`;
+  const closeTag = `</${xmlTag}>`;
+
+  // Check if destination content contains the specified XML tag
+  if (destContent.includes(openTag)) {
+    // Replace the existing XML tag section
+    // Remove everything between and including the tags, plus any trailing newlines
+    const tagRegex = new RegExp(
+      `${openTag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${closeTag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\n*`,
+      "g",
+    );
+    const withoutOldTag = destContent.replace(tagRegex, "");
+    return withoutOldTag + sourceContent;
+  } else {
+    // Append the new content to the existing content
+    return destContent + sourceContent;
   }
 }
 
@@ -188,23 +214,6 @@ export async function installClaudeMd(
   }
 
   const destContent = readFileSync(destFile, "utf-8");
-  const openTag = `<${xmlTag}>`;
-  const closeTag = `</${xmlTag}>`;
-
-  // Check if destination file contains the specified XML tag
-  if (destContent.includes(openTag)) {
-    // Replace the existing XML tag section
-    // Remove everything between and including the tags, plus any trailing newlines
-    const tagRegex = new RegExp(
-      `${openTag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${closeTag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\n*`,
-      "g",
-    );
-    const withoutOldTag = destContent.replace(tagRegex, "");
-    const merged = withoutOldTag + sourceContent;
-    writeFileSync(destFile, merged, "utf-8");
-  } else {
-    // Append the new content to the existing file
-    const merged = destContent + sourceContent;
-    writeFileSync(destFile, merged, "utf-8");
-  }
+  const merged = replaceXmlTaggedSection(destContent, sourceContent, xmlTag);
+  writeFileSync(destFile, merged, "utf-8");
 }

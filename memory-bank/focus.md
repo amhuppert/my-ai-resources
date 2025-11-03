@@ -1,40 +1,13 @@
 # Current Focus
 
-✅ **Completed**: Consolidated TypeScript scripts into unified `ai` CLI tool
+Create unit tests for the install scripts.
 
-The consolidation is complete. All scripts have been successfully integrated into a single CLI tool using commander.js.
+In order to create good tests, we may need to refactor code to use dependency injection and rely on configuration rather than hard-coded values.
 
-## Implementation Summary
+## Notes
 
-**Created**:
-
-- `typescript/scripts/ai.ts` - Main CLI entry point with commander.js routing
-
-**Updated**:
-
-- `typescript/package.json` - Updated scripts, bin entries, and build process
-- `claude/plugin/commands/init-document-map.md` - Updated to call `ai init-document-map`
-- `typescript/README.md` - Updated documentation for new CLI usage
-- `memory-bank/project-brief.md` - Updated key commands section
-
-**Commands**:
-
-- `ai install --scope [project|user]` - Install resources (defaults to project)
-- `ai init-document-map [-d <directory>] [-i <instructions>]` - Generate document map
-
-**Independent Tools** (as specified):
-
-- `json-to-schema` - General purpose JSON to JSON Schema converter
-- `install-hooks` and `install-settings` - Internal utilities (not exposed in CLI)
-
-## Verification
-
-All functionality tested and working:
-
-- ✅ `ai --help` shows correct help text
-- ✅ `ai install --scope user` command structure validated
-- ✅ `ai install --scope project` command structure validated (default scope)
-- ✅ `ai init-document-map` generates expected output
-- ✅ Old binaries removed from global installation
-- ✅ npm scripts (`bun run install-user`, `bun run init-document-map`, etc.) work correctly
-- ✅ Slash command `/init-document-map` updated to use new CLI
+- Use the built-in `bun` test runner (Jest compatible API)
+- Tests must be written in TypeScript
+- Refer to documentation to understand how to use the test runner: https://bun.sh/docs/test
+- When the agent is running tests, set the `AGENT=1` environment variable to enable AI-friendly output
+- After creating the test suite, we must add critical testing information and standards to the CLAUDE.md file.

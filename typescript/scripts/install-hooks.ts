@@ -2,44 +2,47 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
-import { homedir } from "os";
 import { Command } from "commander";
-import { deepMerge } from "@/scripts/install-settings.js";
 import type {
   HookEvent,
   HookType,
   HookConfig,
   HookMatcher,
-  Hooks,
   ClaudeCodeSettings,
 } from "@/lib/claude-code-settings.js";
 import {
   ClaudeCodeSettingsSchema,
   HookEventSchema,
-  HookTypeSchema,
 } from "@/lib/claude-code-settings.js";
+import {
+  type InstallConfig,
+  createDefaultConfig,
+} from "@/lib/install-types.js";
 
 /**
  * Get Claude Code settings directory for project-level
  */
-function getProjectClaudeSettingsDir(): string {
-  return join(process.cwd(), ".claude");
+function getProjectClaudeSettingsDir(config: InstallConfig): string {
+  return config.paths.projectClaudeDir;
 }
 
 /**
  * Get Claude Code settings directory for user-level
  */
-function getUserClaudeSettingsDir(): string {
-  return join(homedir(), ".claude");
+function getUserClaudeSettingsDir(config: InstallConfig): string {
+  return config.paths.userClaudeDir;
 }
 
 /**
  * Get Claude Code settings file path
  */
-function getClaudeSettingsPath(isProject: boolean): string {
+function getClaudeSettingsPath(
+  isProject: boolean,
+  config: InstallConfig,
+): string {
   const dir = isProject
-    ? getProjectClaudeSettingsDir()
-    : getUserClaudeSettingsDir();
+    ? getProjectClaudeSettingsDir(config)
+    : getUserClaudeSettingsDir(config);
   return join(dir, "settings.local.json");
 }
 
@@ -48,8 +51,9 @@ function getClaudeSettingsPath(isProject: boolean): string {
  */
 function loadExistingHookSettings(
   isProject: boolean,
+  config: InstallConfig,
 ): ClaudeCodeSettings | null {
-  const settingsPath = getClaudeSettingsPath(isProject);
+  const settingsPath = getClaudeSettingsPath(isProject, config);
 
   if (!existsSync(settingsPath)) {
     return null;
@@ -79,11 +83,12 @@ function loadExistingHookSettings(
 function saveHookSettings(
   settings: ClaudeCodeSettings,
   isProject: boolean,
+  config: InstallConfig,
 ): void {
   const settingsDir = isProject
-    ? getProjectClaudeSettingsDir()
-    : getUserClaudeSettingsDir();
-  const settingsPath = getClaudeSettingsPath(isProject);
+    ? getProjectClaudeSettingsDir(config)
+    : getUserClaudeSettingsDir(config);
+  const settingsPath = getClaudeSettingsPath(isProject, config);
 
   // Ensure settings directory exists
   if (!existsSync(settingsDir)) {
@@ -118,12 +123,13 @@ function installHook(
   hookType: HookEvent,
   matcher: string,
   command: string,
+  config: InstallConfig,
   type: HookType = "command",
   timeout?: number,
   isProject: boolean = false,
 ): void {
   // Load existing settings
-  const existingSettings = loadExistingHookSettings(isProject);
+  const existingSettings = loadExistingHookSettings(isProject, config);
 
   // Create base settings if none exist
   const baseSettings: ClaudeCodeSettings = existingSettings || {};
@@ -171,10 +177,10 @@ function installHook(
   }
 
   // Save updated settings
-  saveHookSettings(baseSettings, isProject);
+  saveHookSettings(baseSettings, isProject, config);
 
   const scope = isProject ? "project-level" : "user-level";
-  const settingsPath = getClaudeSettingsPath(isProject);
+  const settingsPath = getClaudeSettingsPath(isProject, config);
   console.log(
     `Hook installed successfully to ${scope} settings: ${settingsPath}`,
   );
@@ -227,11 +233,15 @@ if (import.meta.main) {
           // Determine scope (--project takes precedence)
           const isProject = options.project === true;
 
+          // Create default config
+          const config = createDefaultConfig();
+
           // Install the hook
           installHook(
             hookType as HookEvent,
             matcher,
             command,
+            config,
             typeValue,
             options.timeout,
             isProject,

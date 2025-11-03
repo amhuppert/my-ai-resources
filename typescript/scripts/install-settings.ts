@@ -5,12 +5,16 @@ import { join } from "path";
 import { homedir } from "os";
 import { validateSettings, parseSettings } from "@/lib/claude-code-settings.js";
 import type { ClaudeCodeSettings } from "@/lib/claude-code-settings.js";
+import {
+  type InstallConfig,
+  createDefaultConfig,
+} from "@/lib/install-types.js";
 
 /**
  * Deep merge two objects
  * TODO: Use library like Remeda for this instead of custom implementation.
  */
-function deepMerge(target: any, source: any): any {
+export function deepMerge(target: any, source: any): any {
   if (source === null || typeof source !== "object") {
     return source;
   }
@@ -45,22 +49,24 @@ function deepMerge(target: any, source: any): any {
 /**
  * Get Claude Code settings directory
  */
-function getClaudeSettingsDir(): string {
-  return join(homedir(), ".claude");
+function getClaudeSettingsDir(config: InstallConfig): string {
+  return config.paths.userClaudeDir;
 }
 
 /**
  * Get Claude Code settings file path
  */
-function getClaudeSettingsPath(): string {
-  return join(getClaudeSettingsDir(), "settings.json");
+function getClaudeSettingsPath(config: InstallConfig): string {
+  return join(getClaudeSettingsDir(config), "settings.json");
 }
 
 /**
  * Load existing Claude Code settings
  */
-function loadExistingSettings(): ClaudeCodeSettings | null {
-  const settingsPath = getClaudeSettingsPath();
+function loadExistingSettings(
+  config: InstallConfig,
+): ClaudeCodeSettings | null {
+  const settingsPath = getClaudeSettingsPath(config);
 
   if (!existsSync(settingsPath)) {
     return null;
@@ -87,9 +93,12 @@ function loadExistingSettings(): ClaudeCodeSettings | null {
 /**
  * Save settings to Claude Code settings file
  */
-function saveSettings(settings: ClaudeCodeSettings): void {
-  const settingsDir = getClaudeSettingsDir();
-  const settingsPath = getClaudeSettingsPath();
+function saveSettings(
+  settings: ClaudeCodeSettings,
+  config: InstallConfig,
+): void {
+  const settingsDir = getClaudeSettingsDir(config);
+  const settingsPath = getClaudeSettingsPath(config);
 
   // Ensure settings directory exists
   if (!existsSync(settingsDir)) {
@@ -106,7 +115,10 @@ function saveSettings(settings: ClaudeCodeSettings): void {
 /**
  * Install settings from a source file
  */
-function installSettingsFromFile(sourcePath: string): void {
+function installSettingsFromFile(
+  sourcePath: string,
+  config: InstallConfig,
+): void {
   if (!existsSync(sourcePath)) {
     throw new Error(`Source settings file not found: ${sourcePath}`);
   }
@@ -118,14 +130,14 @@ function installSettingsFromFile(sourcePath: string): void {
 
   if (!sourceResult.success) {
     throw new Error(
-      `Invalid source settings file: ${sourceResult.error?.issues}`
+      `Invalid source settings file: ${sourceResult.error?.issues}`,
     );
   }
 
   const sourceSettings = sourceResult.data;
 
   // Load existing settings
-  const existingSettings = loadExistingSettings();
+  const existingSettings = loadExistingSettings(config);
 
   // Merge settings
   const mergedSettings = existingSettings
@@ -133,9 +145,11 @@ function installSettingsFromFile(sourcePath: string): void {
     : sourceSettings;
 
   // Save merged settings
-  saveSettings(mergedSettings);
+  saveSettings(mergedSettings, config);
 
-  console.log(`Settings installed successfully to ${getClaudeSettingsPath()}`);
+  console.log(
+    `Settings installed successfully to ${getClaudeSettingsPath(config)}`,
+  );
   if (existingSettings) {
     console.log("Settings were merged with existing configuration");
   } else {
@@ -146,9 +160,12 @@ function installSettingsFromFile(sourcePath: string): void {
 /**
  * Install settings from a settings object
  */
-function installSettings(settings: ClaudeCodeSettings): void {
+function installSettings(
+  settings: ClaudeCodeSettings,
+  config: InstallConfig,
+): void {
   // Load existing settings
-  const existingSettings = loadExistingSettings();
+  const existingSettings = loadExistingSettings(config);
 
   // Merge settings
   const mergedSettings = existingSettings
@@ -156,9 +173,11 @@ function installSettings(settings: ClaudeCodeSettings): void {
     : settings;
 
   // Save merged settings
-  saveSettings(mergedSettings);
+  saveSettings(mergedSettings, config);
 
-  console.log(`Settings installed successfully to ${getClaudeSettingsPath()}`);
+  console.log(
+    `Settings installed successfully to ${getClaudeSettingsPath(config)}`,
+  );
   if (existingSettings) {
     console.log("Settings were merged with existing configuration");
   } else {
@@ -183,7 +202,8 @@ if (import.meta.main) {
   }
 
   try {
-    installSettingsFromFile(sourcePath);
+    const config = createDefaultConfig();
+    installSettingsFromFile(sourcePath, config);
   } catch (error) {
     console.error("Error installing settings:", error);
     process.exit(1);
@@ -192,7 +212,6 @@ if (import.meta.main) {
 
 // Export functions for programmatic use
 export {
-  deepMerge,
   getClaudeSettingsDir,
   getClaudeSettingsPath,
   loadExistingSettings,

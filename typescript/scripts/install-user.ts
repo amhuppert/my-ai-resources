@@ -2,7 +2,6 @@
 
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { homedir } from "os";
 import {
   printInstallationHeader,
   installDirectory,
@@ -12,6 +11,12 @@ import {
   commandExists,
 } from "@/lib/installer-utils.js";
 import { installSettingsFromFile } from "@/scripts/install-settings.js";
+import {
+  type CommandExecutor,
+  type InstallConfig,
+  createDefaultConfig,
+  createDefaultExecutor,
+} from "@/lib/install-types.js";
 
 /**
  * Get the directory where this script is located
@@ -32,7 +37,10 @@ function getScriptDir(): string {
 /**
  * Main installation function
  */
-async function main(): Promise<void> {
+async function main(
+  config: InstallConfig,
+  executor: CommandExecutor,
+): Promise<void> {
   const SCRIPT_DIR = getScriptDir();
 
   printInstallationHeader("user-level", SCRIPT_DIR);
@@ -40,43 +48,53 @@ async function main(): Promise<void> {
   // 1. agent-docs -> ~/.claude/agent-docs
   await installDirectory(
     join(SCRIPT_DIR, "agent-docs"),
-    join(homedir(), ".claude", "agent-docs"),
-    "Syncing agent-docs -> ~/.claude/agent-docs",
+    join(config.paths.userClaudeDir, "agent-docs"),
+    `Syncing agent-docs -> ${config.paths.userClaudeDir}/agent-docs`,
+    config,
+    executor,
   );
 
   // 2. claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md
   await installClaudeMd(
     join(SCRIPT_DIR, "claude", "CLAUDE-user.md"),
-    join(homedir(), ".claude", "CLAUDE.md"),
-    "Installing claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md",
+    join(config.paths.userClaudeDir, "CLAUDE.md"),
+    `Installing claude/CLAUDE-user.md -> ${config.paths.userClaudeDir}/CLAUDE.md`,
   );
 
   // 3. Install scripts
   await installFile(
     join(SCRIPT_DIR, "scripts", "lgit"),
-    join(homedir(), ".local", "bin", "lgit"),
-    "Installing lgit -> ~/.local/bin/lgit",
+    join(config.paths.userLocalBin, "lgit"),
+    `Installing lgit -> ${config.paths.userLocalBin}/lgit`,
+    config,
+    executor,
     true,
   );
 
   await installFile(
     join(SCRIPT_DIR, "scripts", "code-tree"),
-    join(homedir(), ".local", "bin", "code-tree"),
-    "Installing code-tree -> ~/.local/bin/code-tree",
+    join(config.paths.userLocalBin, "code-tree"),
+    `Installing code-tree -> ${config.paths.userLocalBin}/code-tree`,
+    config,
+    executor,
     true,
   );
 
   await installFile(
     join(SCRIPT_DIR, "scripts", "read-file"),
-    join(homedir(), ".local", "bin", "read-file"),
-    "Installing read-file -> ~/.local/bin/read-file",
+    join(config.paths.userLocalBin, "read-file"),
+    `Installing read-file -> ${config.paths.userLocalBin}/read-file`,
+    config,
+    executor,
     true,
   );
 
   await installFile(
     join(SCRIPT_DIR, "scripts", "push-main"),
-    join(homedir(), ".local", "bin", "push-main"),
-    "Installing push-main -> ~/.local/bin/push-main",
+    join(config.paths.userLocalBin, "push-main"),
+    `Installing push-main -> ${config.paths.userLocalBin}/push-main`,
+    config,
+    executor,
     true,
   );
 
@@ -84,10 +102,10 @@ async function main(): Promise<void> {
   console.log("Installing cursor-shortcuts-mcp globally...");
   const mcpDir = join(SCRIPT_DIR, "cursor-shortcuts-mcp");
 
-  if (await commandExists("bun")) {
+  if (await commandExists("bun", executor)) {
     try {
       console.log("Building cursor-shortcuts-mcp...");
-      const buildResult = await execCommand("bun", ["run", "build"], {
+      const buildResult = await execCommand("bun", ["run", "build"], executor, {
         cwd: mcpDir,
       });
 
@@ -96,7 +114,7 @@ async function main(): Promise<void> {
         console.error(buildResult.stderr);
       } else {
         console.log("Linking cursor-shortcuts-mcp globally...");
-        const linkResult = await execCommand("bun", ["link"], {
+        const linkResult = await execCommand("bun", ["link"], executor, {
           cwd: mcpDir,
         });
 
@@ -122,9 +140,12 @@ async function main(): Promise<void> {
 
   // 5. Install Claude Code settings using TypeScript installer
   console.log("Installing Claude Code user-level settings...");
-  if (await commandExists("bun")) {
+  if (await commandExists("bun", executor)) {
     try {
-      installSettingsFromFile(join(SCRIPT_DIR, "claude", "settings.json"));
+      installSettingsFromFile(
+        join(SCRIPT_DIR, "claude", "settings.json"),
+        config,
+      );
       console.log("Claude Code settings installed successfully");
     } catch (error) {
       console.log("Warning: Failed to install Claude Code settings");
@@ -141,14 +162,18 @@ async function main(): Promise<void> {
   console.log("Adding MCP servers to Claude Code");
 
   // Add cursor-shortcuts-mcp (globally linked via bun)
-  const cursorShortcutsResult = await execCommand("claude", [
-    "mcp",
-    "add",
-    "cursor-shortcuts",
-    "cursor-shortcuts-mcp",
-    "--scope",
-    "user",
-  ]);
+  const cursorShortcutsResult = await execCommand(
+    "claude",
+    [
+      "mcp",
+      "add",
+      "cursor-shortcuts",
+      "cursor-shortcuts-mcp",
+      "--scope",
+      "user",
+    ],
+    executor,
+  );
 
   if (!cursorShortcutsResult.success) {
     console.log("Warning: Failed to add cursor-shortcuts MCP server");
@@ -156,16 +181,20 @@ async function main(): Promise<void> {
   }
 
   // Add Context7 MCP server
-  const context7Result = await execCommand("claude", [
-    "mcp",
-    "add",
-    "--transport",
-    "sse",
-    "context7",
-    "https://mcp.context7.com/sse",
-    "--scope",
-    "user",
-  ]);
+  const context7Result = await execCommand(
+    "claude",
+    [
+      "mcp",
+      "add",
+      "--transport",
+      "sse",
+      "context7",
+      "https://mcp.context7.com/sse",
+      "--scope",
+      "user",
+    ],
+    executor,
+  );
 
   if (!context7Result.success) {
     console.log("Warning: Failed to add Context7 MCP server");
@@ -176,18 +205,18 @@ async function main(): Promise<void> {
   console.log("Installing Hooks");
   console.log("Installing rins_hooks from fork");
 
-  const rinsHooksPath = join(homedir(), "rins_hooks");
+  const rinsHooksPath = config.paths.userRinsHooks;
 
   // Clone the rins_hooks fork if it doesn't exist
   const rinsHooksExists = await Bun.file(rinsHooksPath).exists();
 
   if (!rinsHooksExists) {
     console.log("Cloning rins_hooks fork...");
-    const cloneResult = await execCommand("git", [
-      "clone",
-      "https://github.com/amhuppert/rins_hooks.git",
-      rinsHooksPath,
-    ]);
+    const cloneResult = await execCommand(
+      "git",
+      ["clone", "https://github.com/amhuppert/rins_hooks.git", rinsHooksPath],
+      executor,
+    );
 
     if (!cloneResult.success) {
       console.log("Warning: Failed to clone rins_hooks");
@@ -195,7 +224,7 @@ async function main(): Promise<void> {
     }
   } else {
     console.log("rins_hooks fork already exists, updating...");
-    const pullResult = await execCommand("git", ["pull"], {
+    const pullResult = await execCommand("git", ["pull"], executor, {
       cwd: rinsHooksPath,
     });
 
@@ -208,7 +237,7 @@ async function main(): Promise<void> {
   // Install globally with bun link
   console.log("Installing rins_hooks globally with bun link...");
 
-  const installResult = await execCommand("bun", ["install"], {
+  const installResult = await execCommand("bun", ["install"], executor, {
     cwd: rinsHooksPath,
   });
   if (!installResult.success) {
@@ -216,7 +245,9 @@ async function main(): Promise<void> {
     console.error(installResult.stderr);
   }
 
-  const linkResult = await execCommand("bun", ["link"], { cwd: rinsHooksPath });
+  const linkResult = await execCommand("bun", ["link"], executor, {
+    cwd: rinsHooksPath,
+  });
   if (!linkResult.success) {
     console.log("Warning: Failed to link rins_hooks");
     console.error(linkResult.stderr);
@@ -228,23 +259,22 @@ async function main(): Promise<void> {
   const marketplaceJsonPath = join(SCRIPT_DIR, "claude", "marketplace.json");
 
   // Add this repository as a plugin marketplace
-  const marketplaceResult = await execCommand("claude", [
-    "plugin",
-    "marketplace",
-    "add",
-    marketplaceJsonPath,
-  ]);
+  const marketplaceResult = await execCommand(
+    "claude",
+    ["plugin", "marketplace", "add", marketplaceJsonPath],
+    executor,
+  );
 
   if (!marketplaceResult.success) {
     console.log("Warning: Failed to add plugin marketplace");
     console.error(marketplaceResult.stderr);
   } else {
     // Install the plugin from the local marketplace
-    const pluginInstallResult = await execCommand("claude", [
-      "plugin",
-      "install",
-      "ai-workflow-resources@ai-workflow-resources",
-    ]);
+    const pluginInstallResult = await execCommand(
+      "claude",
+      ["plugin", "install", "ai-workflow-resources@ai-workflow-resources"],
+      executor,
+    );
 
     if (!pluginInstallResult.success) {
       console.log("Warning: Failed to install ai-workflow-resources plugin");
@@ -261,7 +291,9 @@ async function main(): Promise<void> {
 // CLI interface
 if (import.meta.main) {
   try {
-    await main();
+    const config = createDefaultConfig();
+    const executor = createDefaultExecutor();
+    await main(config, executor);
   } catch (error) {
     console.error("Error during user-level installation:", error);
     process.exit(1);

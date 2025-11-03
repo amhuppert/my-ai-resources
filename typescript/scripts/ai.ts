@@ -3,6 +3,10 @@
 import { Command } from "commander";
 import { main as installUser } from "@/scripts/install-user.js";
 import { main as installProject } from "@/scripts/install-project.js";
+import {
+  createDefaultConfig,
+  createDefaultExecutor,
+} from "@/lib/install-types.js";
 
 const program = new Command();
 
@@ -21,17 +25,19 @@ program
   )
   .action(async (options) => {
     const scope = options.scope.toLowerCase();
+    const config = createDefaultConfig();
+    const executor = createDefaultExecutor();
 
     if (scope === "user") {
       try {
-        await installUser();
+        await installUser(config, executor);
       } catch (error) {
         console.error("Error during user-level installation:", error);
         process.exit(1);
       }
     } else if (scope === "project") {
       try {
-        await installProject();
+        await installProject(config, executor);
       } catch (error) {
         console.error("Error during project-level installation:", error);
         process.exit(1);

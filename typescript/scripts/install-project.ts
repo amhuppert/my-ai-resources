@@ -11,6 +11,12 @@ import {
   commandExists,
 } from "@/lib/installer-utils.js";
 import { installHook } from "@/scripts/install-hooks.js";
+import {
+  type CommandExecutor,
+  type InstallConfig,
+  createDefaultConfig,
+  createDefaultExecutor,
+} from "@/lib/install-types.js";
 
 /**
  * Get the directory where this script is located
@@ -31,7 +37,10 @@ function getScriptDir(): string {
 /**
  * Main installation function
  */
-async function main(): Promise<void> {
+async function main(
+  config: InstallConfig,
+  executor: CommandExecutor,
+): Promise<void> {
   const SCRIPT_DIR = getScriptDir();
 
   printInstallationHeader("project-level", SCRIPT_DIR);
@@ -39,29 +48,36 @@ async function main(): Promise<void> {
   // 1. cursor/rules -> .cursor/rules in current working directory
   await installDirectory(
     join(SCRIPT_DIR, "cursor", "rules"),
-    join(process.cwd(), ".cursor", "rules"),
-    `Syncing cursor/rules -> ${process.cwd()}/.cursor/rules`,
+    config.paths.cursorRulesDir,
+    `Syncing cursor/rules -> ${config.paths.cursorRulesDir}`,
+    config,
+    executor,
   );
 
   // 2. claude/CLAUDE-project.md -> CLAUDE.md in current working directory
+  const projectClaudeFile = join(process.cwd(), "CLAUDE.md");
   await installClaudeMd(
     join(SCRIPT_DIR, "claude", "CLAUDE-project.md"),
-    join(process.cwd(), "CLAUDE.md"),
-    `Installing project-level CLAUDE.md -> ${process.cwd()}/CLAUDE.md`,
+    projectClaudeFile,
+    `Installing project-level CLAUDE.md -> ${projectClaudeFile}`,
     "project-level-instructions",
   );
 
   // 3. Install notification hook if audio file exists
-  const notificationFile = join(process.cwd(), ".claude", "notification.mp3");
+  const notificationFile = join(
+    config.paths.projectClaudeDir,
+    "notification.mp3",
+  );
 
   if (existsSync(notificationFile)) {
     console.log("Installing notification hook for .claude/notification.mp3");
-    if (await commandExists("bun")) {
+    if (await commandExists("bun", executor)) {
       try {
         installHook(
           "Notification",
           "*",
           "ffplay -nodisp -autoexit -loglevel quiet ./.claude/notification.mp3 < /dev/null",
+          config,
           "command",
           5,
           true,
@@ -85,11 +101,11 @@ async function main(): Promise<void> {
 
   // 4. Install code-formatter hook with rins_hooks
   console.log("Installing code-formatter hook with rins_hooks");
-  const rinsResult = await execCommand("rins_hooks", [
-    "install",
-    "code-formatter",
-    "--project",
-  ]);
+  const rinsResult = await execCommand(
+    "rins_hooks",
+    ["install", "code-formatter", "--project"],
+    executor,
+  );
 
   if (!rinsResult.success) {
     console.log("Warning: Failed to install code-formatter hook");
@@ -103,7 +119,9 @@ async function main(): Promise<void> {
 // CLI interface
 if (import.meta.main) {
   try {
-    await main();
+    const config = createDefaultConfig();
+    const executor = createDefaultExecutor();
+    await main(config, executor);
   } catch (error) {
     console.error("Error during project-level installation:", error);
     process.exit(1);

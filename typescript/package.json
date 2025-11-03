@@ -12,7 +12,10 @@
     "install-project": "bun run scripts/ai.ts install --scope project",
     "init-document-map": "bun run scripts/ai.ts init-document-map",
     "type-check": "tsc --noEmit",
-    "json-to-schema": "bun run scripts/json-to-zod-to-json-schema.ts"
+    "json-to-schema": "bun run scripts/json-to-zod-to-json-schema.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:unit": "bun test lib/ scripts/"
   },
   "bin": {
     "ai": "dist/ai.js",
