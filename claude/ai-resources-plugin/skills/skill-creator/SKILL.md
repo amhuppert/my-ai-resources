@@ -217,6 +217,38 @@ Also, delete any example files and directories not needed for the skill. The ini
 
 **Writing Style:** Write the entire skill using **imperative/infinitive form** (verb-first instructions), not second person. Use objective, instructional language (e.g., "To accomplish X, do Y" rather than "You should do X" or "If you need to do X"). This maintains consistency and clarity for AI consumption.
 
+**Using XML Tags:** XML tags help Claude parse skill instructions more accurately by clearly separating different components. According to Anthropic's guidance, there are no canonical "best" XML tags—choose tag names that make sense contextually and use them consistently.
+
+Consider using XML tags in skills when:
+
+- Providing multiple examples that should be easily distinguished (e.g., `<example type="valid">` vs `<example type="invalid">`)
+- Separating context from instructions (e.g., `<context>` and `<instructions>`)
+- Structuring complex workflows with nested steps
+- Defining templates or expected output formats (e.g., `<template>`, `<format>`)
+- Creating reusable instruction components that will be referenced explicitly
+
+Common patterns for skills:
+
+```markdown
+<instructions>
+Core procedural steps
+</instructions>
+
+<example type="valid">
+Correct approach with explanation
+</example>
+
+<example type="invalid">
+Anti-pattern with explanation
+</example>
+
+<template>
+Expected output format
+</template>
+```
+
+Skip XML tags when natural markdown structure is sufficient for simple, straightforward content. The key is consistency—if using XML tags, reference them explicitly in instructions and use them consistently throughout the skill.
+
 To complete SKILL.md, answer the following questions:
 
 1. What is the purpose of the skill, in a few sentences?

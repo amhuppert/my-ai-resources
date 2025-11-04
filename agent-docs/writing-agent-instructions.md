@@ -130,6 +130,135 @@ Organize related instructions together:
 ## Using the Bash Tool
 ```
 
+## Using XML Tags to Structure Content
+
+XML tags help Claude parse instructions more accurately by clearly separating different components. According to Anthropic's guidance, "there are no canonical 'best' XML tags"—instead, tag names should make sense contextually.
+
+### Benefits
+
+- **Clarity**: Separate instruction components (context, instructions, examples)
+- **Accuracy**: Reduce misinterpretation errors
+- **Flexibility**: Easily modify instruction sections without rewrites
+- **Parseability**: Extract specific response parts via post-processing
+
+### Best Practices
+
+**Be consistent** with tag names throughout instructions and reference them explicitly:
+
+```markdown
+First, review the requirements in the <requirements> section...
+```
+
+**Nest tags hierarchically** for complex content:
+
+```xml
+<skill>
+  <overview>
+    High-level description
+  </overview>
+  <workflow>
+    <step>First step</step>
+    <step>Second step</step>
+  </workflow>
+</skill>
+```
+
+**Combine with other techniques** like examples and workflows for enhanced effectiveness.
+
+### Common Tag Patterns
+
+Choose tag names that make sense for the content:
+
+**Instructional content:**
+
+- `<instructions>` - Core instructions or commands
+- `<workflow>` - Step-by-step procedures
+- `<requirements>` - Prerequisites or constraints
+- `<validation>` - Verification steps
+
+**Reference content:**
+
+- `<example>` - Concrete examples
+- `<template>` - Output format templates
+- `<data>` - Input data or context
+- `<schema>` - Data structure definitions
+
+**Output guidance:**
+
+- `<format>` or `<formatting>` - Expected output format
+- `<findings>` - Analysis results
+- `<recommendations>` - Suggested actions
+
+### Example Usage
+
+**Structuring skill instructions:**
+
+```markdown
+<instructions>
+Follow these steps to rotate a PDF:
+
+1. Validate input file exists
+2. Execute rotation command
+3. Verify output
+   </instructions>
+
+<example>
+Input: document.pdf, 90 degrees
+Output: document_rotated.pdf
+</example>
+```
+
+**Separating context from instructions:**
+
+```markdown
+<context>
+The API uses OAuth 2.0 authentication with 24-hour token expiration.
+</context>
+
+<instructions>
+To make authenticated requests:
+1. Check token expiration
+2. Refresh if needed
+3. Include in Authorization header
+</instructions>
+```
+
+**Providing structured examples:**
+
+```markdown
+<example type="valid">
+const user = await fetchUser(userId);
+if (!user) {
+  return null;
+}
+return user.profile;
+</example>
+
+<example type="invalid">
+// Don't assume user exists
+return (await fetchUser(userId)).profile;
+</example>
+```
+
+### When to Use XML Tags
+
+**Use XML tags when:**
+
+- Instructions have distinct sections that need clear separation
+- Providing multiple examples that should be easily distinguished
+- Creating complex, nested content structures
+- Building reusable instruction components
+- Need to reference specific sections in instructions
+
+**Skip XML tags when:**
+
+- Instructions are simple and short
+- Natural markdown structure is sufficient
+- Tags would add unnecessary complexity
+- Target format doesn't support XML
+
+The key is consistency and clarity—choose tag names that make sense for the content and use them consistently throughout the instructions.
+
 ## Content Patterns
 
 ### The Template Pattern
