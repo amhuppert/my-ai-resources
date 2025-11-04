@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "ai-workflow-resources",
-      "source": "../plugin",
+      "source": "./plugin",
       "description": "AI-enhanced git workflows, memory banks, and development utilities"
     }
   ]
