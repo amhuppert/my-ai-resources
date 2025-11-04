@@ -253,6 +253,37 @@ async function main(
     console.error(linkResult.stderr);
   }
 
+  // 8. Install ai-workflow-resources plugin
+  console.log("Installing ai-workflow-resources plugin...");
+
+  const marketplacePath = join(SCRIPT_DIR, "claude");
+
+  // Add this repository as a plugin marketplace
+  const marketplaceResult = await execCommand(
+    "claude",
+    ["plugin", "marketplace", "add", marketplacePath],
+    executor
+  );
+
+  if (!marketplaceResult.success) {
+    console.log("Warning: Failed to add plugin marketplace");
+    console.error(marketplaceResult.stderr);
+  } else {
+    // Install the plugin from the local marketplace
+    const pluginInstallResult = await execCommand(
+      "claude",
+      ["plugin", "install", "ai-resources@ai-resources"],
+      executor
+    );
+
+    if (!pluginInstallResult.success) {
+      console.log("Warning: Failed to install ai-resources plugin");
+      console.error(pluginInstallResult.stderr);
+    } else {
+      console.log("ai-resources plugin installed successfully");
+    }
+  }
+
   console.log("");
   console.log("user-level installation complete!");
 }
