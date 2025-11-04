@@ -7,6 +7,7 @@ import {
   createDefaultConfig,
   createDefaultExecutor,
 } from "@/lib/install-types.js";
+import { initSkill, validateSkill } from "@/lib/skill-operations.js";
 
 const program = new Command();
 
@@ -128,6 +129,61 @@ program
     });
 
     console.log(rendered);
+  });
+
+const skill = program.command("skill").description("Skill management commands");
+
+const createSkill = skill
+  .command("create-skill")
+  .description("Skill creator helper commands");
+
+createSkill
+  .command("init <skill-name>")
+  .description("Initialize a new skill")
+  .option("-s, --scope <type>", "project or user (default: project)", "project")
+  .action(async (skillName: string, options) => {
+    const scope = options.scope.toLowerCase();
+
+    if (scope !== "project" && scope !== "user") {
+      console.error(
+        `Invalid scope: ${scope}. Must be either 'project' or 'user'.`,
+      );
+      process.exit(1);
+    }
+
+    const config = createDefaultConfig();
+
+    try {
+      await initSkill(skillName, scope as "project" | "user", config);
+      process.exit(0);
+    } catch (error) {
+      console.error(
+        `Error initializing skill: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      process.exit(1);
+    }
+  });
+
+createSkill
+  .command("validate <skill-path>")
+  .description("Validate a skill structure")
+  .action(async (skillPath: string) => {
+    try {
+      const result = await validateSkill(skillPath);
+
+      if (result.valid) {
+        console.log(`✅ ${result.message}`);
+        process.exit(0);
+      } else {
+        console.error(`❌ ${result.message}`);
+        process.exit(1);
+      }
+    } catch (error) {
+      console.error(
+        `Error validating skill: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      process.exit(1);
+    }
   });
 
 program.parse();

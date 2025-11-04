@@ -1,13 +1,20 @@
 # Current Focus
 
-Create unit tests for the install scripts.
+update the skill-creator skill.
 
-In order to create good tests, we may need to refactor code to use dependency injection and rely on configuration rather than hard-coded values.
+- Convert scripts to TypeScript
+- Remove packaging skill into zip.
+- User can indicate whether skill is project-level or user-level (default to project-level).
+  - Project-level: Save file in .claude/skills/<new-skill> of current project
+  - User-level: Save file in ~/.claude/skills/<new-skill>
 
-## Notes
+## Scripts
 
-- Use the built-in `bun` test runner (Jest compatible API)
-- Tests must be written in TypeScript
-- Refer to documentation to understand how to use the test runner: https://bun.sh/docs/test
-- When the agent is running tests, set the `AGENT=1` environment variable to enable AI-friendly output
-- After creating the test suite, we must add critical testing information and standards to the CLAUDE.md file.
+Rather than package scripts alongside the skill, the init_skill script and others will become a part of our `ai` CLI tool.
+
+`ai skill create-skill init [...args]`
+`ai skill create-skill validate [...args]`
+
+This will be the pattern used by skills created in the future:
+
+`ai skill <skill-name> <skill-helper-command-name> [...args]`

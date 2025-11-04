@@ -20,7 +20,8 @@ equipped with procedural knowledge that no model can fully possess.
 1. Specialized workflows - Multi-step procedures for specific domains
 2. Tool integrations - Instructions for working with specific file formats or APIs
 3. Domain expertise - Company-specific knowledge, schemas, business logic
-4. Bundled resources - Scripts, references, and assets for complex and repetitive tasks
+4. Helper commands - TypeScript commands integrated into the `ai` CLI for deterministic, repeatable tasks
+5. Bundled resources - References and assets for complex workflows
 
 ### Anatomy of a Skill
 
@@ -34,9 +35,14 @@ skill-name/
 │   │   └── description: (required)
 │   └── Markdown instructions (required)
 └── Bundled Resources (optional)
-    ├── scripts/          - Executable code (Python/Bash/etc.)
     ├── references/       - Documentation intended to be loaded into context as needed
     └── assets/           - Files used in output (templates, icons, fonts, etc.)
+```
+
+Skills may also include helper commands, which are added to the `ai` CLI tool and executed like this:
+
+```bash
+ai skill <skill-name> <command> [...args]
 ```
 
 #### SKILL.md (required)
@@ -45,14 +51,21 @@ skill-name/
 
 #### Bundled Resources (optional)
 
-##### Scripts (`scripts/`)
+##### Skill Helper Commands
 
-Executable code (Python/Bash/etc.) for tasks that require deterministic reliability or are repeatedly rewritten.
+TypeScript commands integrated into the `ai` CLI for tasks that require deterministic reliability or are repeatedly rewritten.
 
-- **When to include**: When the same code is being rewritten repeatedly or deterministic reliability is needed
-- **Example**: `scripts/rotate_pdf.py` for PDF rotation tasks
-- **Benefits**: Token efficient, deterministic, may be executed without loading into context
-- **Note**: Scripts may still need to be read by Claude for patching or environment-specific adjustments
+- **When to create**: When the same code is being rewritten repeatedly or deterministic reliability is needed
+- **Pattern**: `ai skill <skill-name> <helper-command> [...args]`
+- **Example**: `ai skill pdf-editor rotate input.pdf --degrees 90` for PDF rotation tasks
+- **Implementation**:
+  - Written in TypeScript
+  - Integrated into the `ai` CLI app (in `typescript/lib/` or `typescript/scripts/`)
+  - Use Eta templates for any templating needs
+  - Follow dependency injection pattern with `InstallConfig` and `CommandExecutor`
+  - Include comprehensive unit tests
+- **Benefits**: Token efficient, deterministic, type-safe, testable, integrated tooling
+- **Reference**: See the `skill-creator` skill itself as an example (`lib/skill-operations.ts`)
 
 ##### References (`references/`)
 
@@ -80,9 +93,9 @@ Skills use a three-level loading system to manage context efficiently:
 
 1. **Metadata (name + description)** - Always in context (~100 words)
 2. **SKILL.md body** - When skill triggers (<5k words)
-3. **Bundled resources** - As needed by Claude (Unlimited*)
+3. **Bundled resources & helper commands** - As needed by Claude (Unlimited\*)
 
-*Unlimited because scripts can be executed without reading into context window.
+\*Unlimited because helper commands and scripts can be executed without reading into context window.
 
 ## Skill Creation Process
 
@@ -110,47 +123,65 @@ Conclude this step when there is a clear sense of the functionality the skill sh
 To turn concrete examples into an effective skill, analyze each example by:
 
 1. Considering how to execute on the example from scratch
-2. Identifying what scripts, references, and assets would be helpful when executing these workflows repeatedly
+2. Identifying what helper commands, references, and assets would be helpful when executing these workflows repeatedly
 
 Example: When building a `pdf-editor` skill to handle queries like "Help me rotate this PDF," the analysis shows:
 
 1. Rotating a PDF requires re-writing the same code each time
-2. A `scripts/rotate_pdf.py` script would be helpful to store in the skill
+2. A TypeScript helper command `ai skill pdf-editor rotate <input.pdf> --degrees <degrees>` would be helpful to integrate into the `ai` CLI
 
 Example: When designing a `frontend-webapp-builder` skill for queries like "Build me a todo app" or "Build me a dashboard to track my steps," the analysis shows:
 
 1. Writing a frontend webapp requires the same boilerplate HTML/React each time
 2. An `assets/hello-world/` template containing the boilerplate HTML/React project files would be helpful to store in the skill
+3. A TypeScript helper command `ai skill frontend-webapp-builder init <app-name> --template <template-type>` could scaffold projects from these templates
 
 Example: When building a `big-query` skill to handle queries like "How many users have logged in today?" the analysis shows:
 
 1. Querying BigQuery requires re-discovering the table schemas and relationships each time
 2. A `references/schema.md` file documenting the table schemas would be helpful to store in the skill
 
-To establish the skill's contents, analyze each concrete example to create a list of the reusable resources to include: scripts, references, and assets.
+To establish the skill's contents, analyze each concrete example to create a list of the reusable resources to include: helper commands, references, and assets.
 
 ### Step 3: Initializing the Skill
 
 At this point, it is time to actually create the skill.
 
-Skip this step only if the skill being developed already exists, and iteration or packaging is needed. In this case, continue to the next step.
+Skip this step only if the skill being developed already exists. In this case, continue to the next step.
 
-When creating a new skill from scratch, always run the `init_skill.py` script. The script conveniently generates a new template skill directory that automatically includes everything a skill requires, making the skill creation process much more efficient and reliable.
+When creating a new skill from scratch, use the `ai skill create-skill init` command to generate a new template skill directory that automatically includes everything a skill requires, making the skill creation process much more efficient and reliable.
 
 Usage:
 
 ```bash
-scripts/init_skill.py <skill-name> --path <output-directory>
+# Create skill in current project (.claude/skills/)
+ai skill create-skill init <skill-name>
+
+# Create skill in user-level directory (~/.claude/skills/)
+ai skill create-skill init <skill-name> --scope user
 ```
 
-The script:
+The command:
 
-- Creates the skill directory at the specified path
+- Creates the skill directory in the appropriate location based on scope
 - Generates a SKILL.md template with proper frontmatter and TODO placeholders
 - Creates example resource directories: `scripts/`, `references/`, and `assets/`
 - Adds example files in each directory that can be customized or deleted
 
 After initialization, customize or remove the generated SKILL.md and example files as needed.
+
+To validate a skill structure at any point:
+
+```bash
+ai skill create-skill validate <path/to/skill>
+```
+
+The validation checks:
+
+- YAML frontmatter format and required fields (`name`, `description`)
+- Skill naming conventions (hyphen-case)
+- Description quality (no angle brackets)
+- File organization
 
 ### Step 4: Edit the Skill
 
@@ -158,9 +189,29 @@ When editing the (newly-generated or existing) skill, remember that the skill is
 
 #### Start with Reusable Skill Contents
 
-To begin implementation, start with the reusable resources identified above: `scripts/`, `references/`, and `assets/` files. Note that this step may require user input. For example, when implementing a `brand-guidelines` skill, the user may need to provide brand assets or templates to store in `assets/`, or documentation to store in `references/`.
+To begin implementation, start with the reusable resources identified above:
 
-Also, delete any example files and directories not needed for the skill. The initialization script creates example files in `scripts/`, `references/`, and `assets/` to demonstrate structure, but most skills won't need all of them.
+**Helper Commands** - For repetitive or deterministic tasks:
+
+1. Create TypeScript module in `typescript/lib/` (e.g., `typescript/lib/pdf-operations.ts`)
+2. Write core functions with proper type safety and error handling
+3. Create comprehensive unit tests (e.g., `typescript/lib/pdf-operations.test.ts`)
+4. Add CLI commands to `typescript/scripts/ai.ts` following the pattern: `ai skill <skill-name> <command>`
+5. Use Eta templates if templating is needed (store in `typescript/templates/`)
+6. Follow the `skill-creator` implementation as a reference
+
+**References** - For documentation to be loaded into context:
+
+- Create markdown files in the skill's `references/` directory
+- Include database schemas, API documentation, policies, or detailed guides
+
+**Assets** - For files used in output:
+
+- Store templates, boilerplate, images, fonts, etc. in the skill's `assets/` directory
+
+Note that implementation may require user input. For example, when implementing a `brand-guidelines` skill, the user may need to provide brand assets or templates to store in `assets/`, or documentation to store in `references/`.
+
+Also, delete any example files and directories not needed for the skill. The initialization command creates example files in `references/` and `assets/` to demonstrate structure, but not all skills will need both.
 
 #### Update SKILL.md
 
@@ -172,37 +223,12 @@ To complete SKILL.md, answer the following questions:
 2. When should the skill be used?
 3. In practice, how should Claude use the skill? All reusable skill contents developed above should be referenced so that Claude knows how to use them.
 
-### Step 5: Packaging a Skill
-
-Once the skill is ready, it should be packaged into a distributable zip file that gets shared with the user. The packaging process automatically validates the skill first to ensure it meets all requirements:
-
-```bash
-scripts/package_skill.py <path/to/skill-folder>
-```
-
-Optional output directory specification:
-
-```bash
-scripts/package_skill.py <path/to/skill-folder> ./dist
-```
-
-The packaging script will:
-
-1. **Validate** the skill automatically, checking:
-   - YAML frontmatter format and required fields
-   - Skill naming conventions and directory structure
-   - Description completeness and quality
-   - File organization and resource references
-
-2. **Package** the skill if validation passes, creating a zip file named after the skill (e.g., `my-skill.zip`) that includes all files and maintains the proper directory structure for distribution.
-
-If validation fails, the script will report the errors and exit without creating a package. Fix any validation errors and run the packaging command again.
-
-### Step 6: Iterate
+### Step 5: Iterate
 
 After testing the skill, users may request improvements. Often this happens right after using the skill, with fresh context of how the skill performed.
 
 **Iteration workflow:**
+
 1. Use the skill on real tasks
 2. Notice struggles or inefficiencies
 3. Identify how SKILL.md or bundled resources should be updated
