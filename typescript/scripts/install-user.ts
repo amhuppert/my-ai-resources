@@ -39,7 +39,7 @@ function getScriptDir(): string {
  */
 async function main(
   config: InstallConfig,
-  executor: CommandExecutor,
+  executor: CommandExecutor
 ): Promise<void> {
   const SCRIPT_DIR = getScriptDir();
 
@@ -51,14 +51,14 @@ async function main(
     join(config.paths.userClaudeDir, "agent-docs"),
     `Syncing agent-docs -> ${config.paths.userClaudeDir}/agent-docs`,
     config,
-    executor,
+    executor
   );
 
   // 2. claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md
   await installClaudeMd(
     join(SCRIPT_DIR, "claude", "CLAUDE-user.md"),
     join(config.paths.userClaudeDir, "CLAUDE.md"),
-    `Installing claude/CLAUDE-user.md -> ${config.paths.userClaudeDir}/CLAUDE.md`,
+    `Installing claude/CLAUDE-user.md -> ${config.paths.userClaudeDir}/CLAUDE.md`
   );
 
   // 3. Install scripts
@@ -68,7 +68,7 @@ async function main(
     `Installing lgit -> ${config.paths.userLocalBin}/lgit`,
     config,
     executor,
-    true,
+    true
   );
 
   await installFile(
@@ -77,7 +77,7 @@ async function main(
     `Installing code-tree -> ${config.paths.userLocalBin}/code-tree`,
     config,
     executor,
-    true,
+    true
   );
 
   await installFile(
@@ -86,7 +86,7 @@ async function main(
     `Installing read-file -> ${config.paths.userLocalBin}/read-file`,
     config,
     executor,
-    true,
+    true
   );
 
   await installFile(
@@ -95,7 +95,7 @@ async function main(
     `Installing push-main -> ${config.paths.userLocalBin}/push-main`,
     config,
     executor,
-    true,
+    true
   );
 
   // 4. Install cursor-shortcuts-mcp globally
@@ -131,10 +131,10 @@ async function main(
     }
   } else {
     console.log(
-      "Warning: bun not found, skipping cursor-shortcuts-mcp installation",
+      "Warning: bun not found, skipping cursor-shortcuts-mcp installation"
     );
     console.log(
-      "Install bun to enable MCP server installation: https://bun.sh",
+      "Install bun to enable MCP server installation: https://bun.sh"
     );
   }
 
@@ -144,7 +144,7 @@ async function main(
     try {
       installSettingsFromFile(
         join(SCRIPT_DIR, "claude", "settings.json"),
-        config,
+        config
       );
       console.log("Claude Code settings installed successfully");
     } catch (error) {
@@ -153,7 +153,7 @@ async function main(
     }
   } else {
     console.log(
-      "Warning: bun not found, skipping Claude Code settings installation",
+      "Warning: bun not found, skipping Claude Code settings installation"
     );
     console.log("Install bun to enable settings installation: https://bun.sh");
   }
@@ -172,7 +172,7 @@ async function main(
       "--scope",
       "user",
     ],
-    executor,
+    executor
   );
 
   if (!cursorShortcutsResult.success) {
@@ -193,7 +193,7 @@ async function main(
       "--scope",
       "user",
     ],
-    executor,
+    executor
   );
 
   if (!context7Result.success) {
@@ -215,7 +215,7 @@ async function main(
     const cloneResult = await execCommand(
       "git",
       ["clone", "https://github.com/amhuppert/rins_hooks.git", rinsHooksPath],
-      executor,
+      executor
     );
 
     if (!cloneResult.success) {
@@ -251,37 +251,6 @@ async function main(
   if (!linkResult.success) {
     console.log("Warning: Failed to link rins_hooks");
     console.error(linkResult.stderr);
-  }
-
-  // 8. Install ai-workflow-resources plugin
-  console.log("Installing ai-workflow-resources plugin...");
-
-  const marketplaceJsonPath = join(SCRIPT_DIR, "claude", "marketplace.json");
-
-  // Add this repository as a plugin marketplace
-  const marketplaceResult = await execCommand(
-    "claude",
-    ["plugin", "marketplace", "add", marketplaceJsonPath],
-    executor,
-  );
-
-  if (!marketplaceResult.success) {
-    console.log("Warning: Failed to add plugin marketplace");
-    console.error(marketplaceResult.stderr);
-  } else {
-    // Install the plugin from the local marketplace
-    const pluginInstallResult = await execCommand(
-      "claude",
-      ["plugin", "install", "ai-workflow-resources@ai-workflow-resources"],
-      executor,
-    );
-
-    if (!pluginInstallResult.success) {
-      console.log("Warning: Failed to install ai-workflow-resources plugin");
-      console.error(pluginInstallResult.stderr);
-    } else {
-      console.log("ai-workflow-resources plugin installed successfully");
-    }
   }
 
   console.log("");
