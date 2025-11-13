@@ -8,36 +8,22 @@ alwaysApply: false
 ## Context
 
 - Applied to all TypeScript files
+- TypeScript with strict compiler options is enabled
 - Enforces proper handling of type errors
 - Critical for code quality and type safety
 
 ## Requirements
 
+### Type Safety
+
 - NEVER use `@ts-ignore` or `@ts-expect-error` unless explicitly directed
-- Always fix type errors properly
-- If unable to fix type error, ask for help
+- NEVER use `any`
+- Use `unknown` for truly unknown types
+- Always fix type errors properly (NEVER bypass the type checker)
+- If unable to fix type error, stop and ask for help
+- Minimize the use of type assertions (`as` keyword)
+- Use optional chaining (`?.`) and nullish coalescing (`??`) when appropriate (not `||`)
 
-## Examples
+### Conventions
 
-<example type="invalid">
-```typescript
-// @ts-ignore
-function processData(data: any) {
-  return data.map(item => item.value);
-}
-```
-Hides legitimate type issues instead of fixing them.
-</example>
-
-<example type="valid">
-```typescript
-function processData<T extends { value: string }>(data: T[]) {
-  return data.map(item => item.value);
-}
-```
-Properly defines types for compile-time safety.
-</example>
-
-<danger>
-  `@ts-ignore` bypasses compile-time checking, hiding issues and creating runtime errors.
-</danger>
+- Use plain functions over classes, unless explicitly directed to use a class
