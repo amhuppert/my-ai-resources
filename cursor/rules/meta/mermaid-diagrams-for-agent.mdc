@@ -1,0 +1,68 @@
+---
+description: USE WHEN creating Mermaid diagrams to enhance instructions for AI agents.
+globs: **/*.{md,mdc}
+alwaysApply: false
+---
+
+# AI-Optimized Mermaid Diagrams
+
+## Context
+
+- Creating state diagrams for AI consumption
+- Documenting workflows, states, or decision trees
+- Requires self-contained diagrams without external notes
+
+## Requirements
+
+- Use inline comments (`%% comment`) throughout diagram
+- Add header comments explaining purpose, scope, and key rules
+- Document each state with purpose and constraints
+- Include transition explanations with context
+- Replace external notes with embedded comments
+- Use hierarchical comment structure for clarity
+
+## Examples
+
+<example type="valid">
+```mermaid
+stateDiagram-v2
+    %% Purpose: User authentication workflow
+    %% Rule: Security validation at each step
+    %% Critical: 3 failed attempts trigger lockout
+
+    [*] --> Unauthenticated : Default state
+
+    %% LOGIN: Multi-factor authentication required
+    state Login {
+        [*] --> ValidateCredentials : Check credentials
+        ValidateCredentials --> RequireMFA : Valid, need 2FA
+        RequireMFA --> Authenticated : MFA success
+        RequireMFA --> [*] : MFA failed
+    }
+
+    Unauthenticated --> Login : /login - begin auth
+    Login --> Unauthenticated : /logout - clear session
+
+````
+Self-contained with embedded context.
+</example>
+
+<example type="invalid">
+```mermaid
+stateDiagram-v2
+    [*] --> Unauthenticated
+    Unauthenticated --> Login
+    Login --> Authenticated
+
+    note right of Login
+        User credentials
+        Validation
+    end note
+````
+
+Uses external notes, lacks inline documentation.
+</example>
+
+<critical>
+  Embedded comments eliminate external documentation dependencies and improve AI parsing.
+</critical>

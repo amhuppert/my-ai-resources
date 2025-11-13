@@ -1,0 +1,43 @@
+---
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript Standards
+
+## Context
+
+- Applied to all TypeScript files
+- Enforces proper handling of type errors
+- Critical for code quality and type safety
+
+## Requirements
+
+- NEVER use `@ts-ignore` or `@ts-expect-error` unless explicitly directed
+- Always fix type errors properly
+- If unable to fix type error, ask for help
+
+## Examples
+
+<example type="invalid">
+```typescript
+// @ts-ignore
+function processData(data: any) {
+  return data.map(item => item.value);
+}
+```
+Hides legitimate type issues instead of fixing them.
+</example>
+
+<example type="valid">
+```typescript
+function processData<T extends { value: string }>(data: T[]) {
+  return data.map(item => item.value);
+}
+```
+Properly defines types for compile-time safety.
+</example>
+
+<danger>
+  `@ts-ignore` bypasses compile-time checking, hiding issues and creating runtime errors.
+</danger>

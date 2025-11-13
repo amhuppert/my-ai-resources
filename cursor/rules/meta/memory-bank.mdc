@@ -1,0 +1,47 @@
+---
+description: USE ALWAYS to maintain project context across sessions via structured memory files
+globs: memory-bank/**/*.md
+alwaysApply: true
+---
+
+# Memory Bank System
+
+## Context
+
+- AI memory resets between sessions
+- Memory Bank provides continuity through structured documentation
+- Required for understanding project state and history
+
+## Requirements
+
+- Read ALL memory bank files at task start
+- Maintain 2 core files: `project-brief.md` and `focus.md`
+- `project-brief.md`: High-level overview, tech stack, key architectural decisions, important commands
+- `focus.md`: Current work-in-progress, progress made, remaining tasks
+- Update `focus.md` when completing tasks or changing direction
+- Document new patterns, decisions, and learnings immediately
+- Keep files concise and machine-actionable
+
+## Examples
+
+<example type="valid">
+Simplified structure with essential context:
+```
+memory-bank/
+├── project-brief.md    # Overview, stack, architecture, commands
+└── focus.md            # Current WIP, progress, remaining tasks
+```
+Complete context with minimal redundancy.
+</example>
+
+<example type="invalid">
+```
+memory-bank/
+└── notes.md            # Everything in one file
+```
+Lacks structure, making it inefficient to parse and maintain.
+</example>
+
+<critical>
+  Memory Bank is the ONLY link between sessions. Maintain with precision or lose project context.
+</critical>
