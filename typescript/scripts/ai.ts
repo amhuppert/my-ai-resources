@@ -8,6 +8,7 @@ import {
   createDefaultExecutor,
 } from "@/lib/install-types.js";
 import { initSkill, validateSkill } from "@/lib/skill-operations.js";
+import { runReplaceImportCodemod } from "@/lib/codemods/replace-import.js";
 
 const program = new Command();
 
@@ -22,7 +23,7 @@ program
   .option(
     "-s, --scope <type>",
     "installation scope: user (home directory) or project (current directory)",
-    "project",
+    "project"
   )
   .action(async (options) => {
     const scope = options.scope.toLowerCase();
@@ -45,7 +46,7 @@ program
       }
     } else {
       console.error(
-        `Invalid scope: ${scope}. Must be either 'user' or 'project'.`,
+        `Invalid scope: ${scope}. Must be either 'user' or 'project'.`
       );
       process.exit(1);
     }
@@ -57,11 +58,11 @@ program
   .option(
     "-d, --directory <path>",
     "target directory to map (default: current directory)",
-    ".",
+    "."
   )
   .option(
     "-i, --instructions <text>",
-    "custom instructions for identifying notable files",
+    "custom instructions for identifying notable files"
   )
   .action(async (options) => {
     // Import dynamically to avoid loading template engine unless needed
@@ -77,21 +78,21 @@ program
 
     const templatePath = path.join(
       __dirname,
-      "../templates/init-document-map.eta",
+      "../templates/init-document-map.eta"
     );
 
     // Path to plugin resources (bundled with plugin distribution)
     const pluginResourcesPath = path.join(
       __dirname,
-      "../../claude/plugin/resources",
+      "../../claude/plugin/resources"
     );
     const documentMapFormatPath = path.join(
       pluginResourcesPath,
-      "document-map-format.md",
+      "document-map-format.md"
     );
     const documentMapTemplatePath = path.join(
       pluginResourcesPath,
-      "document-map-template.md",
+      "document-map-template.md"
     );
 
     // Read plugin resource files using the readFile utility
@@ -131,6 +132,71 @@ program
     console.log(rendered);
   });
 
+const codemods = program.command("codemods").description("Codemod utilities");
+
+codemods
+  .command("replace-import")
+  .description("Replace module specifiers across the project")
+  .requiredOption("--from <specifier>", "Module specifier to replace")
+  .requiredOption("--to <specifier>", "Replacement module specifier")
+  .option(
+    "--tsconfig <path>",
+    "Path to tsconfig file (default: tsconfig.json)",
+    "tsconfig.json"
+  )
+  .option("--dry-run", "Preview changes without writing files")
+  .option("--include-js", "Include JavaScript/JSX source files")
+  .action(async (options) => {
+    try {
+      const result = await runReplaceImportCodemod({
+        from: options.from,
+        to: options.to,
+        tsconfigPath: options.tsconfig,
+        dryRun: Boolean(options.dryRun),
+        includeJs: Boolean(options.includeJs),
+      });
+
+      if (result.specifiersUpdated === 0) {
+        console.log("No matching imports found.");
+        process.exit(0);
+      }
+
+      for (const change of result.changes) {
+        console.log(`${change.filePath} (${change.occurrences})`);
+        for (const preview of change.previews.slice(0, 3)) {
+          console.log(
+            `  line ${preview.line}: ${preview.original} → ${preview.updated}`
+          );
+        }
+        if (change.previews.length > 3) {
+          console.log(
+            `  …and ${change.previews.length - 3} more occurrence(s)`
+          );
+        }
+      }
+
+      console.log();
+      if (result.dryRun) {
+        console.log(
+          `Dry run complete: ${result.specifiersUpdated} specifier(s) would be updated across ${result.filesChanged} file(s).`
+        );
+      } else {
+        console.log(
+          `Updated ${result.specifiersUpdated} specifier(s) across ${result.filesChanged} file(s).`
+        );
+      }
+
+      process.exit(0);
+    } catch (error) {
+      console.error(
+        `Error running replace-import codemod: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+      process.exit(1);
+    }
+  });
+
 const skill = program.command("skill").description("Skill management commands");
 
 const createSkill = skill
@@ -146,7 +212,7 @@ createSkill
 
     if (scope !== "project" && scope !== "user") {
       console.error(
-        `Invalid scope: ${scope}. Must be either 'project' or 'user'.`,
+        `Invalid scope: ${scope}. Must be either 'project' or 'user'.`
       );
       process.exit(1);
     }
@@ -158,7 +224,9 @@ createSkill
       process.exit(0);
     } catch (error) {
       console.error(
-        `Error initializing skill: ${error instanceof Error ? error.message : String(error)}`,
+        `Error initializing skill: ${
+          error instanceof Error ? error.message : String(error)
+        }`
       );
       process.exit(1);
     }
@@ -180,7 +248,9 @@ createSkill
       }
     } catch (error) {
       console.error(
-        `Error validating skill: ${error instanceof Error ? error.message : String(error)}`,
+        `Error validating skill: ${
+          error instanceof Error ? error.message : String(error)
+        }`
       );
       process.exit(1);
     }
