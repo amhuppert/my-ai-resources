@@ -241,6 +241,7 @@ describe("initSkill", () => {
         userRinsHooks: join(tempDir, "rins_hooks"),
         projectClaudeDir: join(tempDir, "project", ".claude"),
         cursorRulesDir: join(tempDir, "project", ".cursor", "rules"),
+        cursorCommandsDir: join(tempDir, "project", ".cursor", "commands"),
       },
       commands: {
         rsyncFlags: ["-a"],
@@ -261,15 +262,15 @@ describe("initSkill", () => {
     const skillDir = join(
       config.paths.projectClaudeDir,
       "skills",
-      "test-skill",
+      "test-skill"
     );
     expect(existsSync(skillDir)).toBe(true);
     expect(existsSync(join(skillDir, "SKILL.md"))).toBe(true);
     expect(existsSync(join(skillDir, "references", "api_reference.md"))).toBe(
-      true,
+      true
     );
     expect(existsSync(join(skillDir, "assets", "example_asset.txt"))).toBe(
-      true,
+      true
     );
   });
 
@@ -288,7 +289,7 @@ describe("initSkill", () => {
       config.paths.projectClaudeDir,
       "skills",
       "my-test-skill",
-      "SKILL.md",
+      "SKILL.md"
     );
     const content = readFileSync(skillMdPath, "utf-8");
 
@@ -303,7 +304,7 @@ describe("initSkill", () => {
       config.paths.projectClaudeDir,
       "skills",
       "test-skill",
-      "SKILL.md",
+      "SKILL.md"
     );
     const content = readFileSync(skillMdPath, "utf-8");
 
@@ -313,7 +314,7 @@ describe("initSkill", () => {
 
   test("throws error for invalid skill name", async () => {
     await expect(
-      initSkill("Invalid-Name", "project", config),
+      initSkill("Invalid-Name", "project", config)
     ).rejects.toThrow();
   });
 
@@ -321,19 +322,19 @@ describe("initSkill", () => {
     await initSkill("test-skill", "project", config);
 
     await expect(initSkill("test-skill", "project", config)).rejects.toThrow(
-      /already exists/,
+      /already exists/
     );
   });
 
   test("throws error for name with consecutive hyphens", async () => {
     await expect(initSkill("test--skill", "project", config)).rejects.toThrow(
-      /consecutive hyphens/,
+      /consecutive hyphens/
     );
   });
 
   test("throws error for name starting with hyphen", async () => {
     await expect(initSkill("-test", "project", config)).rejects.toThrow(
-      /cannot start or end/,
+      /cannot start or end/
     );
   });
 });

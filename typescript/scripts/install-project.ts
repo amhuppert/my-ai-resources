@@ -39,7 +39,7 @@ function getScriptDir(): string {
  */
 async function main(
   config: InstallConfig,
-  executor: CommandExecutor,
+  executor: CommandExecutor
 ): Promise<void> {
   const SCRIPT_DIR = getScriptDir();
 
@@ -51,22 +51,31 @@ async function main(
     config.paths.cursorRulesDir,
     `Syncing cursor/rules -> ${config.paths.cursorRulesDir}`,
     config,
-    executor,
+    executor
   );
 
-  // 2. claude/CLAUDE-project.md -> CLAUDE.md in current working directory
+  // 2. cursor/commands -> .cursor/commands in current working directory
+  await installDirectory(
+    join(SCRIPT_DIR, "cursor", "commands"),
+    config.paths.cursorCommandsDir,
+    `Syncing cursor/commands -> ${config.paths.cursorCommandsDir}`,
+    config,
+    executor
+  );
+
+  // 3. claude/CLAUDE-project.md -> CLAUDE.md in current working directory
   const projectClaudeFile = join(process.cwd(), "CLAUDE.md");
   await installClaudeMd(
     join(SCRIPT_DIR, "claude", "CLAUDE-project.md"),
     projectClaudeFile,
     `Installing project-level CLAUDE.md -> ${projectClaudeFile}`,
-    "project-level-instructions",
+    "project-level-instructions"
   );
 
-  // 3. Install notification hook if audio file exists
+  // 4. Install notification hook if audio file exists
   const notificationFile = join(
     config.paths.projectClaudeDir,
-    "notification.mp3",
+    "notification.mp3"
   );
 
   if (existsSync(notificationFile)) {
@@ -80,7 +89,7 @@ async function main(
           config,
           "command",
           5,
-          true,
+          true
         );
         console.log("Notification hook installed successfully");
       } catch (error) {
@@ -89,22 +98,22 @@ async function main(
       }
     } else {
       console.log(
-        "Warning: bun not found, skipping notification hook installation",
+        "Warning: bun not found, skipping notification hook installation"
       );
       console.log("Install bun to enable hook installation: https://bun.sh");
     }
   } else {
     console.log(
-      "No .claude/notification.mp3 found, skipping notification hook installation",
+      "No .claude/notification.mp3 found, skipping notification hook installation"
     );
   }
 
-  // 4. Install code-formatter hook with rins_hooks
+  // 5. Install code-formatter hook with rins_hooks
   console.log("Installing code-formatter hook with rins_hooks");
   const rinsResult = await execCommand(
     "rins_hooks",
     ["install", "code-formatter", "--project"],
-    executor,
+    executor
   );
 
   if (!rinsResult.success) {

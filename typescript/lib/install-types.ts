@@ -18,7 +18,7 @@ export interface CommandExecutor {
   exec(
     command: string,
     args: string[],
-    options?: { cwd?: string; env?: Record<string, string> },
+    options?: { cwd?: string; env?: Record<string, string> }
   ): Promise<CommandResult>;
   exists(command: string): Promise<boolean>;
 }
@@ -34,6 +34,7 @@ export interface InstallConfig {
     userRinsHooks: string;
     projectClaudeDir: string;
     cursorRulesDir: string;
+    cursorCommandsDir: string;
   };
   commands: {
     rsyncFlags: string[];
@@ -48,7 +49,7 @@ export class BunCommandExecutor implements CommandExecutor {
   async exec(
     command: string,
     args: string[],
-    options?: { cwd?: string; env?: Record<string, string> },
+    options?: { cwd?: string; env?: Record<string, string> }
   ): Promise<CommandResult> {
     const proc = Bun.spawn([command, ...args], {
       cwd: options?.cwd,
@@ -95,6 +96,7 @@ export function createDefaultConfig(): InstallConfig {
       userRinsHooks: join(userHome, "rins_hooks"),
       projectClaudeDir: join(process.cwd(), ".claude"),
       cursorRulesDir: join(process.cwd(), ".cursor", "rules"),
+      cursorCommandsDir: join(process.cwd(), ".cursor", "commands"),
     },
     commands: {
       rsyncFlags: ["-a"],
