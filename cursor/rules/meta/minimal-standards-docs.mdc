@@ -1,0 +1,64 @@
+---
+description: USE WHEN creating project-wide standards/instruction documents for AI agents to ensure minimal token usage.
+globs: **/*.md, **/*.mdc
+alwaysApply: false
+---
+
+# Minimal Standards Documents
+
+## Context
+
+- Project-wide standards and instructions are always added to agent conversation context
+- Must be extremely lightweight to minimize token usage in every conversation
+- Target: High information density, machine-actionable instructions
+
+## Structure
+
+- Markdown document with headings
+- Subheadings may only go two levels deep (e.g., ## Section, ### Subsection)
+- Each section consists entirely of bulleted lists
+- Each standard/instruction is a single bullet point (1 line)
+- Only include examples if they fit inline on the same line as the standard
+
+## Format Template
+
+```markdown
+# Project Standards
+
+## Section 1
+
+### Subsection 1.1
+
+- Standard 1
+- Standard 2 (e.g., inline example)
+
+### Subsection 1.2
+
+- Standard 3
+- Standard 4
+
+## Section 2
+
+- Standard 5
+- Standard 6
+```
+
+## Content Requirements
+
+- Use imperative language (e.g., "Use X", "Avoid Y", "Never Z")
+- Optimize for AI context window efficiency: remove redundancy
+- Focus on machine-actionable instructions
+- Maintain high information density with minimal tokens
+- NEVER include verbose explanations or redundant context
+- Keep the file as short as possible without sacrificing impact
+- Use emojis if they improve clarity: ❌ (invalid, bad), ✅ (valid, good)
+
+<example type="valid">
+✅ Use TypeScript for all new code
+✅ Avoid console.log in production (use logger.info instead)
+</example>
+
+<example type="invalid">
+❌ When writing new code, it's important to remember that we should be using TypeScript because it provides type safety
+❌ You should avoid using console.log statements in production code. Instead, we recommend using the logger.info method from our logging library for better observability
+</example>

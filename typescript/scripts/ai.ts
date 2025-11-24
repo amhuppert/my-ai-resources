@@ -9,6 +9,10 @@ import {
 } from "@/lib/install-types.js";
 import { initSkill, validateSkill } from "@/lib/skill-operations.js";
 import { runReplaceImportCodemod } from "@/lib/codemods/replace-import.js";
+import {
+  auditConfiguration,
+  formatAuditReport,
+} from "@/lib/config-audit-operations.js";
 
 const program = new Command();
 
@@ -23,7 +27,7 @@ program
   .option(
     "-s, --scope <type>",
     "installation scope: user (home directory) or project (current directory)",
-    "project"
+    "project",
   )
   .action(async (options) => {
     const scope = options.scope.toLowerCase();
@@ -46,7 +50,7 @@ program
       }
     } else {
       console.error(
-        `Invalid scope: ${scope}. Must be either 'user' or 'project'.`
+        `Invalid scope: ${scope}. Must be either 'user' or 'project'.`,
       );
       process.exit(1);
     }
@@ -58,11 +62,11 @@ program
   .option(
     "-d, --directory <path>",
     "target directory to map (default: current directory)",
-    "."
+    ".",
   )
   .option(
     "-i, --instructions <text>",
-    "custom instructions for identifying notable files"
+    "custom instructions for identifying notable files",
   )
   .action(async (options) => {
     // Import dynamically to avoid loading template engine unless needed
@@ -78,21 +82,21 @@ program
 
     const templatePath = path.join(
       __dirname,
-      "../templates/init-document-map.eta"
+      "../templates/init-document-map.eta",
     );
 
     // Path to plugin resources (bundled with plugin distribution)
     const pluginResourcesPath = path.join(
       __dirname,
-      "../../claude/plugin/resources"
+      "../../claude/plugin/resources",
     );
     const documentMapFormatPath = path.join(
       pluginResourcesPath,
-      "document-map-format.md"
+      "document-map-format.md",
     );
     const documentMapTemplatePath = path.join(
       pluginResourcesPath,
-      "document-map-template.md"
+      "document-map-template.md",
     );
 
     // Read plugin resource files using the readFile utility
@@ -142,7 +146,7 @@ codemods
   .option(
     "--tsconfig <path>",
     "Path to tsconfig file (default: tsconfig.json)",
-    "tsconfig.json"
+    "tsconfig.json",
   )
   .option("--dry-run", "Preview changes without writing files")
   .option("--include-js", "Include JavaScript/JSX source files")
@@ -165,12 +169,12 @@ codemods
         console.log(`${change.filePath} (${change.occurrences})`);
         for (const preview of change.previews.slice(0, 3)) {
           console.log(
-            `  line ${preview.line}: ${preview.original} → ${preview.updated}`
+            `  line ${preview.line}: ${preview.original} → ${preview.updated}`,
           );
         }
         if (change.previews.length > 3) {
           console.log(
-            `  …and ${change.previews.length - 3} more occurrence(s)`
+            `  …and ${change.previews.length - 3} more occurrence(s)`,
           );
         }
       }
@@ -178,11 +182,11 @@ codemods
       console.log();
       if (result.dryRun) {
         console.log(
-          `Dry run complete: ${result.specifiersUpdated} specifier(s) would be updated across ${result.filesChanged} file(s).`
+          `Dry run complete: ${result.specifiersUpdated} specifier(s) would be updated across ${result.filesChanged} file(s).`,
         );
       } else {
         console.log(
-          `Updated ${result.specifiersUpdated} specifier(s) across ${result.filesChanged} file(s).`
+          `Updated ${result.specifiersUpdated} specifier(s) across ${result.filesChanged} file(s).`,
         );
       }
 
@@ -191,7 +195,7 @@ codemods
       console.error(
         `Error running replace-import codemod: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
       process.exit(1);
     }
@@ -212,7 +216,7 @@ createSkill
 
     if (scope !== "project" && scope !== "user") {
       console.error(
-        `Invalid scope: ${scope}. Must be either 'project' or 'user'.`
+        `Invalid scope: ${scope}. Must be either 'project' or 'user'.`,
       );
       process.exit(1);
     }
@@ -226,7 +230,7 @@ createSkill
       console.error(
         `Error initializing skill: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
       process.exit(1);
     }
@@ -250,7 +254,41 @@ createSkill
       console.error(
         `Error validating skill: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
+      );
+      process.exit(1);
+    }
+  });
+
+const configAuditSkill = skill
+  .command("config-audit")
+  .description("Configuration audit helper commands");
+
+configAuditSkill
+  .command("run")
+  .description("Audit Claude Code and Cursor configurations")
+  .option(
+    "-p, --project-root <path>",
+    "project root directory (default: current directory)",
+    ".",
+  )
+  .option("--json", "output as JSON instead of formatted text")
+  .action(async (options) => {
+    try {
+      const report = auditConfiguration(options.projectRoot);
+
+      if (options.json) {
+        console.log(JSON.stringify(report, null, 2));
+      } else {
+        console.log(formatAuditReport(report));
+      }
+
+      process.exit(0);
+    } catch (error) {
+      console.error(
+        `Error running config audit: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
       process.exit(1);
     }
