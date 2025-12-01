@@ -24,7 +24,7 @@ Custom slash commands for Claude Code that are installed to other projects by th
 
 ## cursor-shortcuts-mcp (Directory)
 
-MCP server providing AI-powered keyboard shortcut recommendations and safe keybindings.json updates for Cursor IDE. Implements two tools: `recommend-shortcuts` (uses OpenAI Responses API for context-aware suggestions) and `update-shortcut` (atomic file operations with locking, backups, and conflict detection). Read when implementing MCP servers, integrating OpenAI APIs, or working with cross-platform file operations.
+MCP server providing AI-powered keyboard shortcut recommendations and safe keybindings.json updates for Cursor IDE.
 
 ## typescript (Directory)
 
@@ -50,4 +50,4 @@ Current work context tracking active development priorities. Read to understand 
 
 ## prompts (Directory)
 
-Reusable LLM prompt templates for various tasks: instruction optimization (`optimize-instructions-for-ai/`), keyboard shortcut suggestions (`suggest-keyboard-shortcut.md`), audio transcription improvement, lyrics processing, and cleaning product analysis. Read when creating new prompts or understanding prompt engineering patterns used in this project.
+Reusable LLM prompt templates for various tasks.

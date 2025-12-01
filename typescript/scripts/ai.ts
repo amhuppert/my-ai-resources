@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { Command } from "commander";
+import { join } from "path";
 import { main as installUser } from "@/scripts/install-user.js";
 import { main as installProject } from "@/scripts/install-project.js";
 import {
@@ -13,6 +14,7 @@ import {
   auditConfiguration,
   formatAuditReport,
 } from "@/lib/config-audit-operations.js";
+import { findCursorRules } from "@/lib/cursor-rules-sync.js";
 
 const program = new Command();
 
@@ -287,6 +289,44 @@ configAuditSkill
     } catch (error) {
       console.error(
         `Error running config audit: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      process.exit(1);
+    }
+  });
+
+const cursorRulesSkill = skill
+  .command("cursor-rules-synchronizer")
+  .description("Cursor Rules synchronization helper commands");
+
+cursorRulesSkill
+  .command("list")
+  .description("List all Cursor Rules in the project")
+  .option(
+    "-p, --project-root <path>",
+    "project root directory (default: current directory)",
+    ".",
+  )
+  .action(async (options) => {
+    try {
+      const projectRoot = options.projectRoot;
+      const rulePaths = await findCursorRules(projectRoot);
+
+      if (rulePaths.length === 0) {
+        console.log("No Cursor Rules found");
+        process.exit(0);
+      }
+
+      // Output paths one per line
+      for (const path of rulePaths) {
+        console.log(path);
+      }
+
+      process.exit(0);
+    } catch (error) {
+      console.error(
+        `Error listing Cursor Rules: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
