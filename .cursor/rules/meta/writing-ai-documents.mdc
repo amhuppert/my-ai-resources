@@ -1,0 +1,80 @@
+---
+description: USE WHEN writing documents intended for AI agent consumption (instructions, context, standards).
+alwaysApply: false
+---
+
+# Writing AI-Consumable Documents
+
+## Context
+
+- Documents may be instructional (procedures, standards) or informational (persistent context)
+- AI agents parse these documents in every conversation; token efficiency is critical
+- Goal: Maximum clarity and information density with minimal tokens
+
+## Document Types
+
+### Instructional Documents
+
+- Procedures AI must follow (e.g., workflows, commands)
+- Standards and conventions (e.g., code style, architecture patterns)
+- Decision frameworks (e.g., when to use X vs Y)
+
+### Informational Documents
+
+- Persistent context (e.g., project briefs, architecture overviews)
+- Reference material (e.g., API shapes, configuration options)
+- Domain knowledge (e.g., business logic, terminology)
+
+## Structure Requirements
+
+- Use clear heading hierarchy (max 2-3 levels)
+- Prefer bulleted lists over prose
+- Each point: one actionable or informational item
+- Group related items under descriptive subheadings
+
+## Writing Guidelines
+
+- Use imperative language for instructions (e.g., "Use X", "Avoid Y")
+- Use declarative language for information (e.g., "X handles Y", "Z requires W")
+- One concept per bullet point
+- Include examples only when essential and brief
+- Omit articles, filler words, and redundant context
+- Define terms only when ambiguous
+
+## Formatting
+
+- Allowed XML tags: `<danger>`, `<required>`, `<critical>`, `<example>`
+- Use Mermaid diagrams for complex relationships or flows
+- Use emojis sparingly: ❌ (invalid), ✅ (valid)
+
+## AI Context Efficiency
+
+- Remove redundancy across sections
+- Eliminate verbose explanations
+- Prefer patterns over exhaustive enumeration
+- Keep files under 500 lines; split if larger
+- Maintain high signal-to-noise ratio
+
+## Examples
+
+<example type="valid">
+  Concise instruction:
+  - Use `logger.info()` for production logging (not `console.log`)
+  
+  Concise context:
+  - Auth service validates JWT tokens before routing
+</example>
+
+<example type="invalid">
+  Verbose instruction:
+  - When you need to log something in production, you should avoid using console.log because it doesn't provide structured logging. Instead, please use the logger.info() method which integrates with our observability stack.
+  
+  Verbose context:
+  - The authentication service is responsible for taking incoming JWT tokens and validating them to ensure they are properly signed and not expired before the request is passed along to the appropriate route handler.
+</example>
+
+<critical>
+  - Every token costs context window space; optimize ruthlessly
+  - Write for machine parsing, not human discussion
+  - Include all essential information; omit everything else
+</critical>
