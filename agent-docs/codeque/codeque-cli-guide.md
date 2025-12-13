@@ -3,7 +3,7 @@
 ## Basic Usage
 
 <required>
-  - Always run using `bunx codeque`
+  - Always run using `bunx @codeque/cli`
   - Never use interactive mode
   - Always use `--query` or `--queryPath` argument
 </required>
@@ -11,7 +11,7 @@
 ### Inline Query
 
 ```bash
-bunx codeque --query "console.log($$$)"
+bunx @codeque/cli --query "console.log($$$)"
 ```
 
 - Multiple queries: `--query "pattern1" "pattern2"`
@@ -19,7 +19,7 @@ bunx codeque --query "console.log($$$)"
 ### Query from File
 
 ```bash
-bunx codeque --queryPath ./queries/my-query.ts
+bunx @codeque/cli --queryPath ./queries/my-query.ts
 ```
 
 - Useful for complex multiline queries
@@ -53,7 +53,7 @@ bunx codeque --queryPath ./queries/my-query.ts
 ### include (default)
 
 ```bash
-bunx codeque --query "useState($$)"
+bunx @codeque/cli --query "useState($$)"
 ```
 
 - Matches code containing query pattern
@@ -62,7 +62,7 @@ bunx codeque --query "useState($$)"
 ### exact
 
 ```bash
-bunx codeque --mode exact --query "const x = 5"
+bunx @codeque/cli --mode exact --query "const x = 5"
 ```
 
 - Matches only identical structures
@@ -70,7 +70,7 @@ bunx codeque --mode exact --query "const x = 5"
 ### include-with-order
 
 ```bash
-bunx codeque --mode include-with-order --query "a(); b();"
+bunx @codeque/cli --mode include-with-order --query "a(); b();"
 ```
 
 - Like include but enforces order
@@ -78,7 +78,7 @@ bunx codeque --mode include-with-order --query "a(); b();"
 ### text (fallback)
 
 ```bash
-bunx codeque --mode text --query "TODO:$$"
+bunx @codeque/cli --mode text --query "TODO:$$"
 ```
 
 - Regex-based, works on any file type
@@ -87,22 +87,22 @@ bunx codeque --mode text --query "TODO:$$"
 
 ## Common Use Cases
 
-### Find API Usage
+### Find Usages of Symbol (type, variable, function, etc.)
 
 ```bash
-bunx codeque --query "const $$$ = useMyHook()"
+bunx @codeque/cli --mode include --query "myFunction"
 ```
 
 ### Search Changed Files Only
 
 ```bash
-bunx codeque --git --query "console.log($$$)"
+bunx @codeque/cli --git --query "console.log($$$)"
 ```
 
 ### Search by Import Dependency
 
 ```bash
-bunx codeque --entry ./src/pages/HomePage.tsx --query "fetchData()"
+bunx @codeque/cli --entry ./src/pages/HomePage.tsx --query "fetchData()"
 ```
 
 - Searches files imported by entry point (direct and indirect)
@@ -112,7 +112,7 @@ bunx codeque --entry ./src/pages/HomePage.tsx --query "fetchData()"
 ### Block Bad Patterns
 
 ```bash
-bunx codeque --query "$$.skip()" "$$.only()" --invertExitCode
+bunx @codeque/cli --query "$$.skip()" "$$.only()" --invertExitCode
 ```
 
 - Returns exit code 1 if matches found
@@ -124,7 +124,7 @@ bunx codeque --query "$$.skip()" "$$.only()" --invertExitCode
 #!/bin/sh
 # .git/hooks/pre-commit
 
-bunx codeque --git \
+bunx @codeque/cli --git \
   --query '$$.only(' '$$.skip(' 'console.log(' '// todo' \
   --mode text \
   --invertExitCode \
@@ -140,10 +140,10 @@ fi
 
 ```bash
 # Fail if any skipped tests exist
-bunx codeque --query "it.skip(" "describe.skip(" --invertExitCode
+bunx @codeque/cli --query "it.skip(" "describe.skip(" --invertExitCode
 
 # Fail if console.log exists in production code
-bunx codeque --root ./src --query "console.log($$$)" --invertExitCode
+bunx @codeque/cli --root ./src --query "console.log($$$)" --invertExitCode
 ```
 
 ## Output

@@ -5,26 +5,17 @@
 - Semantic code search engine that understands code syntax
 - Matches code structurally using AST (Abstract Syntax Tree)
 - Query language supports wildcards, partial matching, ignores formatting
-- All tools work offline—code never leaves local environment
 
 ## Supported Languages
 
 ### Structural Search (AST-based)
 
 - JavaScript, TypeScript (including JSX/TSX)
-- HTML, CSS
-- Python, Lua, C#
-
-### Text Search
-
-- Works for any language
-- Regex-based with enhanced wildcards
 
 ## Search Modes
 
 ### `include` (Default)
 
-- Least strict mode
 - Matches code containing query pattern
 - Ignores order of enumerable properties (object keys, statements)
 - Allows additional properties/statements not in query
@@ -46,29 +37,29 @@
 
 - Regex-based string matching
 - Treats code as text, not AST
-- Handles whitespace flexibly
+- Handles whitespace flexibly (ignores formatting)
 - Useful for initial discovery or non-structural patterns
 
 ## Wildcards
 
 ### Syntax-Aware Modes (include, include-with-order, exact)
 
-| Wildcard | Matches | Example |
-|----------|---------|---------|
-| `$$` | Any identifier | `const $$ = 5` matches any const declaration |
-| `$$$` | Any statement/expression | `func($$$)` matches any function call argument |
-| `"$$"` | 0+ characters in string | `"$$test"` matches strings ending in "test" |
-| `"$$$"` | 1+ characters in string | `"$$$"` matches non-empty strings |
-| `0x0` | Any number | `const x = 0x0` matches any numeric assignment |
+| Wildcard | Matches                  | Example                                        |
+| -------- | ------------------------ | ---------------------------------------------- |
+| `$$`     | Any identifier           | `const $$ = 5` matches any const declaration   |
+| `$$$`    | Any statement/expression | `func($$$)` matches any function call argument |
+| `"$$"`   | 0+ characters in string  | `"$$test"` matches strings ending in "test"    |
+| `"$$$"`  | 1+ characters in string  | `"$$$"` matches non-empty strings              |
+| `0x0`    | Any number               | `const x = 0x0` matches any numeric assignment |
 
 ### Text Mode
 
-| Wildcard | Matches |
-|----------|---------|
-| `$$` | 0+ characters (same line) |
-| `$$$` | 1+ characters (same line) |
-| `$$m` | 0+ characters (multiline) |
-| `$$$m` | 1+ characters (multiline) |
+| Wildcard | Matches                   |
+| -------- | ------------------------- |
+| `$$`     | 0+ characters (same line) |
+| `$$$`    | 1+ characters (same line) |
+| `$$m`    | 0+ characters (multiline) |
+| `$$$m`   | 1+ characters (multiline) |
 
 ### Wildcard Combinations
 
@@ -97,23 +88,25 @@
 ```javascript
 // ❌ Wrong - parsed as code block
 {
-  key: "value"
+  key: "value";
 }
 
 // ✅ Correct - expression brackets
 ({
-  key: "value"
-})
+  key: "value",
+});
 ```
 
 #### Searching for Strings
 
-```javascript
+```
 // ❌ Wrong - parsed as directive
-'use-strict'
+"use-strict"
+```
 
+```
 // ✅ Correct - expression brackets
-("my string")
+"my string"
 ```
 
 ## Case Sensitivity
@@ -154,12 +147,12 @@
 
 ### Find Function Calls
 
-```javascript
+```
 // Any console method
-console.$$()
+console.$$();
 
 // Specific hook usage
-const $$$ = useMyHook()
+const $$$ = useMyHook();
 ```
 
 ### Find React Patterns
@@ -179,10 +172,10 @@ const $$$ = useMyHook()
 
 ```javascript
 // Named import from package
-import { $$ } from 'lodash'
+import { $$ } from "lodash";
 
 // Default import
-import $$ from '$$$'
+import $$ from "$$$";
 ```
 
 ### Find Type Definitions
@@ -200,8 +193,6 @@ interface $$ {
 ### Link Multiple Statements
 
 ```javascript
-// Unstable hook reference pattern
-const { confirm } = useAsyncDialog()
-const $$ = useCallback($$$, [confirm])
+const { confirm } = useAsyncDialog();
+const $$ = useCallback($$$, [confirm]);
 ```
-
