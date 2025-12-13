@@ -1,39 +1,27 @@
 # CodeQue CLI Guide
 
-## Installation
-
-```bash
-npm install -g @codeque/cli
-```
-
 ## Basic Usage
 
-### Interactive Mode
+<required>
+  - Always run using `bunx codeque`
+  - Never use interactive mode
+  - Always use `--query` or `--queryPath` argument
+</required>
+
+### Inline Query
 
 ```bash
-codeque
+bunx codeque --query "console.log($$$)"
 ```
 
-- Opens terminal editor for query input
-- Press `ctrl+s` to execute search
-- Results display with clickable file links (CMD/Ctrl + click)
-
-### Inline Query Mode
-
-```bash
-codeque --query "console.log($$$)"
-```
-
-- Executes search immediately
 - Multiple queries: `--query "pattern1" "pattern2"`
 
 ### Query from File
 
 ```bash
-codeque --queryPath ./queries/my-query.ts
+bunx codeque --queryPath ./queries/my-query.ts
 ```
 
-- Load query from file
 - Useful for complex multiline queries
 - Multiple files: `--queryPath file1.ts file2.ts`
 
@@ -57,10 +45,15 @@ codeque --queryPath ./queries/my-query.ts
 
 ## Search Modes
 
+<required>
+  - Start with `include` (default), `exact`, or `include-with-order`
+  - Switch to `text` mode only if you need more permissive search
+</required>
+
 ### include (default)
 
 ```bash
-codeque --query "useState($$)"
+bunx codeque --query "useState($$)"
 ```
 
 - Matches code containing query pattern
@@ -69,7 +62,7 @@ codeque --query "useState($$)"
 ### exact
 
 ```bash
-codeque --mode exact --query "const x = 5"
+bunx codeque --mode exact --query "const x = 5"
 ```
 
 - Matches only identical structures
@@ -77,45 +70,39 @@ codeque --mode exact --query "const x = 5"
 ### include-with-order
 
 ```bash
-codeque --mode include-with-order --query "a(); b();"
+bunx codeque --mode include-with-order --query "a(); b();"
 ```
 
 - Like include but enforces order
 
-### text
+### text (fallback)
 
 ```bash
-codeque --mode text --query "TODO:$$"
+bunx codeque --mode text --query "TODO:$$"
 ```
 
 - Regex-based, works on any file type
-- Faster than AST modes
+- Faster but less accurate than AST modes
 - Use `--allExtensions` for non-JS/TS files
 
 ## Common Use Cases
 
-### Find Duplicated Code
-
-```bash
-codeque --query "const $$ = useCallback(() => { $$$ }, [])"
-```
-
 ### Find API Usage
 
 ```bash
-codeque --query "const $$$ = useMyHook()"
+bunx codeque --query "const $$$ = useMyHook()"
 ```
 
 ### Search Changed Files Only
 
 ```bash
-codeque --git --query "console.log($$$)"
+bunx codeque --git --query "console.log($$$)"
 ```
 
 ### Search by Import Dependency
 
 ```bash
-codeque --entry ./src/pages/HomePage.tsx --query "fetchData()"
+bunx codeque --entry ./src/pages/HomePage.tsx --query "fetchData()"
 ```
 
 - Searches files imported by entry point (direct and indirect)
@@ -125,7 +112,7 @@ codeque --entry ./src/pages/HomePage.tsx --query "fetchData()"
 ### Block Bad Patterns
 
 ```bash
-codeque --query "$$.skip()" "$$.only()" --invertExitCode
+bunx codeque --query "$$.skip()" "$$.only()" --invertExitCode
 ```
 
 - Returns exit code 1 if matches found
@@ -137,7 +124,7 @@ codeque --query "$$.skip()" "$$.only()" --invertExitCode
 #!/bin/sh
 # .git/hooks/pre-commit
 
-codeque --git \
+bunx codeque --git \
   --query '$$.only(' '$$.skip(' 'console.log(' '// todo' \
   --mode text \
   --invertExitCode \
@@ -153,10 +140,10 @@ fi
 
 ```bash
 # Fail if any skipped tests exist
-codeque --query "it.skip(" "describe.skip(" --invertExitCode
+bunx codeque --query "it.skip(" "describe.skip(" --invertExitCode
 
 # Fail if console.log exists in production code
-codeque --root ./src --query "console.log($$$)" --invertExitCode
+bunx codeque --root ./src --query "console.log($$$)" --invertExitCode
 ```
 
 ## Output
@@ -164,14 +151,7 @@ codeque --root ./src --query "console.log($$$)" --invertExitCode
 - Results show file path, line number, matched code
 - File links are clickable in supported terminals (CMD/Ctrl + click)
 - Use `--limit` to control result count
-- Use `--printFilesList` to see which files were searched
-
-## Performance Tips
-
-- Use `--git` for faster searches during development
-- Use `--entry` to limit search scope by imports
-- Use `text` mode for faster (but less accurate) searches
-- More specific queries run faster than generic wildcard-heavy queries
+- Use `--printFilesList` to see searched files
 
 ## Exit Codes
 
