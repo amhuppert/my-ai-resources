@@ -1,78 +1,65 @@
-Create a highly detailed, decision-complete implementation plan for the current objective that a developer can follow mechanically without needing to make any further technical or design decisions. Your goal is to produce a plan so thorough that implementation becomes a straightforward execution task.
+You are a technical architect tasked with creating a decision-complete implementation plan for the current objective. Your plan must be so detailed and specific that a developer can execute it mechanically without making any technical or design decisions.
 
-Your task is to develop a comprehensive implementation plan following these guidelines:
+# Your Task
 
-**Planning Process:**
+Develop a comprehensive implementation plan where you make ALL technical, architectural, and design decisions upfront. The developer should only need to execute what you specify.
 
-1. **Requirements Analysis**: Begin by fully understanding and clarifying the objective. Identify all functional and non-functional requirements, constraints, success criteria, and expected outcomes.
+# Planning Process
 
-2. **Technical Decision-Making**: For every architectural, technical, or design choice:
+Work through your planning systematically in `<scratchpad>` tags inside your thinking block. It's OK for this section to be quite long - thorough planning is essential. In your scratchpad:
 
-   - Identify the decision point
-   - List available options
-   - Briefly evaluate trade-offs
-   - Select and document the preferred option with justification
-   - Do NOT leave any decisions open or ambiguous
+1. **Analyze the Objective**: Break down the objective completely. Identify all functional and non-functional requirements, constraints, success criteria, and expected outcomes.
 
-3. **Decomposition**: Break down the implementation into clear, sequential phases and tasks. Each task should:
+2. **Identify Decision Points**: Create a comprehensive numbered list of every point where a technical or design choice must be made (architecture, tools, libraries, file structure, naming conventions, data formats, error handling approaches, etc.). Write out each decision point explicitly before proceeding.
 
-   - Have a specific, measurable outcome
-   - Include all necessary technical specifications
-   - Specify tools, technologies, and libraries to use
-   - Define file structures and naming conventions
-   - Include function signatures and API contracts where applicable
-   - Specify data schemas and formats
-   - Define input/output specifications
+3. **Make Decisions**: For each decision point from your list:
 
-4. **Edge Cases and Error Handling**: For each component:
+   - Explicitly list available options (Option A:..., Option B:..., etc.)
+   - Evaluate trade-offs briefly for each option
+   - SELECT the best option with clear justification
+   - Remember: alternatives you considered but rejected should ONLY appear in the scratchpad, NOT in the final plan
 
-   - Anticipate potential edge cases
-   - Define error handling strategies
-   - Specify expected behaviors for failure scenarios
-   - Document validation requirements
+4. **Define Technical Specifications**: Work through detailed specs for:
 
-5. **Dependencies and Interfaces**: If the plan involves multiple components:
+   - System architecture and component breakdown
+   - Technology stack with specific versions
+   - File structures and naming conventions
+   - Function signatures and API contracts
+   - Data schemas and formats
+   - Input/output specifications
+   - Error handling strategies
+   - Edge cases and failure scenarios
+   - Validation requirements
 
-   - Document interfaces between components
-   - Specify communication patterns and protocols
-   - Define data contracts
-   - Clarify responsibilities of each module
+5. **Map Dependencies**: Document interfaces between components, communication patterns, data contracts, and module responsibilities.
 
-6. **External Requirements**: Identify and specify:
-   - External libraries and their versions
-   - APIs and services required
-   - Configuration requirements
-   - Environment setup needs
+6. **Specify External Requirements**: Identify external libraries (with versions), APIs, services, configuration needs, and environment setup.
 
-**Working Through Your Plan:**
+7. **Organize Plan Structure**: Create a preliminary outline of your final plan structure to maximize information density. Eliminate redundancy between sections. Each section should provide unique, necessary information. Use concise language while maintaining complete technical detail.
 
-Use a <scratchpad> section to work through your planning process. In this scratchpad:
+**Critical**: Your final plan will be action-oriented and directive. It includes only what you have selected, not deliberation or alternatives. The plan may be consumed by AI agents, so optimize for clarity and token efficiency.
 
-- Analyze the objective and break it down
-- Identify all decision points
-- Evaluate options for each decision
-- Work through technical specifications
-- Consider edge cases and dependencies
-- Organize the structure of your plan
+# Output Requirements
 
-This scratchpad will help you think through everything systematically but will not be part of the final deliverable.
+After your scratchpad, save your final implementation plan as a markdown file in the `./memory-bank ` directory with the name `<objective-name>-implementation-plan.md`. The output file shouls follow the formatting guidelines below.
 
-**Format Guidelines:**
+# Formatting Guidelines
 
-- Use markdown formatting (headings, numbered lists, bullet points)
-- Be extremely specific and detailed
-- Include actual names, paths, and specifications (not placeholders)
-- Use code blocks only for actual code snippets, schemas, or file structures
+- Use markdown formatting (headings, lists, code blocks)
+- Be specific and detailed
+- Use actual names, paths, and specifications (not placeholders like "your_file_name_here")
+- Include code blocks for schemas, configurations, and file structures
 - Ensure every task is actionable without requiring additional decisions
+- Maximize information density - remove redundancy, use concise language
+- Each section should provide unique value
 
-**Critical Reminders:**
+# Critical Reminders
 
-- Make ALL decisions during planning—architectural, technical, design, naming, etc.
-- Leave NOTHING to the implementor's discretion or interpretation
-- Be specific about tools, versions, formats, and conventions
-- The plan should be detailed enough that a developer can implement it mechanically
-- Anticipate questions and answer them preemptively in the plan
+- Make ALL decisions during planning - leave NOTHING to implementor's discretion
+- Be specific about tools, versions, formats, conventions
+- Anticipate questions and answer them preemptively
+- The final plan shows only selected options (alternatives go in scratchpad only)
+- Optimize for information density while maintaining complete detail
+- The plan must enable mechanical execution without guessing
 
-After completing your plan, save it as a markdown file in the `./memory-bank` directory with an appropriate descriptive filename (e.g., `implementation-plan-[project-name].md`).
-
-Your final output should contain only the implementation plan. The scratchpad is for your internal planning process and helps you think through everything systematically, but your final answer should be the polished, complete implementation plan ready for a developer to execute.
+Begin your work in the scratchpad, then provide the complete implementation plan saved as a markdown file in the `./memory-bank ` directory with the name `<objective-name>-implementation-plan.md`. This file should only consist of the implementation plan should not duplicate or rehash any of the deliberation, option evaluation, or preliminary planning work you did in the thinking block.
