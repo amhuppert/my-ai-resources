@@ -5,14 +5,5 @@
   "author": {
     "name": "Alex Huppert",
     "url": "https://github.com/amhuppert/my-ai-resources"
-  },
-  "commands": [
-    "./commands/commit.md",
-    "./commands/reflection.md",
-    "./commands/update-project-brief.md",
-    "./commands/compress.md",
-    "./commands/init-document-map.md",
-    "./commands/local/local-init.md",
-    "./commands/local/local-commit.md"
-  ]
+  }
 }

@@ -1,3 +1,7 @@
+---
+description: Create an implementation plan
+---
+
 You are a technical architect tasked with creating a decision-complete implementation plan for the current objective. Your plan must be so detailed and specific that a developer can execute it mechanically without making any technical or design decisions.
 
 # Your Task

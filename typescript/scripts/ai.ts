@@ -334,4 +334,84 @@ cursorRulesSkill
     }
   });
 
+program
+  .command("worktree <branch>")
+  .description("Create a git worktree for parallel development")
+  .option(
+    "-b, --base <branch>",
+    "base branch for new branches (default: current)",
+  )
+  .action(async (branch: string, options) => {
+    const { execSync } = await import("child_process");
+    const { existsSync, mkdirSync } = await import("fs");
+    const { basename, join } = await import("path");
+    const { homedir } = await import("os");
+
+    try {
+      // Verify we're in a git repository
+      let repoRoot: string;
+      try {
+        repoRoot = execSync("git rev-parse --show-toplevel", {
+          encoding: "utf-8",
+        }).trim();
+      } catch {
+        console.error("Error: Not in a git repository");
+        process.exit(1);
+      }
+
+      const repoName = basename(repoRoot);
+      const worktreesBase = join(homedir(), "worktrees", repoName);
+      const worktreePath = join(worktreesBase, branch);
+
+      // Check if worktree already exists
+      if (existsSync(worktreePath)) {
+        console.error(`Error: Worktree already exists at ${worktreePath}`);
+        process.exit(1);
+      }
+
+      // Create parent directory if needed
+      if (!existsSync(worktreesBase)) {
+        mkdirSync(worktreesBase, { recursive: true });
+      }
+
+      // Check if branch exists
+      let branchExists = false;
+      try {
+        execSync(`git show-ref --verify --quiet refs/heads/${branch}`, {
+          stdio: "ignore",
+        });
+        branchExists = true;
+      } catch {
+        branchExists = false;
+      }
+
+      // Create the worktree
+      if (branchExists) {
+        execSync(`git worktree add "${worktreePath}" "${branch}"`, {
+          stdio: "inherit",
+        });
+      } else {
+        const baseArg = options.base ? ` "${options.base}"` : "";
+        execSync(
+          `git worktree add -b "${branch}" "${worktreePath}"${baseArg}`,
+          {
+            stdio: "inherit",
+          },
+        );
+      }
+
+      console.log(`\nCreated worktree at ${worktreePath}`);
+      console.log(`\nTo start working:`);
+      console.log(`  cd ${worktreePath}`);
+      console.log(`  claude`);
+
+      process.exit(0);
+    } catch (error) {
+      console.error(
+        `Error creating worktree: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      process.exit(1);
+    }
+  });
+
 program.parse();
