@@ -1,4 +1,5 @@
 ---
+name: create-plan__anthropic
 description: Create an implementation plan
 ---
 
@@ -67,3 +68,5 @@ After your scratchpad, save your final implementation plan as a markdown file in
 - The plan must enable mechanical execution without guessing
 
 Begin your work in the scratchpad, then provide the complete implementation plan saved as a markdown file in the `./memory-bank ` directory with the name `<objective-name>-implementation-plan.md`. This file should only consist of the implementation plan should not duplicate or rehash any of the deliberation, option evaluation, or preliminary planning work you did in the thinking block.
+
+$ARGUMENTS

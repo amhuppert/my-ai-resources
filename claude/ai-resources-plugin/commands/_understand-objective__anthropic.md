@@ -1,4 +1,5 @@
 ---
+name: understand-objective__anthropic
 description: Understand the objective
 ---
 
@@ -76,3 +77,5 @@ Your response should contain ONLY:
 - Your final summary and confirmation (once you have complete understanding)
 
 Do not include your scratchpad in your final confirmation response - only the summary and confirmation statement.
+
+$ARGUMENTS

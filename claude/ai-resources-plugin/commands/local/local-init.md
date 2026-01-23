@@ -1,4 +1,5 @@
 ---
+name: local-init
 description: Initialize a new local private repository in the current directory (.local)
 allowed-tools: Bash(mkdir .local), Bash(cd .local), Bash(git init --bare)
 ---

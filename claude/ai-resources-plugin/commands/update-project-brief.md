@@ -1,4 +1,5 @@
 ---
+name: update-project-brief
 description: Update project brief with current high-level project information
 allowed-tools: Bash(bun:*), Read(**/package.json), Edit(memory-bank/project-brief.md), Write(memory-bank/project-brief.md)
 ---

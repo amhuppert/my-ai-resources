@@ -1,4 +1,5 @@
 ---
+name: reflection
 description: Reflect on conversation and suggest improvements to CLAUDE.md
 ---
 

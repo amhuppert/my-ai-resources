@@ -1,4 +1,5 @@
 ---
+name: commit
 description: Commit staged changes
 allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff --cached), Bash(git commit -m:*)
 ---

@@ -1,4 +1,5 @@
 ---
+name: compress
 description: Optimize and compress instructions for AI usage
 ---
 

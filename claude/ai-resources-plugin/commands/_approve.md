@@ -1,4 +1,5 @@
 ---
+name: approve
 description: Approve the implementation plan
 ---
 

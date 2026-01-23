@@ -1,4 +1,5 @@
 ---
+name: local-commit
 description: Commit changes to local private repository using lgit
 allowed-tools: Bash(lgit add:*), Bash(lgit status:*), Bash(lgit diff:*), Bash(lgit commit -m:*)
 ---
