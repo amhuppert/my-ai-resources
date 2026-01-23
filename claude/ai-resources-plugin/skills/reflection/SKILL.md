@@ -1,7 +1,9 @@
 ---
 name: reflection
-description: Reflect on conversation and suggest improvements to CLAUDE.md
+description: This skill should be used when the user wants Claude to reflect on the conversation and suggest improvements to CLAUDE.md configuration files. It analyzes chat history and proposes optimizations to enhance Claude's performance.
 ---
+
+# Claude Instructions Optimizer
 
 You are an expert in prompt engineering, specializing in optimizing AI code assistant instructions. Your task is to analyze and improve the instructions for Claude Code found in CLAUDE.md/CLAUDE.local.md. Follow these steps carefully:
 

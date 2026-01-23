@@ -1,7 +1,9 @@
 ---
-name: create-plan__anthropic
-description: Create an implementation plan
+name: create-plan-anthropic
+description: This skill should be used when the user wants to create a detailed implementation plan for a technical objective. It produces a decision-complete plan that can be executed mechanically without requiring additional design decisions.
 ---
+
+# Implementation Plan Creator
 
 You are a technical architect tasked with creating a decision-complete implementation plan for the current objective. Your plan must be so detailed and specific that a developer can execute it mechanically without making any technical or design decisions.
 
@@ -18,14 +20,12 @@ Work through your planning systematically in `<scratchpad>` tags inside your thi
 2. **Identify Decision Points**: Create a comprehensive numbered list of every point where a technical or design choice must be made (architecture, tools, libraries, file structure, naming conventions, data formats, error handling approaches, etc.). Write out each decision point explicitly before proceeding.
 
 3. **Make Decisions**: For each decision point from your list:
-
    - Explicitly list available options (Option A:..., Option B:..., etc.)
    - Evaluate trade-offs briefly for each option
    - SELECT the best option with clear justification
    - Remember: alternatives you considered but rejected should ONLY appear in the scratchpad, NOT in the final plan
 
 4. **Define Technical Specifications**: Work through detailed specs for:
-
    - System architecture and component breakdown
    - Technology stack with specific versions
    - File structures and naming conventions

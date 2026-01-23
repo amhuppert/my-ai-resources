@@ -1,8 +1,12 @@
 ---
 name: commit
-description: Commit staged changes
+description: This skill should be used when the user wants to commit staged changes to git. It analyzes the staged changes, generates an appropriate commit message, and executes the commit after user approval.
 allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff --cached), Bash(git commit -m:*)
 ---
+
+# Git Commit Helper
+
+This skill helps create well-formatted git commit messages based on staged changes.
 
 ## Context
 
@@ -35,7 +39,6 @@ allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff --cached), Bas
    ```
 
 4. Ensure your commit message adheres to these rules:
-
    - Do not mention Claude Code, AI assistance, or any related terms
    - Do not include co-author information
    - Keep the summary line concise and informative

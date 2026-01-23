@@ -1,10 +1,10 @@
 ---
 name: local-commit
-description: Commit changes to local private repository using lgit
+description: This skill should be used when the user wants to commit changes to the local private repository using lgit. It manages versioning of private AI configuration files.
 allowed-tools: Bash(lgit add:*), Bash(lgit status:*), Bash(lgit diff:*), Bash(lgit commit -m:*)
 ---
 
-# Commit Local Changes
+# Local Private Repository Commit
 
 Description of private versioning pattern: !`echo $HOME`/.claude/agent-docs/local-files-pattern.md
 
@@ -29,4 +29,4 @@ Commit message format:
 {more detailed description of changes}
 ```
 
-Then commit the changes using `lgit commit -m ...".
+Then commit the changes using `lgit commit -m ...`.

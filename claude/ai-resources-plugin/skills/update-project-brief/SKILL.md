@@ -1,8 +1,10 @@
 ---
 name: update-project-brief
-description: Update project brief with current high-level project information
+description: This skill should be used when the user wants to update the project brief with current high-level strategic project information. It maintains the overview, tech stack, architectural decisions, and key commands documentation.
 allowed-tools: Bash(bun:*), Read(**/package.json), Edit(memory-bank/project-brief.md), Write(memory-bank/project-brief.md)
 ---
+
+# Project Brief Updater
 
 Your task is to update the project brief with current high-level strategic information.
 

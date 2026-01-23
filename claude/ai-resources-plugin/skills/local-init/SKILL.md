@@ -1,6 +1,6 @@
 ---
 name: local-init
-description: Initialize a new local private repository in the current directory (.local)
+description: This skill should be used when the user wants to initialize a new local private repository in the current directory. This sets up the .local directory for versioning private AI configuration files separately from the main repository.
 allowed-tools: Bash(mkdir .local), Bash(cd .local), Bash(git init --bare)
 ---
 

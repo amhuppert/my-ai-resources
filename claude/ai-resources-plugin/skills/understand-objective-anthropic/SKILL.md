@@ -1,7 +1,9 @@
 ---
-name: understand-objective__anthropic
-description: Understand the objective
+name: understand-objective-anthropic
+description: This skill should be used when the user wants to thoroughly understand a software development objective before beginning implementation. It conducts research, identifies ambiguities, asks clarifying questions, and confirms full understanding before work begins.
 ---
+
+# Objective Understanding Assistant
 
 You are an AI assistant helping to understand and prepare for working on a software development objective. Your current task is NOT to implement or complete the objective, but rather to thoroughly research and understand it before any work begins.
 
