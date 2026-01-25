@@ -6,7 +6,6 @@ import {
   printInstallationHeader,
   installDirectory,
   installFile,
-  installClaudeMd,
   execCommand,
   commandExists,
 } from "@/lib/installer-utils.js";
@@ -39,7 +38,7 @@ function getScriptDir(): string {
  */
 async function main(
   config: InstallConfig,
-  executor: CommandExecutor
+  executor: CommandExecutor,
 ): Promise<void> {
   const SCRIPT_DIR = getScriptDir();
 
@@ -51,24 +50,17 @@ async function main(
     join(config.paths.userClaudeDir, "agent-docs"),
     `Syncing agent-docs -> ${config.paths.userClaudeDir}/agent-docs`,
     config,
-    executor
+    executor,
   );
 
-  // 2. claude/CLAUDE-user.md -> ~/.claude/CLAUDE.md
-  await installClaudeMd(
-    join(SCRIPT_DIR, "claude", "CLAUDE-user.md"),
-    join(config.paths.userClaudeDir, "CLAUDE.md"),
-    `Installing claude/CLAUDE-user.md -> ${config.paths.userClaudeDir}/CLAUDE.md`
-  );
-
-  // 3. Install scripts
+  // 2. Install scripts
   await installFile(
     join(SCRIPT_DIR, "scripts", "lgit"),
     join(config.paths.userLocalBin, "lgit"),
     `Installing lgit -> ${config.paths.userLocalBin}/lgit`,
     config,
     executor,
-    true
+    true,
   );
 
   await installFile(
@@ -77,7 +69,7 @@ async function main(
     `Installing code-tree -> ${config.paths.userLocalBin}/code-tree`,
     config,
     executor,
-    true
+    true,
   );
 
   await installFile(
@@ -86,7 +78,7 @@ async function main(
     `Installing read-file -> ${config.paths.userLocalBin}/read-file`,
     config,
     executor,
-    true
+    true,
   );
 
   await installFile(
@@ -95,10 +87,10 @@ async function main(
     `Installing push-main -> ${config.paths.userLocalBin}/push-main`,
     config,
     executor,
-    true
+    true,
   );
 
-  // 4. Install cursor-shortcuts-mcp globally
+  // 3. Install cursor-shortcuts-mcp globally
   console.log("Installing cursor-shortcuts-mcp globally...");
   const mcpDir = join(SCRIPT_DIR, "cursor-shortcuts-mcp");
 
@@ -131,20 +123,20 @@ async function main(
     }
   } else {
     console.log(
-      "Warning: bun not found, skipping cursor-shortcuts-mcp installation"
+      "Warning: bun not found, skipping cursor-shortcuts-mcp installation",
     );
     console.log(
-      "Install bun to enable MCP server installation: https://bun.sh"
+      "Install bun to enable MCP server installation: https://bun.sh",
     );
   }
 
-  // 5. Install Claude Code settings using TypeScript installer
+  // 4. Install Claude Code settings using TypeScript installer
   console.log("Installing Claude Code user-level settings...");
   if (await commandExists("bun", executor)) {
     try {
       installSettingsFromFile(
         join(SCRIPT_DIR, "claude", "settings.json"),
-        config
+        config,
       );
       console.log("Claude Code settings installed successfully");
     } catch (error) {
@@ -153,12 +145,12 @@ async function main(
     }
   } else {
     console.log(
-      "Warning: bun not found, skipping Claude Code settings installation"
+      "Warning: bun not found, skipping Claude Code settings installation",
     );
     console.log("Install bun to enable settings installation: https://bun.sh");
   }
 
-  // 6. Install MCP servers for Claude Code
+  // 5. Install MCP servers for Claude Code
   console.log("Adding MCP servers to Claude Code");
 
   // Add cursor-shortcuts-mcp (globally linked via bun)
@@ -172,7 +164,7 @@ async function main(
       "--scope",
       "user",
     ],
-    executor
+    executor,
   );
 
   if (!cursorShortcutsResult.success) {
@@ -193,7 +185,7 @@ async function main(
       "--scope",
       "user",
     ],
-    executor
+    executor,
   );
 
   if (!context7Result.success) {
@@ -201,7 +193,7 @@ async function main(
     console.error(context7Result.stderr);
   }
 
-  // 7. Install Hooks
+  // 6. Install Hooks
   console.log("Installing Hooks");
   console.log("Installing rins_hooks from fork");
 
@@ -215,7 +207,7 @@ async function main(
     const cloneResult = await execCommand(
       "git",
       ["clone", "https://github.com/amhuppert/rins_hooks.git", rinsHooksPath],
-      executor
+      executor,
     );
 
     if (!cloneResult.success) {
@@ -253,7 +245,7 @@ async function main(
     console.error(linkResult.stderr);
   }
 
-  // 8. Install ai-workflow-resources plugin
+  // 7. Install ai-workflow-resources plugin
   console.log("Installing ai-workflow-resources plugin...");
 
   const marketplacePath = join(SCRIPT_DIR, "claude");
@@ -262,7 +254,7 @@ async function main(
   const marketplaceResult = await execCommand(
     "claude",
     ["plugin", "marketplace", "add", marketplacePath],
-    executor
+    executor,
   );
 
   if (!marketplaceResult.success) {
@@ -273,7 +265,7 @@ async function main(
     const pluginInstallResult = await execCommand(
       "claude",
       ["plugin", "install", "ai-resources@ai-resources"],
-      executor
+      executor,
     );
 
     if (!pluginInstallResult.success) {

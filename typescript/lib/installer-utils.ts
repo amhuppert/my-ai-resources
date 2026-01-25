@@ -158,42 +158,36 @@ export async function installFile(
 }
 
 /**
- * Pure function to merge content with XML tag replacement
- * If destContent contains the XML tag, replaces that section with sourceContent
+ * Pure function to merge content with comment marker replacement
+ * If destContent contains the markers, replaces that section with sourceContent
  * Otherwise, appends sourceContent to destContent
  */
-export function replaceXmlTaggedSection(
+export function replaceMarkedSection(
   destContent: string,
   sourceContent: string,
-  xmlTag: string,
 ): string {
-  const openTag = `<${xmlTag}>`;
-  const closeTag = `</${xmlTag}>`;
+  const BEGIN_MARKER = "<!-- Begin standard instructions -->";
+  const END_MARKER = "<!-- End of standard instructions -->";
 
-  // Check if destination content contains the specified XML tag
-  if (destContent.includes(openTag)) {
-    // Replace the existing XML tag section
-    // Remove everything between and including the tags, plus any trailing newlines
-    const tagRegex = new RegExp(
-      `${openTag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${closeTag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\n*`,
+  if (destContent.includes(BEGIN_MARKER)) {
+    const pattern = new RegExp(
+      `${BEGIN_MARKER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\n*`,
       "g",
     );
-    const withoutOldTag = destContent.replace(tagRegex, "");
-    return withoutOldTag + sourceContent;
+    const withoutOldSection = destContent.replace(pattern, "");
+    return withoutOldSection + sourceContent;
   } else {
-    // Append the new content to the existing content
     return destContent + sourceContent;
   }
 }
 
 /**
- * Install CLAUDE.md with XML tag handling
+ * Install CLAUDE.md with comment marker handling
  */
 export async function installClaudeMd(
   srcFile: string,
   destFile: string,
   description: string,
-  xmlTag: string = "user-level-instructions",
 ): Promise<void> {
   if (!existsSync(srcFile)) {
     console.log(`Warning: ${srcFile} not found`);
@@ -214,6 +208,6 @@ export async function installClaudeMd(
   }
 
   const destContent = readFileSync(destFile, "utf-8");
-  const merged = replaceXmlTaggedSection(destContent, sourceContent, xmlTag);
+  const merged = replaceMarkedSection(destContent, sourceContent);
   writeFileSync(destFile, merged, "utf-8");
 }

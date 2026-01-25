@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import {
-  replaceXmlTaggedSection,
+  replaceMarkedSection,
   execCommand,
   commandExists,
   syncDirectory,
@@ -56,24 +56,23 @@ class MockCommandExecutor implements CommandExecutor {
   }
 }
 
-describe("replaceXmlTaggedSection", () => {
-  test("replaces existing XML tag section", () => {
+describe("replaceMarkedSection", () => {
+  const BEGIN_MARKER = "<!-- Begin standard instructions -->";
+  const END_MARKER = "<!-- End of standard instructions -->";
+
+  test("replaces existing marked section", () => {
     const dest = `Some content
-<user-level-instructions>
+${BEGIN_MARKER}
 Old content here
-</user-level-instructions>
+${END_MARKER}
 More content`;
 
-    const source = `<user-level-instructions>
+    const source = `${BEGIN_MARKER}
 New content here
-</user-level-instructions>
+${END_MARKER}
 `;
 
-    const result = replaceXmlTaggedSection(
-      dest,
-      source,
-      "user-level-instructions",
-    );
+    const result = replaceMarkedSection(dest, source);
 
     expect(result).toContain("New content here");
     expect(result).not.toContain("Old content here");
@@ -81,58 +80,30 @@ New content here
     expect(result).toContain("More content");
   });
 
-  test("appends content when XML tag does not exist", () => {
+  test("appends content when markers do not exist", () => {
     const dest = "Existing content";
-    const source = `<user-level-instructions>
+    const source = `${BEGIN_MARKER}
 New content
-</user-level-instructions>
+${END_MARKER}
 `;
 
-    const result = replaceXmlTaggedSection(
-      dest,
-      source,
-      "user-level-instructions",
-    );
+    const result = replaceMarkedSection(dest, source);
 
     expect(result).toBe("Existing content" + source);
   });
 
-  test("handles multiple XML tags with same name", () => {
-    const dest = `<test>First</test>
-Content
-<test>Second</test>`;
-
-    const source = "<test>Replacement</test>";
-
-    const result = replaceXmlTaggedSection(dest, source, "test");
-
-    // Should replace all occurrences
-    expect(result).not.toContain("First");
-    expect(result).not.toContain("Second");
-    expect(result).toContain("Replacement");
-  });
-
-  test("handles tags with special regex characters", () => {
-    const dest = `<tag-with-dash>
-Content
-</tag-with-dash>`;
-
-    const source = "<tag-with-dash>New</tag-with-dash>";
-
-    const result = replaceXmlTaggedSection(dest, source, "tag-with-dash");
-
-    expect(result).toContain("New");
-    expect(result).not.toContain("Content");
-  });
-
-  test("preserves content outside XML tags", () => {
+  test("preserves content outside markers", () => {
     const dest = `Before
-<tag>Old</tag>
+${BEGIN_MARKER}
+Old
+${END_MARKER}
 After`;
 
-    const source = "<tag>New</tag>";
+    const source = `${BEGIN_MARKER}
+New
+${END_MARKER}`;
 
-    const result = replaceXmlTaggedSection(dest, source, "tag");
+    const result = replaceMarkedSection(dest, source);
 
     expect(result).toContain("Before");
     expect(result).toContain("After");

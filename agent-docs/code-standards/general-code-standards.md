@@ -7,11 +7,10 @@
 ## Code Comments
 
 - You MUST NEVER add commends without considering whether the comment is actually needed.
-- When changing code, never document the old behavior or the behavior change
+- When changing code, never document the old behavior or the behavior change (the reader only cares about the CURRENT state)
 - NEVER add comments explaining that something is "improved", "better", "new", "enhanced", or referencing what it used to be
 - If you're refactoring, remove old comments - don't add new ones explaining the refactoring
 - YOU MUST NEVER remove code comments unless you can PROVE they are actively false. Comments are important documentation and must be preserved.
-- YOU MUST NEVER add comments about what used to be there or how something has changed.
 - YOU MUST NEVER refer to temporal context in comments (like "recently refactored" "moved") or code. Comments should be evergreen and describe the code as it is. If you name something "new" or "enhanced" or "improved", you've probably made a mistake and MUST STOP and ask me what to do.
 
 Only comment when code cannot convey the information:
@@ -37,14 +36,6 @@ await new Promise(resolve => setTimeout(resolve, 2000));
 ✅ Explains constraint impossible to know from code alone
 </example>
 
-<example type="valid">
-```ts
-// Round down per EU regulatory requirement EU-2019/876
-const taxAmount = Math.floor(grossAmount * 0.20);
-```
-✅ Explains requirement impossible to know from code alone
-</example>
-
 ## Designing Software
 
 - YAGNI. The best code is no code. Don't add features we don't need right now.
@@ -53,8 +44,3 @@ const taxAmount = Math.floor(grossAmount * 0.20);
 - YOU MUST WORK HARD to reduce code duplication, even if the refactoring takes extra effort.
 - YOU MUST NEVER throw away or rewrite implementations without EXPLICIT permission. If you're considering this, YOU MUST STOP and ask first.
 - YOU MUST get Alex's explicit approval before implementing ANY backward compatibility.
-
-## Code Style
-
-- YOU MUST MATCH the style and formatting of surrounding code, even if it differs from standard style guides. Consistency within a file trumps external standards.
-- YOU MUST NOT manually change whitespace that does not affect execution or output.

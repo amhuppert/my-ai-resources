@@ -39,7 +39,7 @@ Core use cases: automating git workflows with AI-aware commits, managing persist
 
 8. **Bun-Compiled Executables** - TypeScript CLI tools and MCP servers are compiled to standalone executables. MCP servers are globally linked via `bun link` for system-wide availability.
 
-9. **XML Tag-Based Merging** - CLAUDE.md files use XML tags (`<project-level-instructions>`, `<user-level-instructions>`) to enable safe merging of user-level and project-level instructions without conflicts.
+9. **Comment Marker-Based Merging** - Project-level CLAUDE.md installation uses HTML comment markers (`<!-- Begin standard instructions -->`, `<!-- End of standard instructions -->`) to enable safe replacement of standard sections while preserving custom project content.
 
 ## Key Commands
 

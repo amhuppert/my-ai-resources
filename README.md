@@ -31,7 +31,6 @@ Installs user-wide configurations that apply across all projects:
 **What gets installed:**
 
 - `agent-docs/` → `~/.claude/agent-docs/` - AI agent documentation
-- `claude/CLAUDE-user.md` → `~/.claude/CLAUDE.md` - User-level Claude Code instructions
 - `scripts/lgit` → `~/.local/bin/lgit` - Dual-repo git wrapper script (executable)
 - `scripts/code-tree` → `~/.local/bin/code-tree` - Directory visualizer with depth control (executable)
 - `scripts/read-file` → `~/.local/bin/read-file` - XML-formatted file reader for LLM context (executable)

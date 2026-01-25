@@ -28,15 +28,11 @@ MCP server providing AI-powered keyboard shortcut recommendations and safe keybi
 
 ## typescript (Directory)
 
-TypeScript tooling for Claude Code configuration management. Core library (`lib/claude-code-settings.ts`) provides Zod schemas for settings validation. CLI scripts handle installation (`install-settings.ts`, `install-hooks.ts`), document map generation (`init-document-map.ts`), and diagnostics (`test-slash-args.ts`). All scripts compile to Bun executables in `dist/`. Read when modifying Claude Code settings schemas, creating new CLI tools, or debugging slash command argument passing.
+TypeScript tooling for Claude Code configuration management. Core library includes `lib/claude-code-settings.ts` (Zod schemas for settings validation) and `lib/installer-utils.ts` (file sync, CLAUDE.md merging with comment markers). CLI scripts handle installation (`install-user.ts`, `install-project.ts`, `install-settings.ts`, `install-hooks.ts`), document map generation (`init-document-map.ts`), and diagnostics (`test-slash-args.ts`). All scripts compile to Bun executables in `dist/`. Read when modifying installation logic, settings schemas, or creating new CLI tools.
 
 ## scripts (Directory)
 
 CLI utilities installed to `~/.local/bin/`: `lgit` (dual-repo git wrapper for `.local` directory), `code-tree` (directory visualizer with depth control), `read-file` (XML-formatted file reader for LLM context), and `push-main` (branch deployment utility). Read when implementing new CLI tools or understanding dual-repo workflow.
-
-## lib (Directory)
-
-Installation infrastructure with `helpers.sh` providing core functions: rsync-based sync/backup with timestamped backups, XML tag-based CLAUDE.md merging, and cross-platform macOS/Linux support. Read when modifying installation scripts or adding new installation targets.
 
 ## Memory Bank
 

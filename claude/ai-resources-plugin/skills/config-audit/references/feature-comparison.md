@@ -246,25 +246,20 @@ System prompt defining the agent's role and approach
 
 #### Claude Code: CLAUDE.md
 
-**Location**:
+**Location**: `CLAUDE.md` (project root)
 
-- `.claude/CLAUDE.md` (project)
-- `~/.claude/CLAUDE.md` (user)
-
-**Format**: Markdown with optional XML tags for sections
+**Format**: Markdown with HTML comment markers for standard sections
 
 **Capabilities**:
 
 - Project-level instructions always in context
-- User-level instructions merged with project instructions
-- XML tag-based merging for conflict-free updates
+- Comment marker-based merging for conflict-free updates
 - Can reference other files with `@filename`
 
 **Key characteristics**:
 
 - Always loaded in context
-- Hierarchical (user + project)
-- XML tags enable safe merging
+- Comment markers (`<!-- Begin/End standard instructions -->`) enable safe section replacement
 
 #### Cursor: .cursorrules
 
