@@ -12,30 +12,6 @@
           }
         ]
       }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "A file was just edited/written: $TOOL_INPUT\n\nCheck if this file should be tracked in the memory bank:\n1. Read memory-bank/focus.md to get the active objective-slug from frontmatter\n2. If there's an active objective, use mcp__memory-bank__get_path to check if this file is already tracked\n3. If NOT tracked and the file appears relevant to the current work, suggest adding it with: 'Consider adding this file to the memory bank with /mb-quick-add'\n4. If already tracked or not relevant, say nothing\n\nBe conservative - only suggest for files that clearly relate to the active objective's features.",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Before ending this session, check memory bank status:\n1. Read memory-bank/focus.md frontmatter for objective-slug\n2. If there's an active objective, use mcp__memory-bank__get_objective_context to get current task status\n3. If any tasks were worked on during this session, remind the user to update task status with mcp__memory-bank__update_task\n4. If the objective appears complete, suggest using /complete-objective\n5. If no active objective, approve stopping without comment\n\nOnly provide reminders if relevant - don't be noisy.",
-            "timeout": 30
-          }
-        ]
-      }
     ]
   }
 }
