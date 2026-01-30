@@ -1,0 +1,9 @@
+{
+  "name": "memory-bank",
+  "description": "Structured memory management for AI agents using SQLite-backed features, paths, requirements, and objectives",
+  "version": "1.0.0",
+  "author": {
+    "name": "Alex Huppert",
+    "url": "https://github.com/amhuppert/my-ai-resources"
+  }
+}

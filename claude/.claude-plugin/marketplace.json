@@ -7,7 +7,12 @@
     {
       "name": "ai-resources",
       "source": "./ai-resources-plugin",
-      "description": "AI-enhanced git workflows, memory banks, and development utilities"
+      "description": "AI-enhanced git workflows and development utilities"
+    },
+    {
+      "name": "memory-bank",
+      "source": "./memory-bank-plugin",
+      "description": "Structured memory management for AI agents using SQLite-backed features, paths, requirements, and objectives"
     }
   ]
 }
