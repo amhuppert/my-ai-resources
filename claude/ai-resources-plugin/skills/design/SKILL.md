@@ -1,5 +1,6 @@
 ---
-description: Orchestrate multi-agent collaborative design workflow
+name: design
+description: This skill should be used when the user wants to create or iterate on a software design. Orchestrates a multi-agent collaborative design workflow with parallel research and review phases. Supports "new" mode for fresh designs and iteration mode for improving existing designs.
 argument-hint: [focus-area or "new"]
 allowed-tools: Read, Grep, Glob, Write, Task, WebSearch, WebFetch, AskUserQuestion
 ---

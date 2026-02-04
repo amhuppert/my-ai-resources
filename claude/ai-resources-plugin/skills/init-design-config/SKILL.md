@@ -1,5 +1,6 @@
 ---
-description: Initialize DESIGN-AGENTS.md configuration file for the /design workflow
+name: init-design-config
+description: This skill should be used when the user wants to initialize or set up the DESIGN-AGENTS.md configuration file for the /design workflow. Discovers project context and populates the config with detected values.
 allowed-tools: Read, Grep, Glob, Write
 ---
 
