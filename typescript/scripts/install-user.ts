@@ -73,6 +73,15 @@ async function main(
   );
 
   await installFile(
+    join(SCRIPT_DIR, "scripts", "refresh-ai-resources"),
+    join(config.paths.userLocalBin, "refresh-ai-resources"),
+    `Installing refresh-ai-resources -> ${config.paths.userLocalBin}/refresh-ai-resources`,
+    config,
+    executor,
+    true,
+  );
+
+  await installFile(
     join(SCRIPT_DIR, "scripts", "read-file"),
     join(config.paths.userLocalBin, "read-file"),
     `Installing read-file -> ${config.paths.userLocalBin}/read-file`,

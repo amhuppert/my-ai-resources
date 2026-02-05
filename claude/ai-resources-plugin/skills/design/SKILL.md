@@ -1,7 +1,7 @@
 ---
 name: design
-description: This skill should be used when the user wants to create or iterate on a software design. Orchestrates a multi-agent collaborative design workflow with parallel research and review phases. Supports "new" mode for fresh designs and iteration mode for improving existing designs.
-argument-hint: [focus-area or "new"]
+description: This skill should be used when the user wants to create or iterate on a software design. Orchestrates a multi-agent collaborative design workflow with parallel research and review phases. Requires a design name to organize artifacts in memory-bank/planning/{name}/. Supports "new" mode for fresh designs and iteration mode for improving existing designs.
+argument-hint: <name> [focus-area or "new"]
 allowed-tools: Read, Grep, Glob, Write, Task, WebSearch, WebFetch, AskUserQuestion
 ---
 
@@ -9,23 +9,48 @@ Orchestrate a multi-agent design workflow to create or iterate on a design that 
 
 ## Arguments
 
-- `$ARGUMENTS` or `$1`: Focus area or mode (optional)
+- `$1`: Design name (required) - Slug for the design subdirectory (e.g., "user-auth", "payment-flow")
+  - Creates/uses directory: `memory-bank/planning/{name}/`
+  - If not provided, ask user for the design name or list existing designs
+- `$2`: Mode or focus area (optional)
   - `new` - Force creation of a new design from scratch (ignores existing design.md)
   - Any other text - Focus iteration on this specific area (e.g., "ux", "architecture", "types")
   - If not provided and design.md exists - Run general iteration to improve design
   - If not provided and no design.md - Run full new design workflow
 
+## Design Directory
+
+All artifacts for a design are stored in `memory-bank/planning/{name}/`:
+
+```
+memory-bank/planning/{name}/
+├── design.md                     # Current design document
+├── design-draft.md               # Working draft (new design workflow)
+├── research-*.md                 # Research agent outputs
+├── review-*.md                   # Review outputs (new design)
+└── iteration-review-*.md         # Iteration review outputs
+```
+
 ---
 
 ## Mode Selection
 
-First, determine which mode to run:
+First, validate the design name and determine which mode to run:
 
 ```
-if $ARGUMENTS == "new":
+if $1 is empty:
+    → Use Glob to find existing designs: memory-bank/planning/*/design.md
+    → If found, list them and ask user to select or provide a name
+    → If none found, ask user for a new design name
+    → Store selected/provided name as DESIGN_NAME
+
+DESIGN_NAME = $1
+DESIGN_DIR = memory-bank/planning/{DESIGN_NAME}
+
+if $2 == "new":
     → Run NEW DESIGN WORKFLOW
-else if file_exists("memory-bank/planning/design.md"):
-    → Run ITERATION WORKFLOW (with optional focus: $ARGUMENTS)
+else if file_exists("{DESIGN_DIR}/design.md"):
+    → Run ITERATION WORKFLOW (with optional focus: $2)
 else:
     → Run NEW DESIGN WORKFLOW
 ```
@@ -100,7 +125,7 @@ Research [agent's domain] for this project.
 Project context: [summary from Phase 1]
 Requirements: [key requirements]
 
-Write your findings to `memory-bank/planning/research-{agent-name}.md`
+Write your findings to `{DESIGN_DIR}/research-{agent-name}.md`
 
 Include:
 - Executive Summary
@@ -116,9 +141,9 @@ If no research agents are configured, skip to Phase 3.
 
 ## Phase 3: Design Synthesis
 
-Read all research outputs from `memory-bank/planning/research-*.md`, then create an initial design document.
+Read all research outputs from `{DESIGN_DIR}/research-*.md`, then create an initial design document.
 
-Create `memory-bank/planning/design-draft.md` with:
+Create `{DESIGN_DIR}/design-draft.md` with:
 
 1. **Metadata** - Version, date, status
 2. **Summary** - Executive overview
@@ -140,14 +165,14 @@ Launch ALL review agents IN PARALLEL using the Task tool with multiple tool call
 For each review agent (universal + conditional + project-specific), use this prompt:
 
 ```
-Review the design at `memory-bank/planning/design-draft.md` against [agent's specialty].
+Review the design at `{DESIGN_DIR}/design-draft.md` against [agent's specialty].
 
 Also read:
 - Requirements file: [path]
 - Project brief: memory-bank/project-brief.md
 [If design-system-agent: - Design system: [path]]
 
-Write your review to `memory-bank/planning/review-{agent-name}.md`
+Write your review to `{DESIGN_DIR}/review-{agent-name}.md`
 
 Follow your standard output format.
 ```
@@ -156,7 +181,7 @@ Wait for all reviews to complete.
 
 ## Phase 5: Design Refinement
 
-Read all review outputs from `memory-bank/planning/review-*.md`.
+Read all review outputs from `{DESIGN_DIR}/review-*.md`.
 
 1. **Synthesize feedback** - Combine findings from all agents
 2. **Resolve conflicts** - If agents disagree, document tradeoffs and make a decision
@@ -168,7 +193,7 @@ Maximum 2 review cycles total.
 
 ## Phase 6: Final Design Document
 
-Copy the refined `design-draft.md` to `memory-bank/planning/design.md`.
+Copy the refined `design-draft.md` to `{DESIGN_DIR}/design.md`.
 
 Ensure it includes:
 
@@ -188,17 +213,17 @@ Present the design to the user:
 
 # ITERATION WORKFLOW
 
-Use this workflow when `memory-bank/planning/design.md` exists and you want to improve it.
+Use this workflow when `{DESIGN_DIR}/design.md` exists and you want to improve it.
 
 ## Phase I-1: Load Context
 
 Read these files:
 
-1. `memory-bank/planning/design.md` - The existing design
+1. `{DESIGN_DIR}/design.md` - The existing design
 2. Requirements file (same logic as new design workflow)
-3. Any existing research files in `memory-bank/planning/research-*.md`
+3. Any existing research files in `{DESIGN_DIR}/research-*.md`
 
-Note the focus area from `$ARGUMENTS` if provided.
+Note the focus area from `$2` if provided.
 
 ## Phase I-2: Targeted Review (Parallel Agents)
 
@@ -218,7 +243,7 @@ Select agents based on focus area. If no focus provided, use ALL agents.
 Launch selected agents IN PARALLEL with this prompt:
 
 ```
-Review the existing design at `memory-bank/planning/design.md`.
+Review the existing design at `{DESIGN_DIR}/design.md`.
 
 [If focus provided]: Focus specifically on: {focus_area}
 [If no focus]: Provide a comprehensive review.
@@ -229,7 +254,7 @@ Your task:
 3. Note what's done well
 4. Prioritize findings: Critical > Major > Minor > Suggestion
 
-Write your review to `memory-bank/planning/iteration-review-{agent-name}.md`
+Write your review to `{DESIGN_DIR}/iteration-review-{agent-name}.md`
 
 Format:
 # {Agent Name} Review - Iteration
@@ -260,7 +285,7 @@ Wait for all reviews to complete.
 
 ## Phase I-3: Synthesize Feedback
 
-Read all `memory-bank/planning/iteration-review-*.md` files.
+Read all `{DESIGN_DIR}/iteration-review-*.md` files.
 
 1. **Aggregate issues** - Combine similar issues from multiple agents
 2. **Prioritize** - Order by severity and number of agents flagging it
@@ -276,7 +301,7 @@ If needed, use AskUserQuestion to:
 
 ## Phase I-4: Apply Improvements
 
-Update `memory-bank/planning/design.md`:
+Update `{DESIGN_DIR}/design.md`:
 
 1. **Critical issues** - Must fix
 2. **Major issues** - Fix if straightforward
@@ -336,7 +361,7 @@ Ask user if they want to:
 
 1. **Parallel execution**: Always launch independent agents in a SINGLE message with multiple Task tool calls
 2. **Sequential dependencies**: Wait for research before synthesis, synthesis before review
-3. **Communication via files**: Agents write to `memory-bank/planning/` directory
+3. **Communication via files**: Agents write to `{DESIGN_DIR}/` directory
 4. **Context efficiency**: Agents read only files they need
 5. **Max iterations**: Run review cycle at most 2 times per workflow invocation
 6. **Focus respect**: When user provides focus, limit scope to relevant agents
@@ -344,17 +369,20 @@ Ask user if they want to:
 ## Directory Structure
 
 ```
-memory-bank/planning/
-├── research-*.md                 # Research agent outputs
-├── design-draft.md               # Working design (new design workflow)
+memory-bank/planning/{DESIGN_NAME}/
 ├── design.md                     # Current design document
+├── design-draft.md               # Working draft (new design workflow)
+├── research-*.md                 # Research agent outputs
 ├── review-*.md                   # Review outputs (new design)
 └── iteration-review-*.md         # Iteration review outputs
 ```
 
 ## Error Handling
 
+- **Missing design name**: List existing designs or ask user to provide a name
+- **Invalid design name**: Must be a valid slug (lowercase, alphanumeric, hyphens)
 - **Missing requirements file**: Ask user for location via AskUserQuestion
 - **Missing DESIGN-AGENTS.md**: Proceed with only universal + auto-detected agents
 - **Agent failure**: Log error, continue with other agents, report at end
 - **No design.md for iteration**: Switch to NEW DESIGN mode automatically
+- **Missing design directory**: Create `memory-bank/planning/{DESIGN_NAME}/` if it doesn't exist
