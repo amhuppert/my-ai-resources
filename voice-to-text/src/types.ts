@@ -3,6 +3,7 @@ import { z } from "zod";
 export const ConfigSchema = z.object({
   hotkey: z.string().default("F9"),
   contextFile: z.string().optional(),
+  instructionsFile: z.string().optional(),
   claudeModel: z.string().optional(),
   autoInsert: z.boolean().default(true),
   beepEnabled: z.boolean().default(true),

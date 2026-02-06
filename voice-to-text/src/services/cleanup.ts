@@ -2,12 +2,16 @@ import { spawn } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 
 export interface CleanupService {
-  cleanup(text: string, contextFilePath?: string): Promise<string>;
+  cleanup(
+    text: string,
+    contextFilePath?: string,
+    instructionsFilePath?: string,
+  ): Promise<string>;
 }
 
 const CLEANUP_PROMPT_TEMPLATE = `You are cleaning up voice-transcribed text for use as instructions to AI agents.
 
-{CONTEXT_SECTION}Transcribed Text:
+{CONTEXT_SECTION}{INSTRUCTIONS_SECTION}Transcribed Text:
 <transcription>
 {TRANSCRIPTION}
 </transcription>
@@ -22,8 +26,13 @@ Instructions:
 
 export function createCleanupService(model?: string): CleanupService {
   return {
-    async cleanup(text: string, contextFilePath?: string): Promise<string> {
+    async cleanup(
+      text: string,
+      contextFilePath?: string,
+      instructionsFilePath?: string,
+    ): Promise<string> {
       let contextSection = "";
+      let instructionsSection = "";
 
       if (contextFilePath && existsSync(contextFilePath)) {
         try {
@@ -39,10 +48,29 @@ ${contextContent}
         }
       }
 
+      if (instructionsFilePath && existsSync(instructionsFilePath)) {
+        try {
+          const instructionsContent = readFileSync(
+            instructionsFilePath,
+            "utf-8",
+          );
+          instructionsSection = `Custom Instructions:
+<instructions>
+${instructionsContent}
+</instructions>
+
+`;
+        } catch {
+          // Ignore instructions file errors, proceed without instructions
+        }
+      }
+
       const prompt = CLEANUP_PROMPT_TEMPLATE.replace(
         "{CONTEXT_SECTION}",
         contextSection,
-      ).replace("{TRANSCRIPTION}", text);
+      )
+        .replace("{INSTRUCTIONS_SECTION}", instructionsSection)
+        .replace("{TRANSCRIPTION}", text);
 
       return runClaudeCli(prompt, text, model);
     },
@@ -59,6 +87,10 @@ function runClaudeCli(
     if (model) {
       args.push("--model", model);
     }
+
+    console.log(
+      `Running: claude ${args.map((a) => (a === prompt ? "<prompt>" : a)).join(" ")}`,
+    );
 
     const child = spawn("claude", args, {
       timeout: 60000,

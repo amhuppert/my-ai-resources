@@ -25,6 +25,19 @@ export function loadConfig(): Config {
   }
 }
 
+export function mergeConfig(
+  fileConfig: Config,
+  cliOpts: Partial<Config>,
+): Config {
+  const merged = { ...fileConfig };
+  for (const key of Object.keys(cliOpts) as (keyof Config)[]) {
+    if (cliOpts[key] !== undefined) {
+      (merged as Record<string, unknown>)[key] = cliOpts[key];
+    }
+  }
+  return ConfigSchema.parse(merged);
+}
+
 export function getConfigDir(): string {
   return CONFIG_DIR;
 }

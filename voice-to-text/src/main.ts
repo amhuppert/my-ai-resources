@@ -1,4 +1,5 @@
-import { loadConfig } from "./utils/config.js";
+import { Command } from "commander";
+import { loadConfig, mergeConfig } from "./utils/config.js";
 import { createHotkeyListener } from "./utils/hotkey.js";
 import { createFeedbackService } from "./services/feedback.js";
 import {
@@ -9,7 +10,32 @@ import { createTranscriber } from "./services/transcriber.js";
 import { createCleanupService } from "./services/cleanup.js";
 import { copyToClipboard } from "./services/clipboard.js";
 import { createCursorInsertService } from "./services/cursor-insert.js";
-import type { AppState } from "./types.js";
+import type { AppState, Config } from "./types.js";
+
+const program = new Command();
+
+program
+  .name("voice-to-text")
+  .description("Capture voice input and convert to AI-ready formatted text")
+  .version("1.0.0")
+  .option("--hotkey <key>", "Global hotkey to toggle recording")
+  .option("--context-file <path>", "Path to context file for Claude cleanup")
+  .option(
+    "--instructions-file <path>",
+    "Path to instructions file for Claude cleanup",
+  )
+  .option("--claude-model <model>", "Claude model for cleanup step")
+  .option("--no-auto-insert", "Disable auto-insert at cursor")
+  .option("--no-beep", "Disable audio feedback")
+  .option("--no-notification", "Disable desktop notifications")
+  .option("--no-terminal-output", "Disable terminal output")
+  .option(
+    "--max-duration <seconds>",
+    "Maximum recording duration in seconds",
+    parseInt,
+  );
+
+program.parse();
 
 async function main() {
   // Validate environment
@@ -19,8 +45,26 @@ async function main() {
     process.exit(1);
   }
 
-  // Load configuration
-  const config = loadConfig();
+  // Load configuration from file, then overlay CLI options
+  const fileConfig = loadConfig();
+  const opts = program.opts();
+
+  const cliOpts: Partial<Config> = {};
+  if (opts.hotkey !== undefined) cliOpts.hotkey = opts.hotkey;
+  if (opts.contextFile !== undefined) cliOpts.contextFile = opts.contextFile;
+  if (opts.instructionsFile !== undefined)
+    cliOpts.instructionsFile = opts.instructionsFile;
+  if (opts.claudeModel !== undefined) cliOpts.claudeModel = opts.claudeModel;
+  if (opts.autoInsert !== undefined) cliOpts.autoInsert = opts.autoInsert;
+  if (opts.beep !== undefined) cliOpts.beepEnabled = opts.beep;
+  if (opts.notification !== undefined)
+    cliOpts.notificationEnabled = opts.notification;
+  if (opts.terminalOutput !== undefined)
+    cliOpts.terminalOutputEnabled = opts.terminalOutput;
+  if (opts.maxDuration !== undefined)
+    cliOpts.maxRecordingDuration = opts.maxDuration;
+
+  const config = mergeConfig(fileConfig, cliOpts);
 
   // Initialize state
   const state: AppState = {
@@ -91,6 +135,7 @@ async function main() {
         const cleanedText = await cleanupService.cleanup(
           transcription,
           config.contextFile,
+          config.instructionsFile,
         );
         const cleanPreview = cleanedText.slice(0, 50);
         feedback.log(
@@ -107,6 +152,7 @@ async function main() {
           feedback.log("Text inserted at cursor.");
         }
 
+        await feedback.playReadyBeep();
         feedback.showNotification("Voice to Text", "Done!");
         feedback.log("Done!");
       } catch (error) {

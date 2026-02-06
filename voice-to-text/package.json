@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "clipboardy": "^4.0.0",
+    "commander": "^12.0.0",
     "input-event": "^1.2.6",
     "node-global-key-listener": "^0.2.0",
     "node-notifier": "^10.0.1",

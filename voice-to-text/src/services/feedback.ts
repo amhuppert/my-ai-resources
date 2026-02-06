@@ -9,6 +9,7 @@ const audioPlayer = player({});
 export interface FeedbackService {
   playStartBeep(): Promise<void>;
   playStopBeep(): Promise<void>;
+  playReadyBeep(): Promise<void>;
   showNotification(title: string, message: string): void;
   log(message: string): void;
 }
@@ -38,6 +39,10 @@ export function createFeedbackService(config: Config): FeedbackService {
 
     playStopBeep(): Promise<void> {
       return playSound("stop.wav");
+    },
+
+    playReadyBeep(): Promise<void> {
+      return playSound("ready.wav");
     },
 
     showNotification(title: string, message: string): void {

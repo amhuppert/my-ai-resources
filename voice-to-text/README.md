@@ -79,16 +79,17 @@ voice-to-text
 
 ### Configuration Options
 
-| Option                  | Type    | Default | Description                                 |
-| ----------------------- | ------- | ------- | ------------------------------------------- |
-| `hotkey`                | string  | `"F9"`  | Global hotkey to toggle recording           |
-| `contextFile`           | string  | -       | Path to context file for Claude cleanup     |
-| `claudeModel`           | string  | -       | Claude model to use for text cleanup        |
-| `autoInsert`            | boolean | `true`  | Auto-insert cleaned text at cursor position |
-| `beepEnabled`           | boolean | `true`  | Play audio feedback sounds                  |
-| `notificationEnabled`   | boolean | `true`  | Show desktop notifications                  |
-| `terminalOutputEnabled` | boolean | `true`  | Print status messages to terminal           |
-| `maxRecordingDuration`  | number  | `300`   | Maximum recording duration in seconds       |
+| Option                  | Type    | Default | Description                                  |
+| ----------------------- | ------- | ------- | -------------------------------------------- |
+| `hotkey`                | string  | `"F9"`  | Global hotkey to toggle recording            |
+| `contextFile`           | string  | -       | Path to context file for Claude cleanup      |
+| `instructionsFile`      | string  | -       | Path to instructions file for Claude cleanup |
+| `claudeModel`           | string  | -       | Claude model to use for text cleanup         |
+| `autoInsert`            | boolean | `true`  | Auto-insert cleaned text at cursor position  |
+| `beepEnabled`           | boolean | `true`  | Play audio feedback sounds                   |
+| `notificationEnabled`   | boolean | `true`  | Show desktop notifications                   |
+| `terminalOutputEnabled` | boolean | `true`  | Print status messages to terminal            |
+| `maxRecordingDuration`  | number  | `300`   | Maximum recording duration in seconds        |
 
 ### Example Configuration
 
@@ -96,6 +97,7 @@ voice-to-text
 {
   "hotkey": "F9",
   "contextFile": "/path/to/project/context.md",
+  "instructionsFile": "/path/to/cleanup-instructions.md",
   "claudeModel": "claude-sonnet-4-5-20250929",
   "autoInsert": true,
   "beepEnabled": true,
@@ -107,9 +109,55 @@ voice-to-text
 
 ### Context File
 
-The optional `contextFile` provides project context to Claude for better cleanup. Include relevant terminology, coding conventions, or domain-specific vocabulary.
+The optional `contextFile` provides project context to Claude for better cleanup. Include relevant terminology, coding conventions, or domain-specific vocabulary. The context is included in the prompt as background information.
+
+### Instructions File
+
+The optional `instructionsFile` provides custom cleanup instructions to Claude. Use this to control _how_ the text is cleaned up (e.g., "always use bullet points", "preserve code snippets verbatim"). Custom instructions are placed before the default instructions so they take priority.
+
+**Context file vs Instructions file:**
+
+- **Context file** — _what_ the project is about (terminology, domain knowledge)
+- **Instructions file** — _how_ to clean up the text (formatting rules, style preferences)
 
 ## Usage
+
+### CLI Options
+
+All configuration options can be overridden via command-line arguments. CLI arguments take precedence over config file values.
+
+```
+Usage: voice-to-text [options]
+
+Options:
+  -V, --version                output the version number
+  --hotkey <key>               Global hotkey to toggle recording
+  --context-file <path>        Path to context file for Claude cleanup
+  --instructions-file <path>   Path to instructions file for Claude cleanup
+  --claude-model <model>       Claude model for cleanup step
+  --no-auto-insert             Disable auto-insert at cursor
+  --no-beep                    Disable audio feedback
+  --no-notification            Disable desktop notifications
+  --no-terminal-output         Disable terminal output
+  --max-duration <seconds>     Maximum recording duration in seconds
+  -h, --help                   display help for command
+```
+
+### Examples
+
+```bash
+# Use default config file settings
+voice-to-text
+
+# Override hotkey and disable beeps
+voice-to-text --hotkey F10 --no-beep
+
+# Specify context and instructions files
+voice-to-text --context-file ./context.md --instructions-file ./instructions.md
+
+# Use a specific Claude model
+voice-to-text --claude-model claude-sonnet-4-5-20250929
+```
 
 ### Starting the Tool
 
