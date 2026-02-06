@@ -15,6 +15,7 @@ const projectRoot = join(__dirname, "..");
 
 const CONFIG_DIR = join(homedir(), ".config", "voice-to-text");
 const ASSETS_DIR = join(CONFIG_DIR, "assets");
+const CONFIG_BIN_DIR = join(CONFIG_DIR, "bin");
 const BIN_DIR = join(homedir(), ".local", "bin");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 
@@ -117,6 +118,7 @@ async function main() {
   printStep("Creating directories...");
   mkdirSync(CONFIG_DIR, { recursive: true });
   mkdirSync(ASSETS_DIR, { recursive: true });
+  mkdirSync(CONFIG_BIN_DIR, { recursive: true });
   mkdirSync(BIN_DIR, { recursive: true });
   printSuccess(`Created ${CONFIG_DIR}`);
   printSuccess(`Created ${BIN_DIR}`);
@@ -134,6 +136,39 @@ async function main() {
   copyFileSync(binarySource, binaryDest);
   execSync(`chmod +x "${binaryDest}"`);
   printSuccess(`Installed to ${binaryDest}`);
+
+  // Compile MacKeyServer from Swift source (macOS only)
+  if (isMac) {
+    printStep("Compiling MacKeyServer for global hotkey support...");
+    const swiftSource = join(projectRoot, "src", "bin", "MacKeyServer.swift");
+    const macKeyServerDest = join(CONFIG_BIN_DIR, "MacKeyServer");
+
+    if (!existsSync(swiftSource)) {
+      printWarning(
+        `MacKeyServer.swift not found at ${swiftSource}. Global hotkey will not work.`,
+      );
+    } else if (!checkCommand("swiftc")) {
+      printWarning(
+        "Swift compiler (swiftc) not found. Install Xcode Command Line Tools for global hotkey support.",
+      );
+      console.log("  Install with: xcode-select --install");
+    } else {
+      try {
+        execSync(`swiftc "${swiftSource}" -o "${macKeyServerDest}"`, {
+          stdio: "pipe",
+          timeout: 120_000,
+        });
+        execSync(`chmod +x "${macKeyServerDest}"`);
+        printSuccess(`Compiled MacKeyServer to ${macKeyServerDest}`);
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        printWarning(`Failed to compile MacKeyServer: ${msg}`);
+        console.log(
+          "  Global hotkey will not work. Terminal input mode will be used instead.",
+        );
+      }
+    }
+  }
 
   // Copy assets
   printStep("Copying assets...");

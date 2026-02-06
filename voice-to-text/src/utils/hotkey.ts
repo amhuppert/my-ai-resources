@@ -1,4 +1,5 @@
-import { platform } from "node:os";
+import { platform, homedir } from "node:os";
+import { join } from "node:path";
 import {
   readFileSync,
   openSync,
@@ -7,6 +8,7 @@ import {
   accessSync,
   constants,
 } from "node:fs";
+import { execFile, type ChildProcess } from "node:child_process";
 
 export interface HotkeyListener {
   start(): void;
@@ -14,19 +16,47 @@ export interface HotkeyListener {
   isGlobalHotkey(): boolean;
 }
 
-function isX11Available(): boolean {
-  if (process.env.WAYLAND_DISPLAY) {
-    console.log(
-      "Wayland detected. Global hotkey requires X11. Falling back to terminal input.",
-    );
-  }
-  return Boolean(process.env.DISPLAY);
-}
+const MAC_KEY_SERVER_PATH = join(
+  homedir(),
+  ".config",
+  "voice-to-text",
+  "bin",
+  "MacKeyServer",
+);
+
+/**
+ * macOS virtual keycode to key name mapping.
+ * Only includes keys relevant for hotkey use.
+ */
+const MAC_KEYCODE_TO_NAME: Record<number, string> = {
+  0x7a: "F1",
+  0x78: "F2",
+  0x63: "F3",
+  0x76: "F4",
+  0x60: "F5",
+  0x61: "F6",
+  0x62: "F7",
+  0x64: "F8",
+  0x65: "F9",
+  0x6d: "F10",
+  0x67: "F11",
+  0x6f: "F12",
+  0x69: "F13",
+  0x6b: "F14",
+  0x71: "F15",
+  0x6a: "F16",
+  0x40: "F17",
+  0x4f: "F18",
+  0x50: "F19",
+  0x5a: "F20",
+  0x31: "SPACE",
+  0x24: "RETURN",
+};
 
 /**
  * Create a hotkey listener that works cross-platform.
- * On macOS: Uses node-global-key-listener for global hotkey support
- * On Linux: Falls back to stdin-based Enter key listener (terminal must be focused)
+ * On macOS: Spawns MacKeyServer binary directly for global hotkey support
+ * On Linux: Uses /dev/input or falls back to stdin-based Enter key listener
  */
 export async function createHotkeyListener(
   key: string,
@@ -34,18 +64,22 @@ export async function createHotkeyListener(
 ): Promise<HotkeyListener> {
   const os = platform();
 
-  // macOS: use node-global-key-listener
   if (os === "darwin") {
     try {
-      const listener = createGlobalHotkeyListener(key, callback);
+      accessSync(MAC_KEY_SERVER_PATH, constants.X_OK);
+      const listener = createMacKeyServerListener(key, callback);
       await listener.start();
       return listener;
-    } catch {
-      // Fall through to stdin
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.log(`Global hotkey unavailable: ${msg}`);
+      console.log("Falling back to terminal input mode.");
+      console.log(
+        "Run the installer to set up global hotkey: bun run install-tool",
+      );
     }
   }
 
-  // Linux: use /dev/input for global hotkey (requires input group membership)
   if (os === "linux") {
     try {
       const listener = createLinuxInputHotkeyListener(key, callback);
@@ -70,40 +104,72 @@ export async function createHotkeyListener(
 }
 
 /**
- * Global hotkey listener using node-global-key-listener (macOS, Linux X11)
+ * Global hotkey listener that spawns MacKeyServer directly.
+ * Communicates via stdio: MacKeyServer writes key events to stdout,
+ * we respond on stdin to indicate propagation (always propagate).
  */
-function createGlobalHotkeyListener(
+function createMacKeyServerListener(
   key: string,
   callback: () => void,
 ): HotkeyListener {
-  // Dynamic import to avoid loading the library on unsupported platforms
-  let listener: ReturnType<
-    typeof import("node-global-key-listener").GlobalKeyboardListener
-  > | null = null;
+  let proc: ChildProcess | null = null;
   let isStarted = false;
-  const normalizedKey = normalizeKeyName(key);
+  const targetKey = normalizeKeyName(key);
 
-  const handler = (e: { name: string; state: "DOWN" | "UP" }) => {
-    if (e.state !== "DOWN") return;
-    const eventKey = normalizeKeyName(e.name);
-    if (eventKey === normalizedKey) {
-      callback();
+  function handleData(data: Buffer) {
+    const lines = data.toString().trim().split("\n");
+    for (const line of lines) {
+      const parts = line.trim().replace(/\s+/, "").split(",");
+      const [type, downUp, , , , eventId] = parts;
+
+      // Always propagate the event
+      if (proc?.stdin?.writable && eventId) {
+        proc.stdin.write(`0,${eventId}\n`);
+      }
+
+      if (type !== "KEYBOARD" || downUp !== "DOWN") continue;
+
+      const keyCode = parseInt(parts[2], 10);
+      const keyName = MAC_KEYCODE_TO_NAME[keyCode];
+      if (keyName && normalizeKeyName(keyName) === targetKey) {
+        callback();
+      }
     }
-  };
+  }
 
   return {
     async start() {
       if (isStarted) return;
-      const { GlobalKeyboardListener } =
-        await import("node-global-key-listener");
-      listener = new GlobalKeyboardListener();
-      listener.addListener(handler);
-      isStarted = true;
+      return new Promise<void>((resolve, reject) => {
+        proc = execFile(MAC_KEY_SERVER_PATH);
+        let errored = false;
+
+        proc.on("error", (err) => {
+          errored = true;
+          reject(err);
+        });
+
+        proc.stdout?.on("data", handleData);
+        proc.stderr?.on("data", (data: Buffer) => {
+          const msg = data.toString().trim();
+          if (msg) console.log(`[MacKeyServer] ${msg}`);
+        });
+
+        // MacKeyServer doesn't emit a "ready" signal, so wait briefly
+        // for an error (e.g. missing binary) before resolving
+        setTimeout(() => {
+          if (!errored) {
+            isStarted = true;
+            resolve();
+          }
+        }, 200);
+      });
     },
     stop() {
-      if (!isStarted || !listener) return;
-      listener.removeListener(handler);
-      listener.kill();
+      if (!isStarted || !proc) return;
+      proc.stdout?.pause();
+      proc.kill();
+      proc = null;
       isStarted = false;
     },
     isGlobalHotkey: () => true,
