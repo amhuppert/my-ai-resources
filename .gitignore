@@ -19,3 +19,4 @@ memory-bank/focus.md
 .ralph/status.json
 .ralph/logs
 voice-to-text/dist
+typescript/.ralph/live.log

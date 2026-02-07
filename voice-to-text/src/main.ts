@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { loadConfig, mergeConfig } from "./utils/config.js";
+import { resolveConfig } from "./utils/config.js";
 import { createHotkeyListener } from "./utils/hotkey.js";
 import { createFeedbackService } from "./services/feedback.js";
 import {
@@ -18,6 +18,7 @@ program
   .name("voice-to-text")
   .description("Capture voice input and convert to AI-ready formatted text")
   .version("1.0.0")
+  .option("--config <path>", "Path to configuration file")
   .option("--hotkey <key>", "Global hotkey to toggle recording")
   .option("--context-file <path>", "Path to context file for Claude cleanup")
   .option(
@@ -45,8 +46,7 @@ async function main() {
     process.exit(1);
   }
 
-  // Load configuration from file, then overlay CLI options
-  const fileConfig = loadConfig();
+  // Load configuration: global -> local voice.json -> --config file -> CLI args
   const opts = program.opts();
 
   const cliOpts: Partial<Config> = {};
@@ -64,7 +64,10 @@ async function main() {
   if (opts.maxDuration !== undefined)
     cliOpts.maxRecordingDuration = opts.maxDuration;
 
-  const config = mergeConfig(fileConfig, cliOpts);
+  const config = resolveConfig({
+    configPath: opts.config,
+    cliOpts,
+  });
 
   // Initialize state
   const state: AppState = {

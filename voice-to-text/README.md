@@ -73,9 +73,32 @@ voice-to-text
 
 ## Configuration
 
-### Config File Location
+### Config Resolution Order
+
+Configuration is resolved from multiple sources, with higher-priority sources overriding lower-priority ones (per-key):
+
+1. **CLI arguments** (highest priority) - `--hotkey`, `--no-beep`, etc.
+2. **`--config <path>` file** - Explicitly specified config file
+3. **Local `voice.json`** - Automatically detected in the current working directory
+4. **Global config** (lowest priority) - `~/.config/voice-to-text/config.json`
+
+### Global Config File
 
 `~/.config/voice-to-text/config.json`
+
+### Local Config File
+
+Place a `voice.json` file in your project directory to override global settings for that project. This file is automatically detected when you run `voice-to-text` from that directory.
+
+```json
+{
+  "contextFile": "./context.md",
+  "instructionsFile": "./instructions.md",
+  "beepEnabled": false
+}
+```
+
+If the file contains invalid JSON or fails validation, a warning is printed to stderr and the file is skipped.
 
 ### Configuration Options
 
@@ -124,13 +147,14 @@ The optional `instructionsFile` provides custom cleanup instructions to Claude. 
 
 ### CLI Options
 
-All configuration options can be overridden via command-line arguments. CLI arguments take precedence over config file values.
+All configuration options can be overridden via command-line arguments. CLI arguments take precedence over all config file values.
 
 ```
 Usage: voice-to-text [options]
 
 Options:
   -V, --version                output the version number
+  --config <path>              Path to configuration file
   --hotkey <key>               Global hotkey to toggle recording
   --context-file <path>        Path to context file for Claude cleanup
   --instructions-file <path>   Path to instructions file for Claude cleanup
@@ -151,6 +175,9 @@ voice-to-text
 
 # Override hotkey and disable beeps
 voice-to-text --hotkey F10 --no-beep
+
+# Use a specific config file
+voice-to-text --config ~/projects/my-app/voice-config.json
 
 # Specify context and instructions files
 voice-to-text --context-file ./context.md --instructions-file ./instructions.md
