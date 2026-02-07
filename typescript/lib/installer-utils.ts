@@ -1,6 +1,7 @@
 import {
   existsSync,
   readFileSync,
+  readdirSync,
   writeFileSync,
   mkdirSync,
   chmodSync,
@@ -178,6 +179,37 @@ export function replaceMarkedSection(
     return withoutOldSection + sourceContent;
   } else {
     return destContent + sourceContent;
+  }
+}
+
+/**
+ * Install all files from a source directory to a destination directory
+ */
+export async function installDirectoryFiles(
+  srcDir: string,
+  destDir: string,
+  description: string,
+  config: InstallConfig,
+  executor: CommandExecutor,
+  makeExecutable: boolean = false,
+): Promise<void> {
+  if (!existsSync(srcDir)) {
+    console.log(`Warning: ${srcDir} directory not found`);
+    return;
+  }
+
+  console.log(description);
+
+  const entries = readdirSync(srcDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const srcFile = join(srcDir, entry.name);
+    const destFile = join(destDir, entry.name);
+    await copyFile(srcFile, destFile, config, executor);
+    if (makeExecutable) {
+      chmodSync(destFile, config.commands.chmodExecutable);
+    }
+    console.log(`  Installed ${entry.name}`);
   }
 }
 

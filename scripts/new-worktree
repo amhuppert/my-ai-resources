@@ -1,0 +1,111 @@
+#!/bin/bash
+set -e
+
+if [ -z "$1" ]; then
+  echo "Usage: $0 <new-branch-name>"
+  echo "Example: $0 feat/my-feature"
+  exit 1
+fi
+
+NEW_BRANCH="$1"
+BASE_REF="origin/main"
+
+# Convert branch name to safe directory name (replace / with -)
+SAFE_DIR_NAME=$(echo "$NEW_BRANCH" | sed 's/\//-/g')
+
+# Save original repo directory before we change directories
+ORIGINAL_DIR="$(git rev-parse --show-toplevel)"
+PROJECT_NAME="$(basename "$ORIGINAL_DIR")"
+
+# Base location for all project worktrees. Can be overridden per environment.
+WORKTREE_BASE="${GIT_WORKTREE_DIRECTORY:-$HOME/worktrees}"
+
+# Expand a leading "~" to "$HOME" for convenience when set via env var.
+case "$WORKTREE_BASE" in
+  "~") WORKTREE_BASE="$HOME" ;;
+  "~/"*) WORKTREE_BASE="$HOME/${WORKTREE_BASE#~/}" ;;
+esac
+
+WORKTREE_ROOT="$WORKTREE_BASE/$PROJECT_NAME"
+WORKTREE_DIR="$WORKTREE_ROOT/$SAFE_DIR_NAME"
+
+copy_dir_if_exists() {
+  local source_dir="$1"
+  local destination_dir="$2"
+  local label="$3"
+
+  if [ -d "$source_dir" ]; then
+    rm -rf "$destination_dir"
+    cp -r "$source_dir" "$destination_dir"
+    echo "  ✓ Copied $label"
+  fi
+}
+
+copy_file_if_exists() {
+  local source_file="$1"
+  local destination_dir="$2"
+  local label="$3"
+
+  if [ -f "$source_file" ]; then
+    cp -f "$source_file" "$destination_dir"
+    echo "  ✓ Copied $label"
+  fi
+}
+
+# Ensure project worktree root exists
+mkdir -p "$WORKTREE_ROOT"
+
+echo "Fetching latest from origin..."
+git fetch origin
+
+echo "Creating worktree at '$WORKTREE_DIR' for branch '$NEW_BRANCH' from '$BASE_REF'..."
+git worktree add -b "$NEW_BRANCH" "$WORKTREE_DIR" "$BASE_REF"
+
+echo "Navigating to worktree directory..."
+cd "$WORKTREE_DIR"
+
+echo "Setting upstream to 'origin/$NEW_BRANCH'..."
+git push -u origin "$NEW_BRANCH"
+
+echo ""
+echo "Setting up worktree environment..."
+
+# Install Ralph Loop for Cursor
+echo "Installing Ralph Loop for Cursor..."
+curl -fsSL https://raw.githubusercontent.com/agrimsingh/ralph-wiggum-cursor/main/install.sh | bash
+
+echo "Discarding Ralph Loop's .gitignore changes..."
+git checkout -- .gitignore 2>/dev/null || true
+
+# Return to original repo to copy files
+echo "Copying configuration from $ORIGINAL_DIR..."
+cd "$ORIGINAL_DIR"
+
+echo "Copying configuration files and directories..."
+copy_dir_if_exists ".cursor" "$WORKTREE_DIR/.cursor" ".cursor"
+copy_dir_if_exists "dev-local" "$WORKTREE_DIR/dev-local" "dev-local"
+copy_dir_if_exists ".claude" "$WORKTREE_DIR/.claude" ".claude"
+
+if [ -d "memory-bank" ]; then
+  mkdir -p "$WORKTREE_DIR/memory-bank"
+  copy_file_if_exists "memory-bank/focus.md" "$WORKTREE_DIR/memory-bank/" "memory-bank/focus.md"
+  copy_file_if_exists "memory-bank/project-brief.md" "$WORKTREE_DIR/memory-bank/" "memory-bank/project-brief.md"
+fi
+
+copy_file_if_exists ".env.local" "$WORKTREE_DIR/" ".env.local"
+copy_file_if_exists ".env" "$WORKTREE_DIR/" ".env"
+copy_file_if_exists ".cursorignore" "$WORKTREE_DIR/" ".cursorignore"
+copy_file_if_exists "CLAUDE.md" "$WORKTREE_DIR/" "CLAUDE.md"
+
+echo ""
+echo "✓ Worktree created at: $WORKTREE_DIR"
+echo "✓ Branch '$NEW_BRANCH' created from '$BASE_REF'"
+echo "✓ Upstream set to 'origin/$NEW_BRANCH'"
+echo "✓ Ralph Loop installed"
+echo "✓ Configuration files copied"
+echo ""
+echo "To navigate to the worktree:"
+echo "  cd $WORKTREE_DIR"
+echo ""
+echo "To remove the worktree when done:"
+echo "  git worktree remove $WORKTREE_DIR"

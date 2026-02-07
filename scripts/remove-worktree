@@ -1,0 +1,179 @@
+#!/bin/bash
+set -e
+
+# --- Helpers ---
+
+info()  { gum log --level info "$@"; }
+warn()  { gum log --level warn "$@"; }
+error() { gum log --level error "$@"; }
+
+header() {
+  echo ""
+  gum style --bold --foreground "#749bee" "$1"
+}
+
+progress_bar() {
+  local current="$1"
+  local total="$2"
+  local label="$3"
+  local width=24
+  local filled=0
+  local percent=0
+
+  if [[ "$total" -gt 0 ]]; then
+    filled=$(( current * width / total ))
+    percent=$(( current * 100 / total ))
+  fi
+
+  local empty=$(( width - filled ))
+  local fill_chars
+  local empty_chars
+  fill_chars=$(printf "%${filled}s" "")
+  empty_chars=$(printf "%${empty}s" "")
+  fill_chars=${fill_chars// /#}
+  empty_chars=${empty_chars// /-}
+
+  gum style --foreground "#749bee" "[${fill_chars}${empty_chars}] ${percent}% (${current}/${total}) ${label}"
+}
+
+# --- Pre-flight ---
+
+if ! command -v gum &>/dev/null; then
+  echo "Error: gum is not installed. Install it with: brew install gum"
+  exit 1
+fi
+
+# Resolve the main repo even when run from inside a worktree.
+# --git-common-dir returns ".git" (relative) from the main repo,
+# or an absolute path like "/path/to/main/.git" from a worktree.
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null) || {
+  error "Not inside a git repository."
+  exit 1
+}
+MAIN_REPO=$(dirname "$(cd "$(git rev-parse --show-toplevel)" && realpath "$GIT_COMMON_DIR")")
+
+# --- Gather worktrees ---
+
+header "Git Worktree Removal  ($(basename "$MAIN_REPO"))"
+
+worktree_lines=()
+while IFS= read -r line; do
+  path=$(echo "$line" | awk '{print $1}')
+  # Never include the main repo
+  [[ "$path" == "$MAIN_REPO" ]] && continue
+  worktree_lines+=("$line")
+done < <(git -C "$MAIN_REPO" worktree list)
+
+if [[ ${#worktree_lines[@]} -eq 0 ]]; then
+  warn "No removable worktrees found."
+  exit 0
+fi
+
+# --- Select worktrees ---
+
+header "Select worktrees to remove:"
+
+selected=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && selected+=("$line")
+done < <(printf '%s\n' "${worktree_lines[@]}" | gum choose --no-limit --header "Space to select, Enter to confirm")
+
+if [[ ${#selected[@]} -eq 0 ]]; then
+  info "No worktrees selected. Nothing to do."
+  exit 0
+fi
+
+selected_paths=()
+selected_labels=()
+selected_dirty=()
+dirty_options=()
+dirty_statuses=()
+total_selected=${#selected[@]}
+check_index=0
+
+header "Checking selected worktrees for uncommitted changes:"
+
+for entry in "${selected[@]}"; do
+  path=$(echo "$entry" | awk '{print $1}')
+  branch=$(echo "$entry" | sed -n 's/.*\[\(.*\)\].*/\1/p')
+  label="${branch:-$path}"
+  check_index=$((check_index + 1))
+
+  progress_bar "$check_index" "$total_selected" "$label"
+
+  status_output=""
+  if [[ -d "$path" ]]; then
+    status_output=$(git -C "$path" status --porcelain 2>/dev/null || true)
+  fi
+
+  selected_paths+=("$path")
+  selected_labels+=("$label")
+
+  if [[ -n "$status_output" ]]; then
+    selected_dirty+=("true")
+    dirty_options+=("$label ($path)")
+    dirty_statuses+=("$status_output")
+  else
+    selected_dirty+=("false")
+  fi
+done
+
+force_selected=()
+if [[ ${#dirty_options[@]} -gt 0 ]]; then
+  header "Worktrees with uncommitted changes:"
+
+  for i in "${!dirty_options[@]}"; do
+    echo ""
+    gum style --foreground "#eda050" "→ ${dirty_options[$i]}"
+    echo "${dirty_statuses[$i]}" | gum style --foreground "#eda050" --margin "0 2"
+  done
+
+  header "Select changed worktrees to force remove:"
+
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && force_selected+=("$line")
+  done < <(printf '%s\n' "${dirty_options[@]}" | gum choose --no-limit --selected='*' --header "Space to toggle, Enter to confirm")
+fi
+
+# --- Process each selected worktree ---
+
+removed=0
+skipped=0
+
+for i in "${!selected_paths[@]}"; do
+  path="${selected_paths[$i]}"
+  label="${selected_labels[$i]}"
+  option="$label ($path)"
+
+  echo ""
+  gum style --foreground "#eda050" "→ $label ($path)"
+
+  if [[ "${selected_dirty[$i]}" == "true" ]]; then
+    should_force_remove=false
+    for selected_option in "${force_selected[@]}"; do
+      if [[ "$selected_option" == "$option" ]]; then
+        should_force_remove=true
+        break
+      fi
+    done
+
+    if $should_force_remove; then
+      git -C "$MAIN_REPO" worktree remove --force "$path"
+      info "Force removed: $label"
+      ((removed++))
+    else
+      info "Skipped: $label"
+      ((skipped++))
+    fi
+  else
+    git -C "$MAIN_REPO" worktree remove "$path"
+    info "Removed: $label"
+    ((removed++))
+  fi
+done
+
+# --- Summary ---
+
+echo ""
+gum style --bold --foreground "#749bee" --border rounded --padding "0 2" \
+  "Done. Removed: $removed  Skipped: $skipped"

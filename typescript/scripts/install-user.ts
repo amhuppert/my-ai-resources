@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import {
   printInstallationHeader,
   installDirectory,
-  installFile,
+  installDirectoryFiles,
   execCommand,
   commandExists,
 } from "@/lib/installer-utils.js";
@@ -54,46 +54,10 @@ async function main(
   );
 
   // 2. Install scripts
-  await installFile(
-    join(SCRIPT_DIR, "scripts", "lgit"),
-    join(config.paths.userLocalBin, "lgit"),
-    `Installing lgit -> ${config.paths.userLocalBin}/lgit`,
-    config,
-    executor,
-    true,
-  );
-
-  await installFile(
-    join(SCRIPT_DIR, "scripts", "code-tree"),
-    join(config.paths.userLocalBin, "code-tree"),
-    `Installing code-tree -> ${config.paths.userLocalBin}/code-tree`,
-    config,
-    executor,
-    true,
-  );
-
-  await installFile(
-    join(SCRIPT_DIR, "scripts", "refresh-ai-resources"),
-    join(config.paths.userLocalBin, "refresh-ai-resources"),
-    `Installing refresh-ai-resources -> ${config.paths.userLocalBin}/refresh-ai-resources`,
-    config,
-    executor,
-    true,
-  );
-
-  await installFile(
-    join(SCRIPT_DIR, "scripts", "read-file"),
-    join(config.paths.userLocalBin, "read-file"),
-    `Installing read-file -> ${config.paths.userLocalBin}/read-file`,
-    config,
-    executor,
-    true,
-  );
-
-  await installFile(
-    join(SCRIPT_DIR, "scripts", "push-main"),
-    join(config.paths.userLocalBin, "push-main"),
-    `Installing push-main -> ${config.paths.userLocalBin}/push-main`,
+  await installDirectoryFiles(
+    join(SCRIPT_DIR, "scripts"),
+    config.paths.userLocalBin,
+    `Installing scripts -> ${config.paths.userLocalBin}`,
     config,
     executor,
     true,
