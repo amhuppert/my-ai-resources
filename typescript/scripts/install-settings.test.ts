@@ -144,7 +144,6 @@ describe("Settings file operations with temp directories", () => {
         userHome: tempDir,
         userClaudeDir: join(tempDir, ".claude"),
         userLocalBin: join(tempDir, ".local", "bin"),
-        userRinsHooks: join(tempDir, "rins_hooks"),
         projectClaudeDir: join(tempDir, "project", ".claude"),
         cursorRulesDir: join(tempDir, "project", ".cursor", "rules"),
         cursorCommandsDir: join(tempDir, "project", ".cursor", "commands"),
@@ -280,7 +279,7 @@ describe("Settings file operations with temp directories", () => {
     const nonexistentPath = join(tempDir, "nonexistent.json");
 
     expect(() => installSettingsFromFile(nonexistentPath, mockConfig)).toThrow(
-      "Source settings file not found"
+      "Source settings file not found",
     );
   });
 

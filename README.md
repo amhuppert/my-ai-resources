@@ -40,14 +40,12 @@ Installs user-wide configurations that apply across all projects:
 - MCP server registration for Claude Code:
   - `cursor-shortcuts` (keyboard shortcut recommendations)
   - `context7` (third-party library documentation)
-- `rins_hooks` fork - Cloned to `~/.claude/rins_hooks` and linked globally via `bun link`
 - `ai-resources` plugin - Installed via Claude Code plugin system from local marketplace
 
 **Requirements:**
 
-- `bun` runtime (for MCP builds, settings installation, and rins_hooks)
+- `bun` runtime (for MCP builds and settings installation)
 - `claude` CLI (for MCP server registration and plugin installation)
-- `git` (for cloning rins_hooks fork)
 - `ffplay` (optional, for notification sounds in projects)
 
 ### Project-level Installation
@@ -60,12 +58,10 @@ Installs project-specific configurations in the current directory:
 - `cursor/commands/` → `.cursor/commands/` - Cursor IDE custom commands
 - `claude/CLAUDE-project.md` → `CLAUDE.md` - Project-level Claude Code instructions (merged with existing)
 - Notification hook - If `.claude/notification.mp3` exists, installs hook to play sound on tool completions
-- Code-formatter hook - Installs via `rins_hooks` for automatic code formatting
 
 **Requirements:**
 
 - `bun` runtime (for hook installation)
-- `rins_hooks` globally linked (installed by user-level installer)
 - `ffplay` (optional, for notification sounds)
 
 ### Usage

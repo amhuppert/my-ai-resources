@@ -107,19 +107,6 @@ async function main(
     );
   }
 
-  // 5. Install code-formatter hook with rins_hooks
-  console.log("Installing code-formatter hook with rins_hooks");
-  const rinsResult = await execCommand(
-    "rins_hooks",
-    ["install", "code-formatter", "--project"],
-    executor,
-  );
-
-  if (!rinsResult.success) {
-    console.log("Warning: Failed to install code-formatter hook");
-    console.error(rinsResult.stderr);
-  }
-
   console.log("");
   console.log("project-level installation complete!");
 }

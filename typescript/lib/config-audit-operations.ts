@@ -52,7 +52,7 @@ function extractFrontmatter(
 
   for (const line of lines) {
     const match = line.match(/^([^:]+):\s*(.*)$/);
-    if (match) {
+    if (match?.[1] && match[2] !== undefined) {
       const key = match[1].trim();
       const value = match[2].trim();
 
@@ -420,7 +420,7 @@ export function formatAuditReport(report: ConfigAuditReport): string {
 
   for (const rule of report.cursor.rules) {
     const type = rule.ruleType || "manual";
-    rulesByType[type].push(rule);
+    rulesByType[type]?.push(rule);
   }
 
   for (const [type, rules] of Object.entries(rulesByType)) {

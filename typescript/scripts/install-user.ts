@@ -166,59 +166,7 @@ async function main(
     console.error(context7Result.stderr);
   }
 
-  // 6. Install Hooks
-  console.log("Installing Hooks");
-  console.log("Installing rins_hooks from fork");
-
-  const rinsHooksPath = config.paths.userRinsHooks;
-
-  // Clone the rins_hooks fork if it doesn't exist
-  const rinsHooksExists = await Bun.file(rinsHooksPath).exists();
-
-  if (!rinsHooksExists) {
-    console.log("Cloning rins_hooks fork...");
-    const cloneResult = await execCommand(
-      "git",
-      ["clone", "https://github.com/amhuppert/rins_hooks.git", rinsHooksPath],
-      executor,
-    );
-
-    if (!cloneResult.success) {
-      console.log("Warning: Failed to clone rins_hooks");
-      console.error(cloneResult.stderr);
-    }
-  } else {
-    console.log("rins_hooks fork already exists, updating...");
-    const pullResult = await execCommand("git", ["pull"], executor, {
-      cwd: rinsHooksPath,
-    });
-
-    if (!pullResult.success) {
-      console.log("Warning: Failed to update rins_hooks");
-      console.error(pullResult.stderr);
-    }
-  }
-
-  // Install globally with bun link
-  console.log("Installing rins_hooks globally with bun link...");
-
-  const installResult = await execCommand("bun", ["install"], executor, {
-    cwd: rinsHooksPath,
-  });
-  if (!installResult.success) {
-    console.log("Warning: Failed to run bun install for rins_hooks");
-    console.error(installResult.stderr);
-  }
-
-  const linkResult = await execCommand("bun", ["link"], executor, {
-    cwd: rinsHooksPath,
-  });
-  if (!linkResult.success) {
-    console.log("Warning: Failed to link rins_hooks");
-    console.error(linkResult.stderr);
-  }
-
-  // 7. Install ai-workflow-resources plugin
+  // 6. Install ai-workflow-resources plugin
   console.log("Installing ai-workflow-resources plugin...");
 
   const marketplacePath = join(SCRIPT_DIR, "claude");
