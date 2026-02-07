@@ -137,8 +137,8 @@ async function main() {
         // Cleanup
         const cleanedText = await cleanupService.cleanup(
           transcription,
-          config.contextFile,
-          config.instructionsFile,
+          config.contextFiles,
+          config.instructionsFiles,
         );
         const cleanPreview = cleanedText.slice(0, 50);
         feedback.log(

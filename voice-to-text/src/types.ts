@@ -14,6 +14,16 @@ export const ConfigSchema = z.object({
 
 export type Config = z.infer<typeof ConfigSchema>;
 
+export type ResolvedFileRef = {
+  path: string;
+  source: "global" | "local" | "specified" | "cli";
+};
+
+export type ResolvedConfig = Config & {
+  contextFiles: ResolvedFileRef[];
+  instructionsFiles: ResolvedFileRef[];
+};
+
 export type AppStatus = "idle" | "recording" | "processing";
 
 export interface AppState {

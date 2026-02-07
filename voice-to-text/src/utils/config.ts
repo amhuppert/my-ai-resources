@@ -1,7 +1,12 @@
 import { readFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
-import { ConfigSchema, type Config } from "../types.js";
+import { join, resolve, dirname } from "node:path";
+import {
+  ConfigSchema,
+  type Config,
+  type ResolvedFileRef,
+  type ResolvedConfig,
+} from "../types.js";
 
 const CONFIG_DIR = join(homedir(), ".config", "voice-to-text");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
@@ -50,10 +55,14 @@ export function loadLocalConfig(): Config | null {
   }
 }
 
+function resolveFilePath(filePath: string, baseDir: string): string {
+  return resolve(baseDir, filePath);
+}
+
 export function resolveConfig(options: {
   configPath?: string;
   cliOpts: Partial<Config>;
-}): Config {
+}): ResolvedConfig {
   // Layer 1 (lowest priority): global config
   const globalConfig = loadConfig();
 
@@ -81,13 +90,67 @@ export function resolveConfig(options: {
     }
   }
 
-  // Merge layers bottom-up: global -> local -> specified -> CLI
+  // --- Accumulate context/instructions files ---
+  const FILE_KEYS = ["contextFile", "instructionsFile"] as const;
+
+  function collectFiles(
+    field: "contextFile" | "instructionsFile",
+  ): ResolvedFileRef[] {
+    // CLI overrides all layers
+    if (options.cliOpts[field] !== undefined) {
+      return [
+        {
+          path: resolveFilePath(options.cliOpts[field]!, process.cwd()),
+          source: "cli",
+        },
+      ];
+    }
+
+    const files: ResolvedFileRef[] = [];
+    const seen = new Set<string>();
+
+    const layers: {
+      config: Config | null;
+      source: ResolvedFileRef["source"];
+      baseDir: string;
+    }[] = [
+      { config: globalConfig, source: "global", baseDir: CONFIG_DIR },
+      { config: localConfig, source: "local", baseDir: process.cwd() },
+      {
+        config: specifiedConfig,
+        source: "specified",
+        baseDir: options.configPath
+          ? dirname(resolve(options.configPath))
+          : process.cwd(),
+      },
+    ];
+
+    for (const layer of layers) {
+      if (!layer.config) continue;
+      const value = layer.config[field];
+      if (!value) continue;
+      const resolved = resolveFilePath(value, layer.baseDir);
+      if (seen.has(resolved)) continue;
+      seen.add(resolved);
+      files.push({ path: resolved, source: layer.source });
+    }
+
+    return files;
+  }
+
+  const contextFiles = collectFiles("contextFile");
+  const instructionsFiles = collectFiles("instructionsFile");
+
+  // --- Per-key merge for remaining fields (unchanged logic, skip file fields) ---
   const merged: Record<string, unknown> = { ...globalConfig };
 
   for (const layer of [localConfig, specifiedConfig]) {
     if (!layer) continue;
     for (const key of Object.keys(layer) as (keyof Config)[]) {
-      if (layer[key] !== undefined) {
+      if (
+        layer[key] !== undefined &&
+        !FILE_KEYS.includes(key as (typeof FILE_KEYS)[number])
+      ) {
         merged[key] = layer[key];
       }
     }
@@ -95,12 +158,21 @@ export function resolveConfig(options: {
 
   // Layer 4 (highest priority): CLI args
   for (const key of Object.keys(options.cliOpts) as (keyof Config)[]) {
-    if (options.cliOpts[key] !== undefined) {
+    if (
+      options.cliOpts[key] !== undefined &&
+      !FILE_KEYS.includes(key as (typeof FILE_KEYS)[number])
+    ) {
       merged[key] = options.cliOpts[key];
     }
   }
 
-  return ConfigSchema.parse(merged);
+  const parsed = ConfigSchema.parse(merged);
+
+  return {
+    ...parsed,
+    contextFiles,
+    instructionsFiles,
+  };
 }
 
 export function mergeConfig(

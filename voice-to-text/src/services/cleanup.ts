@@ -1,12 +1,43 @@
 import { spawn } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
+import type { ResolvedFileRef } from "../types.js";
 
 export interface CleanupService {
   cleanup(
     text: string,
-    contextFilePath?: string,
-    instructionsFilePath?: string,
+    contextFiles: ResolvedFileRef[],
+    instructionsFiles: ResolvedFileRef[],
   ): Promise<string>;
+}
+
+const SOURCE_LABELS: Record<ResolvedFileRef["source"], string> = {
+  global: "Global",
+  local: "Project",
+  specified: "Config",
+  cli: "Custom",
+};
+
+function buildFileSections(
+  files: ResolvedFileRef[],
+  type: "context" | "instructions",
+): string {
+  const sections: string[] = [];
+
+  for (const file of files) {
+    if (!existsSync(file.path)) continue;
+    try {
+      const content = readFileSync(file.path, "utf-8");
+      const label = SOURCE_LABELS[file.source];
+      const tagPrefix = label.toLowerCase();
+      sections.push(
+        `${label} ${type === "context" ? "Context" : "Instructions"}:\n<${tagPrefix}-${type}>\n${content}\n</${tagPrefix}-${type}>`,
+      );
+    } catch {
+      // Silently skip unreadable files
+    }
+  }
+
+  return sections.length > 0 ? sections.join("\n\n") + "\n\n" : "";
 }
 
 const CLEANUP_PROMPT_TEMPLATE = `You are cleaning up voice-transcribed text for use as instructions to AI agents.
@@ -28,42 +59,14 @@ export function createCleanupService(model?: string): CleanupService {
   return {
     async cleanup(
       text: string,
-      contextFilePath?: string,
-      instructionsFilePath?: string,
+      contextFiles: ResolvedFileRef[],
+      instructionsFiles: ResolvedFileRef[],
     ): Promise<string> {
-      let contextSection = "";
-      let instructionsSection = "";
-
-      if (contextFilePath && existsSync(contextFilePath)) {
-        try {
-          const contextContent = readFileSync(contextFilePath, "utf-8");
-          contextSection = `Project Context:
-<context>
-${contextContent}
-</context>
-
-`;
-        } catch {
-          // Ignore context file errors, proceed without context
-        }
-      }
-
-      if (instructionsFilePath && existsSync(instructionsFilePath)) {
-        try {
-          const instructionsContent = readFileSync(
-            instructionsFilePath,
-            "utf-8",
-          );
-          instructionsSection = `Custom Instructions:
-<instructions>
-${instructionsContent}
-</instructions>
-
-`;
-        } catch {
-          // Ignore instructions file errors, proceed without instructions
-        }
-      }
+      const contextSection = buildFileSections(contextFiles, "context");
+      const instructionsSection = buildFileSections(
+        instructionsFiles,
+        "instructions",
+      );
 
       const prompt = CLEANUP_PROMPT_TEMPLATE.replace(
         "{CONTEXT_SECTION}",
