@@ -2,14 +2,14 @@ import { readFileSync } from "node:fs";
 import OpenAI from "openai";
 
 export interface Transcriber {
-  transcribe(audioFilePath: string): Promise<string>;
+  transcribe(audioFilePath: string, prompt?: string): Promise<string>;
 }
 
 export function createTranscriber(apiKey: string): Transcriber {
   const client = new OpenAI({ apiKey });
 
   return {
-    async transcribe(audioFilePath: string): Promise<string> {
+    async transcribe(audioFilePath: string, prompt?: string): Promise<string> {
       const audioBuffer = readFileSync(audioFilePath);
       const audioFile = new File([audioBuffer], "audio.wav", {
         type: "audio/wav",
@@ -19,6 +19,7 @@ export function createTranscriber(apiKey: string): Transcriber {
         model: "gpt-4o-transcribe",
         file: audioFile,
         response_format: "text",
+        ...(prompt ? { prompt } : {}),
       });
 
       return response;

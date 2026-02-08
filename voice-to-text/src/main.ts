@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { readFileSync, existsSync } from "node:fs";
 import { resolveConfig } from "./utils/config.js";
 import { createHotkeyListener } from "./utils/hotkey.js";
 import { createFeedbackService } from "./services/feedback.js";
@@ -10,7 +11,27 @@ import { createTranscriber } from "./services/transcriber.js";
 import { createCleanupService } from "./services/cleanup.js";
 import { copyToClipboard } from "./services/clipboard.js";
 import { createCursorInsertService } from "./services/cursor-insert.js";
-import type { AppState, Config } from "./types.js";
+import type { AppState, Config, ResolvedFileRef } from "./types.js";
+
+const TRANSCRIPTION_INSTRUCTIONS = "Accurately transcribe the spoken audio.";
+
+const TRANSCRIPTION_INSTRUCTIONS_WITH_CONTEXT =
+  "Accurately transcribe the spoken audio. The context below contains domain-specific terminology, names, and phrases to help you recognize words correctly. Use it only as hints for accurate transcription—do not alter, add to, or reinterpret what was actually spoken.";
+
+function readContextFilesContent(files: ResolvedFileRef[]): string | undefined {
+  const contents: string[] = [];
+  for (const file of files) {
+    if (!existsSync(file.path)) continue;
+    try {
+      const content = readFileSync(file.path, "utf-8").trim();
+      if (content) contents.push(content);
+    } catch {
+      // Silently skip unreadable files
+    }
+  }
+  if (contents.length === 0) return TRANSCRIPTION_INSTRUCTIONS;
+  return `${TRANSCRIPTION_INSTRUCTIONS_WITH_CONTEXT}\n\n<context>\n${contents.join("\n\n")}\n</context>`;
+}
 
 const program = new Command();
 
@@ -128,7 +149,13 @@ async function main() {
         state.audioFilePath = audioFilePath;
 
         // Transcribe
-        const transcription = await transcriber.transcribe(audioFilePath);
+        const transcriptionPrompt = readContextFilesContent(
+          config.contextFiles,
+        );
+        const transcription = await transcriber.transcribe(
+          audioFilePath,
+          transcriptionPrompt,
+        );
         const preview = transcription.slice(0, 50);
         feedback.log(
           `Transcribed: ${preview}${transcription.length > 50 ? "..." : ""}`,

@@ -19,7 +19,7 @@ const SOURCE_LABELS: Record<ResolvedFileRef["source"], string> = {
 
 function buildFileSections(
   files: ResolvedFileRef[],
-  type: "context" | "instructions",
+  type: "context" | "additional-instructions",
 ): string {
   const sections: string[] = [];
 
@@ -30,7 +30,7 @@ function buildFileSections(
       const label = SOURCE_LABELS[file.source];
       const tagPrefix = label.toLowerCase();
       sections.push(
-        `${label} ${type === "context" ? "Context" : "Instructions"}:\n<${tagPrefix}-${type}>\n${content}\n</${tagPrefix}-${type}>`,
+        `${label} ${type === "context" ? "Context" : "Additional Instructions"}:\n<${tagPrefix}-${type}>\n${content}\n</${tagPrefix}-${type}>`,
       );
     } catch {
       // Silently skip unreadable files
@@ -42,7 +42,7 @@ function buildFileSections(
 
 const CLEANUP_PROMPT_TEMPLATE = `You are cleaning up voice-transcribed text for use as instructions to AI agents.
 
-{CONTEXT_SECTION}{INSTRUCTIONS_SECTION}Transcribed Text:
+{CONTEXT_SECTION}Transcribed Text:
 <transcription>
 {TRANSCRIPTION}
 </transcription>
@@ -53,7 +53,9 @@ Instructions:
 3. Add appropriate markdown formatting
 4. Structure as paragraphs or bulleted lists as appropriate
 5. Do not add information not present in the original
-6. Output ONLY the cleaned text, no explanations or preamble`;
+6. Output ONLY the cleaned text, no explanations or preamble
+
+{INSTRUCTIONS_SECTION}`;
 
 export function createCleanupService(model?: string): CleanupService {
   return {
@@ -65,7 +67,7 @@ export function createCleanupService(model?: string): CleanupService {
       const contextSection = buildFileSections(contextFiles, "context");
       const instructionsSection = buildFileSections(
         instructionsFiles,
-        "instructions",
+        "additional-instructions",
       );
 
       const prompt = CLEANUP_PROMPT_TEMPLATE.replace(
