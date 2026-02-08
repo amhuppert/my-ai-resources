@@ -24,6 +24,17 @@ export type ResolvedConfig = Config & {
   instructionsFiles: ResolvedFileRef[];
 };
 
+export type ConfigSource = {
+  layer: "global" | "local" | "specified";
+  path: string;
+  found: boolean;
+};
+
+export type ConfigResolution = {
+  config: ResolvedConfig;
+  loadedFrom: ConfigSource[];
+};
+
 export type AppStatus = "idle" | "recording" | "processing";
 
 export interface AppState {

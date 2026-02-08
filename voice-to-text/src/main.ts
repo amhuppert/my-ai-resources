@@ -51,6 +51,7 @@ program
   .option("--no-beep", "Disable audio feedback")
   .option("--no-notification", "Disable desktop notifications")
   .option("--no-terminal-output", "Disable terminal output")
+  .option("--verbose", "Enable verbose debug logging")
   .option(
     "--max-duration <seconds>",
     "Maximum recording duration in seconds",
@@ -69,6 +70,7 @@ async function main() {
 
   // Load configuration: global -> local voice.json -> --config file -> CLI args
   const opts = program.opts();
+  const verbose = opts.verbose === true;
 
   const cliOpts: Partial<Config> = {};
   if (opts.hotkey !== undefined) cliOpts.hotkey = opts.hotkey;
@@ -85,10 +87,14 @@ async function main() {
   if (opts.maxDuration !== undefined)
     cliOpts.maxRecordingDuration = opts.maxDuration;
 
-  const config = resolveConfig({
+  const { config, loadedFrom } = resolveConfig({
     configPath: opts.config,
     cliOpts,
   });
+
+  if (verbose) {
+    config.terminalOutputEnabled = true;
+  }
 
   // Initialize state
   const state: AppState = {
@@ -98,7 +104,36 @@ async function main() {
   };
 
   // Create services
-  const feedback = createFeedbackService(config);
+  const feedback = createFeedbackService(config, verbose);
+
+  // Verbose: log config resolution
+  for (const source of loadedFrom) {
+    feedback.verboseLog(
+      `Config [${source.layer}]`,
+      `${source.path} (${source.found ? "loaded" : "not found"})`,
+    );
+  }
+  const { contextFiles, instructionsFiles, ...configValues } = config;
+  feedback.verboseLog("Resolved config", JSON.stringify(configValues, null, 2));
+  if (contextFiles.length > 0) {
+    const lines = contextFiles
+      .map((f) => `  [${f.source}] ${f.path}`)
+      .join("\n");
+    feedback.verboseLog(`Context files (${contextFiles.length})`, lines);
+  } else {
+    feedback.verboseLog("Context files", "none");
+  }
+  if (instructionsFiles.length > 0) {
+    const lines = instructionsFiles
+      .map((f) => `  [${f.source}] ${f.path}`)
+      .join("\n");
+    feedback.verboseLog(
+      `Instructions files (${instructionsFiles.length})`,
+      lines,
+    );
+  } else {
+    feedback.verboseLog("Instructions files", "none");
+  }
   const recorder = createAudioRecorder();
   const transcriber = createTranscriber(apiKey);
   const cleanupService = createCleanupService(config.claudeModel);
@@ -152,25 +187,36 @@ async function main() {
         const transcriptionPrompt = readContextFilesContent(
           config.contextFiles,
         );
+        feedback.verboseLog("Transcription prompt", transcriptionPrompt);
         const transcription = await transcriber.transcribe(
           audioFilePath,
           transcriptionPrompt,
         );
-        const preview = transcription.slice(0, 50);
-        feedback.log(
-          `Transcribed: ${preview}${transcription.length > 50 ? "..." : ""}`,
-        );
+        if (verbose) {
+          feedback.verboseLog("Transcription result", transcription);
+        } else {
+          const preview = transcription.slice(0, 50);
+          feedback.log(
+            `Transcribed: ${preview}${transcription.length > 50 ? "..." : ""}`,
+          );
+        }
 
         // Cleanup
-        const cleanedText = await cleanupService.cleanup(
-          transcription,
-          config.contextFiles,
-          config.instructionsFiles,
-        );
-        const cleanPreview = cleanedText.slice(0, 50);
-        feedback.log(
-          `Cleaned: ${cleanPreview}${cleanedText.length > 50 ? "..." : ""}`,
-        );
+        const { text: cleanedText, prompt: cleanupPrompt } =
+          await cleanupService.cleanup(
+            transcription,
+            config.contextFiles,
+            config.instructionsFiles,
+          );
+        feedback.verboseLog("Cleanup prompt", cleanupPrompt);
+        if (verbose) {
+          feedback.verboseLog("Cleanup result", cleanedText);
+        } else {
+          const cleanPreview = cleanedText.slice(0, 50);
+          feedback.log(
+            `Cleaned: ${cleanPreview}${cleanedText.length > 50 ? "..." : ""}`,
+          );
+        }
 
         // Copy to clipboard
         await copyToClipboard(cleanedText);

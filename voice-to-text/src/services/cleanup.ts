@@ -7,7 +7,7 @@ export interface CleanupService {
     text: string,
     contextFiles: ResolvedFileRef[],
     instructionsFiles: ResolvedFileRef[],
-  ): Promise<string>;
+  ): Promise<{ text: string; prompt: string }>;
 }
 
 const SOURCE_LABELS: Record<ResolvedFileRef["source"], string> = {
@@ -63,7 +63,7 @@ export function createCleanupService(model?: string): CleanupService {
       text: string,
       contextFiles: ResolvedFileRef[],
       instructionsFiles: ResolvedFileRef[],
-    ): Promise<string> {
+    ): Promise<{ text: string; prompt: string }> {
       const contextSection = buildFileSections(contextFiles, "context");
       const instructionsSection = buildFileSections(
         instructionsFiles,
@@ -77,7 +77,8 @@ export function createCleanupService(model?: string): CleanupService {
         .replace("{INSTRUCTIONS_SECTION}", instructionsSection)
         .replace("{TRANSCRIPTION}", text);
 
-      return runClaudeCli(prompt, text, model);
+      const result = await runClaudeCli(prompt, text, model);
+      return { text: result, prompt };
     },
   };
 }
@@ -92,10 +93,6 @@ function runClaudeCli(
     if (model) {
       args.push("--model", model);
     }
-
-    console.log(
-      `Running: claude ${args.map((a) => (a === prompt ? "<prompt>" : a)).join(" ")}`,
-    );
 
     const child = spawn("claude", args, {
       timeout: 60000,

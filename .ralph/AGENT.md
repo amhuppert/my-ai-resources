@@ -10,7 +10,10 @@ cd voice-to-text && bun run build
 ## Test Instructions
 
 ```bash
-# Run development mode for testing
+# Run unit tests
+cd voice-to-text && bun test
+
+# Run development mode for manual testing
 cd voice-to-text && bun run dev
 ```
 

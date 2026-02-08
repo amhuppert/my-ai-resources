@@ -6,6 +6,8 @@ import {
   type Config,
   type ResolvedFileRef,
   type ResolvedConfig,
+  type ConfigSource,
+  type ConfigResolution,
 } from "../types.js";
 
 const CONFIG_DIR = join(homedir(), ".config", "voice-to-text");
@@ -62,12 +64,24 @@ function resolveFilePath(filePath: string, baseDir: string): string {
 export function resolveConfig(options: {
   configPath?: string;
   cliOpts: Partial<Config>;
-}): ResolvedConfig {
+}): ConfigResolution {
+  const loadedFrom: ConfigSource[] = [];
+
   // Layer 1 (lowest priority): global config
   const globalConfig = loadConfig();
+  loadedFrom.push({
+    layer: "global",
+    path: CONFIG_PATH,
+    found: existsSync(CONFIG_PATH),
+  });
 
   // Layer 2: local voice.json
   const localConfig = loadLocalConfig();
+  loadedFrom.push({
+    layer: "local",
+    path: join(process.cwd(), LOCAL_CONFIG_NAME),
+    found: localConfig !== null,
+  });
 
   // Layer 3: --config <path> file
   let specifiedConfig: Config | null = null;
@@ -88,6 +102,11 @@ export function resolveConfig(options: {
       );
       process.exit(1);
     }
+    loadedFrom.push({
+      layer: "specified",
+      path: resolve(options.configPath),
+      found: true,
+    });
   }
 
   // --- Accumulate context/instructions files ---
@@ -169,9 +188,12 @@ export function resolveConfig(options: {
   const parsed = ConfigSchema.parse(merged);
 
   return {
-    ...parsed,
-    contextFiles,
-    instructionsFiles,
+    config: {
+      ...parsed,
+      contextFiles,
+      instructionsFiles,
+    },
+    loadedFrom,
   };
 }
 

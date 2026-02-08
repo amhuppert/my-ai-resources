@@ -7,4 +7,5 @@ _AIR_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 alias air-ai-build="(cd '$_AIR_ROOT/typescript' && bun run build)"
 
 # Voice-to-text
-alias air-install-voice="(cd '$_AIR_ROOT/voice-to-text' && bun run build && bun run install-tool)"
+alias air-voice-install="(cd '$_AIR_ROOT/voice-to-text' && bun run build && bun run install-tool)"
+alias air-voice-test="(cd '$_AIR_ROOT/voice-to-text' && bun run test)"

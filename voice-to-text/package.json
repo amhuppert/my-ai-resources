@@ -9,7 +9,9 @@
   "scripts": {
     "build": "bun build src/main.ts --compile --outfile dist/voice-to-text",
     "dev": "bun run src/main.ts",
-    "install-tool": "bun run scripts/install.ts"
+    "install-tool": "bun run scripts/install.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
   },
   "dependencies": {
     "clipboardy": "^4.0.0",
