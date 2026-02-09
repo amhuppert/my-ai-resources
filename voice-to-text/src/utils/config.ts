@@ -109,8 +109,16 @@ export function resolveConfig(options: {
     });
   }
 
-  // --- Accumulate context/instructions files ---
-  const FILE_KEYS = ["contextFile", "instructionsFile"] as const;
+  // --- Accumulate context/instructions files; resolve outputFile separately ---
+  const SPECIAL_FILE_KEYS = [
+    "contextFile",
+    "instructionsFile",
+    "outputFile",
+  ] as const;
+
+  const specifiedConfigDir = options.configPath
+    ? dirname(resolve(options.configPath))
+    : process.cwd();
 
   function collectFiles(
     field: "contextFile" | "instructionsFile",
@@ -138,9 +146,7 @@ export function resolveConfig(options: {
       {
         config: specifiedConfig,
         source: "specified",
-        baseDir: options.configPath
-          ? dirname(resolve(options.configPath))
-          : process.cwd(),
+        baseDir: specifiedConfigDir,
       },
     ];
 
@@ -160,6 +166,27 @@ export function resolveConfig(options: {
   const contextFiles = collectFiles("contextFile");
   const instructionsFiles = collectFiles("instructionsFile");
 
+  // --- Resolve outputFile path (last-defined wins, with per-layer path resolution) ---
+
+  function resolveOutputFilePath(): string | undefined {
+    if (options.cliOpts.outputFile !== undefined) {
+      return resolveFilePath(options.cliOpts.outputFile, process.cwd());
+    }
+    let resolved: string | undefined;
+    if (globalConfig.outputFile)
+      resolved = resolveFilePath(globalConfig.outputFile, CONFIG_DIR);
+    if (localConfig?.outputFile)
+      resolved = resolveFilePath(localConfig.outputFile, process.cwd());
+    if (specifiedConfig?.outputFile)
+      resolved = resolveFilePath(
+        specifiedConfig.outputFile,
+        specifiedConfigDir,
+      );
+    return resolved;
+  }
+
+  const resolvedOutputFile = resolveOutputFilePath();
+
   // --- Per-key merge for remaining fields (unchanged logic, skip file fields) ---
   const merged: Record<string, unknown> = { ...globalConfig };
 
@@ -168,7 +195,7 @@ export function resolveConfig(options: {
     for (const key of Object.keys(layer) as (keyof Config)[]) {
       if (
         layer[key] !== undefined &&
-        !FILE_KEYS.includes(key as (typeof FILE_KEYS)[number])
+        !SPECIAL_FILE_KEYS.includes(key as (typeof SPECIAL_FILE_KEYS)[number])
       ) {
         merged[key] = layer[key];
       }
@@ -179,7 +206,7 @@ export function resolveConfig(options: {
   for (const key of Object.keys(options.cliOpts) as (keyof Config)[]) {
     if (
       options.cliOpts[key] !== undefined &&
-      !FILE_KEYS.includes(key as (typeof FILE_KEYS)[number])
+      !SPECIAL_FILE_KEYS.includes(key as (typeof SPECIAL_FILE_KEYS)[number])
     ) {
       merged[key] = options.cliOpts[key];
     }
@@ -192,6 +219,7 @@ export function resolveConfig(options: {
       ...parsed,
       contextFiles,
       instructionsFiles,
+      resolvedOutputFile,
     },
     loadedFrom,
   };

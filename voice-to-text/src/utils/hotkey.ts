@@ -55,19 +55,20 @@ const MAC_KEYCODE_TO_NAME: Record<number, string> = {
 
 /**
  * Create a hotkey listener that works cross-platform.
+ * Accepts multiple hotkeys; the callback receives which key was pressed.
  * On macOS: Spawns MacKeyServer binary directly for global hotkey support
- * On Linux: Uses /dev/input or falls back to stdin-based Enter key listener
+ * On Linux: Uses /dev/input or falls back to stdin-based listener
  */
 export async function createHotkeyListener(
-  key: string,
-  callback: () => void,
+  keys: string[],
+  callback: (key: string) => void,
 ): Promise<HotkeyListener> {
   const os = platform();
 
   if (os === "darwin") {
     try {
       accessSync(MAC_KEY_SERVER_PATH, constants.X_OK);
-      const listener = createMacKeyServerListener(key, callback);
+      const listener = createMacKeyServerListener(keys, callback);
       await listener.start();
       return listener;
     } catch (error) {
@@ -82,7 +83,7 @@ export async function createHotkeyListener(
 
   if (os === "linux") {
     try {
-      const listener = createLinuxInputHotkeyListener(key, callback);
+      const listener = createLinuxInputHotkeyListener(keys, callback);
       listener.start();
       return listener;
     } catch (error) {
@@ -100,7 +101,7 @@ export async function createHotkeyListener(
     }
   }
 
-  return createStdinHotkeyListener(callback);
+  return createStdinHotkeyListener(keys, callback);
 }
 
 /**
@@ -109,12 +110,13 @@ export async function createHotkeyListener(
  * we respond on stdin to indicate propagation (always propagate).
  */
 function createMacKeyServerListener(
-  key: string,
-  callback: () => void,
+  keys: string[],
+  callback: (key: string) => void,
 ): HotkeyListener {
   let proc: ChildProcess | null = null;
   let isStarted = false;
-  const targetKey = normalizeKeyName(key);
+  // Map normalized key name → original key string from the keys array
+  const targetKeys = new Map(keys.map((k) => [normalizeKeyName(k), k]));
 
   function handleData(data: Buffer) {
     const lines = data.toString().trim().split("\n");
@@ -131,8 +133,12 @@ function createMacKeyServerListener(
 
       const keyCode = parseInt(parts[2], 10);
       const keyName = MAC_KEYCODE_TO_NAME[keyCode];
-      if (keyName && normalizeKeyName(keyName) === targetKey) {
-        callback();
+      if (keyName) {
+        const normalized = normalizeKeyName(keyName);
+        const originalKey = targetKeys.get(normalized);
+        if (originalKey) {
+          callback(originalKey);
+        }
       }
     }
   }
@@ -177,9 +183,13 @@ function createMacKeyServerListener(
 }
 
 /**
- * Linux/other: Use stdin-based listener (press Enter to toggle recording)
+ * Linux/other: Use stdin-based listener.
+ * Enter/Space triggers the first key (clipboard), 'f' triggers the second (file mode).
  */
-function createStdinHotkeyListener(callback: () => void): HotkeyListener {
+function createStdinHotkeyListener(
+  keys: string[],
+  callback: (key: string) => void,
+): HotkeyListener {
   let isStarted = false;
 
   const onData = (data: Buffer) => {
@@ -188,10 +198,15 @@ function createStdinHotkeyListener(callback: () => void): HotkeyListener {
       process.emit("SIGINT");
       return;
     }
-    // Check for Enter key (newline) or space
     const char = data.toString();
+    // Enter or Space → first key (clipboard hotkey)
     if (char === "\n" || char === "\r" || char === " ") {
-      callback();
+      callback(keys[0]);
+      return;
+    }
+    // 'f' or 'F' → second key (file hotkey), if provided
+    if (keys.length > 1 && (char === "f" || char === "F")) {
+      callback(keys[1]);
     }
   };
 
@@ -225,12 +240,17 @@ function createStdinHotkeyListener(callback: () => void): HotkeyListener {
  * Requires user to be in the 'input' group.
  */
 function createLinuxInputHotkeyListener(
-  key: string,
-  callback: () => void,
+  keys: string[],
+  callback: (key: string) => void,
 ): HotkeyListener {
-  const keyCode = keyNameToLinuxCode(key);
-  if (keyCode === undefined) {
-    throw new Error(`Unsupported hotkey for Linux input: ${key}`);
+  // Map Linux keycode → original key string
+  const keyCodeMap = new Map<number, string>();
+  for (const key of keys) {
+    const code = keyNameToLinuxCode(key);
+    if (code === undefined) {
+      throw new Error(`Unsupported hotkey for Linux input: ${key}`);
+    }
+    keyCodeMap.set(code, key);
   }
 
   const devicePaths = findKeyboardDevices();
@@ -267,8 +287,9 @@ function createLinuxInputHotkeyListener(
       const code = buf.readUInt16LE(offset + 18);
       const value = buf.readInt32LE(offset + 20);
       // EV_KEY = 1, value 1 = key down (not repeat)
-      if (type === 1 && code === keyCode && value === 1) {
-        callback();
+      const originalKey = keyCodeMap.get(code);
+      if (type === 1 && originalKey && value === 1) {
+        callback(originalKey);
       }
     }
   }

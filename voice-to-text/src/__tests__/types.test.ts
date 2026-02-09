@@ -6,6 +6,7 @@ describe("ConfigSchema", () => {
     const result = ConfigSchema.parse({});
     expect(result).toEqual({
       hotkey: "F9",
+      fileHotkey: "F10",
       autoInsert: true,
       beepEnabled: true,
       notificationEnabled: true,
@@ -17,8 +18,10 @@ describe("ConfigSchema", () => {
   test("parse full config preserves all fields", () => {
     const full = {
       hotkey: "F10",
+      fileHotkey: "F11",
       contextFile: "ctx.md",
       instructionsFile: "instr.md",
+      outputFile: "output.md",
       claudeModel: "claude-sonnet-4-5-20250929",
       autoInsert: false,
       beepEnabled: false,

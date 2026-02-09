@@ -2,8 +2,10 @@ import { z } from "zod";
 
 export const ConfigSchema = z.object({
   hotkey: z.string().default("F9"),
+  fileHotkey: z.string().default("F10"),
   contextFile: z.string().optional(),
   instructionsFile: z.string().optional(),
+  outputFile: z.string().optional(),
   claudeModel: z.string().optional(),
   autoInsert: z.boolean().default(true),
   beepEnabled: z.boolean().default(true),
@@ -19,9 +21,12 @@ export type ResolvedFileRef = {
   source: "global" | "local" | "specified" | "cli";
 };
 
+export type OutputMode = "clipboard" | "file";
+
 export type ResolvedConfig = Config & {
   contextFiles: ResolvedFileRef[];
   instructionsFiles: ResolvedFileRef[];
+  resolvedOutputFile?: string;
 };
 
 export type ConfigSource = {
@@ -41,4 +46,5 @@ export interface AppState {
   status: AppStatus;
   recordingStartTime: number | null;
   audioFilePath: string | null;
+  outputMode: OutputMode | null;
 }

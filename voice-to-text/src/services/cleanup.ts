@@ -7,6 +7,7 @@ export interface CleanupService {
     text: string,
     contextFiles: ResolvedFileRef[],
     instructionsFiles: ResolvedFileRef[],
+    priorOutput?: string,
   ): Promise<{ text: string; prompt: string }>;
 }
 
@@ -57,12 +58,37 @@ Instructions:
 
 {INSTRUCTIONS_SECTION}`;
 
+const FILE_MODE_CLEANUP_PROMPT_TEMPLATE = `You are cleaning up voice-transcribed text. The cleaned text will be appended to an existing document.
+
+{CONTEXT_SECTION}Prior document content (continue from where this ends):
+<prior-output>
+{PRIOR_OUTPUT}
+</prior-output>
+
+Transcribed Text:
+<transcription>
+{TRANSCRIPTION}
+</transcription>
+
+Instructions:
+1. Fix obvious transcription errors and typos
+2. Improve clarity and readability
+3. Add appropriate markdown formatting
+4. Continue naturally from the prior document content
+5. Maintain consistent terminology, style, and tone with the prior content
+6. Do not add information not present in the original transcription
+7. Output ONLY the new text to append — do not repeat prior content
+8. Output ONLY the cleaned text, no explanations or preamble
+
+{INSTRUCTIONS_SECTION}`;
+
 export function createCleanupService(model?: string): CleanupService {
   return {
     async cleanup(
       text: string,
       contextFiles: ResolvedFileRef[],
       instructionsFiles: ResolvedFileRef[],
+      priorOutput?: string,
     ): Promise<{ text: string; prompt: string }> {
       const contextSection = buildFileSections(contextFiles, "context");
       const instructionsSection = buildFileSections(
@@ -70,12 +96,18 @@ export function createCleanupService(model?: string): CleanupService {
         "additional-instructions",
       );
 
-      const prompt = CLEANUP_PROMPT_TEMPLATE.replace(
-        "{CONTEXT_SECTION}",
-        contextSection,
-      )
+      const template = priorOutput
+        ? FILE_MODE_CLEANUP_PROMPT_TEMPLATE
+        : CLEANUP_PROMPT_TEMPLATE;
+
+      let prompt = template
+        .replace("{CONTEXT_SECTION}", contextSection)
         .replace("{INSTRUCTIONS_SECTION}", instructionsSection)
         .replace("{TRANSCRIPTION}", text);
+
+      if (priorOutput) {
+        prompt = prompt.replace("{PRIOR_OUTPUT}", priorOutput);
+      }
 
       const result = await runClaudeCli(prompt, text, model);
       return { text: result, prompt };

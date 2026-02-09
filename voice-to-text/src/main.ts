@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import { resolveConfig } from "./utils/config.js";
 import { createHotkeyListener } from "./utils/hotkey.js";
 import { createFeedbackService } from "./services/feedback.js";
@@ -11,7 +12,9 @@ import { createTranscriber } from "./services/transcriber.js";
 import { createCleanupService } from "./services/cleanup.js";
 import { copyToClipboard } from "./services/clipboard.js";
 import { createCursorInsertService } from "./services/cursor-insert.js";
-import type { AppState, Config, ResolvedFileRef } from "./types.js";
+import { createFileOutputService } from "./services/file-output.js";
+import { createLastTranscriptionService } from "./services/last-transcription.js";
+import type { AppState, Config, OutputMode, ResolvedFileRef } from "./types.js";
 
 const TRANSCRIPTION_INSTRUCTIONS = "Accurately transcribe the spoken audio.";
 
@@ -47,6 +50,9 @@ program
     "Path to instructions file for Claude cleanup",
   )
   .option("--claude-model <model>", "Claude model for cleanup step")
+  .option("--file-hotkey <key>", "Hotkey to start file-mode recording")
+  .option("--output-file <path>", "Path to file for file-mode output")
+  .option("--clear-output", "Clear the output file on startup")
   .option("--no-auto-insert", "Disable auto-insert at cursor")
   .option("--no-beep", "Disable audio feedback")
   .option("--no-notification", "Disable desktop notifications")
@@ -74,9 +80,11 @@ async function main() {
 
   const cliOpts: Partial<Config> = {};
   if (opts.hotkey !== undefined) cliOpts.hotkey = opts.hotkey;
+  if (opts.fileHotkey !== undefined) cliOpts.fileHotkey = opts.fileHotkey;
   if (opts.contextFile !== undefined) cliOpts.contextFile = opts.contextFile;
   if (opts.instructionsFile !== undefined)
     cliOpts.instructionsFile = opts.instructionsFile;
+  if (opts.outputFile !== undefined) cliOpts.outputFile = opts.outputFile;
   if (opts.claudeModel !== undefined) cliOpts.claudeModel = opts.claudeModel;
   if (opts.autoInsert !== undefined) cliOpts.autoInsert = opts.autoInsert;
   if (opts.beep !== undefined) cliOpts.beepEnabled = opts.beep;
@@ -96,15 +104,34 @@ async function main() {
     config.terminalOutputEnabled = true;
   }
 
+  // Validate hotkeys are different
+  if (config.hotkey.toLowerCase() === config.fileHotkey.toLowerCase()) {
+    console.error("Error: hotkey and fileHotkey must be different");
+    process.exit(1);
+  }
+
+  // Determine output file path (config value or default)
+  const outputFilePath =
+    config.resolvedOutputFile ?? join(process.cwd(), "voice-output.md");
+
   // Initialize state
   const state: AppState = {
     status: "idle",
     recordingStartTime: null,
     audioFilePath: null,
+    outputMode: null,
   };
 
   // Create services
   const feedback = createFeedbackService(config, verbose);
+  const fileOutput = createFileOutputService(outputFilePath);
+  const lastTranscription = createLastTranscriptionService();
+
+  // Handle --clear-output
+  if (opts.clearOutput) {
+    fileOutput.clear();
+    feedback.log(`Output file cleared: ${outputFilePath}`);
+  }
 
   // Verbose: log config resolution
   for (const source of loadedFrom) {
@@ -113,8 +140,14 @@ async function main() {
       `${source.path} (${source.found ? "loaded" : "not found"})`,
     );
   }
-  const { contextFiles, instructionsFiles, ...configValues } = config;
+  const {
+    contextFiles,
+    instructionsFiles,
+    resolvedOutputFile,
+    ...configValues
+  } = config;
   feedback.verboseLog("Resolved config", JSON.stringify(configValues, null, 2));
+  feedback.verboseLog("Output file", outputFilePath);
   if (contextFiles.length > 0) {
     const lines = contextFiles
       .map((f) => `  [${f.source}] ${f.path}`)
@@ -142,15 +175,26 @@ async function main() {
   // Max recording duration timer
   let maxDurationTimer: ReturnType<typeof setTimeout> | null = null;
 
-  async function handleHotkey() {
+  async function handleHotkey(triggeredKey: string) {
     if (state.status === "idle") {
+      // Determine output mode from which hotkey was pressed
+      const mode: OutputMode =
+        triggeredKey.toLowerCase() === config.fileHotkey.toLowerCase()
+          ? "file"
+          : "clipboard";
+      state.outputMode = mode;
+
       // Start recording
       state.status = "recording";
       state.recordingStartTime = Date.now();
 
       feedback.playStartBeep();
-      feedback.showNotification("Voice to Text", "Recording started");
-      feedback.log("Recording...");
+      feedback.showNotification(
+        "Voice to Text",
+        `Recording started (${mode} mode)`,
+      );
+      feedback.log(`Recording (${mode} mode)...`);
+      feedback.verboseLog("Hotkey pressed", `${triggeredKey} → ${mode} mode`);
 
       recorder.start();
 
@@ -160,7 +204,7 @@ async function main() {
           feedback.log(
             `Max recording duration (${config.maxRecordingDuration}s) reached`,
           );
-          handleHotkey();
+          handleHotkey(triggeredKey);
         }
       }, config.maxRecordingDuration * 1000);
     } else if (state.status === "recording") {
@@ -201,12 +245,25 @@ async function main() {
           );
         }
 
-        // Cleanup
+        // Cleanup — file mode injects prior output as context
+        let priorOutput: string | undefined;
+        if (state.outputMode === "file") {
+          const content = fileOutput.readTailContent(8000);
+          if (content) {
+            priorOutput = content;
+            feedback.verboseLog(
+              "Prior output",
+              `${content.length} chars from ${fileOutput.filePath}`,
+            );
+          }
+        }
+
         const { text: cleanedText, prompt: cleanupPrompt } =
           await cleanupService.cleanup(
             transcription,
             config.contextFiles,
             config.instructionsFiles,
+            priorOutput,
           );
         feedback.verboseLog("Cleanup prompt", cleanupPrompt);
         if (verbose) {
@@ -218,18 +275,34 @@ async function main() {
           );
         }
 
-        // Copy to clipboard
-        await copyToClipboard(cleanedText);
-        feedback.log("Text copied to clipboard.");
+        // Route output based on mode
+        if (state.outputMode === "file") {
+          fileOutput.appendText(cleanedText);
+          feedback.log(`Text appended to ${fileOutput.filePath}`);
+          feedback.showNotification(
+            "Voice to Text",
+            `Appended to ${fileOutput.filePath}`,
+          );
+        } else {
+          await copyToClipboard(cleanedText);
+          feedback.log("Text copied to clipboard.");
 
-        // Insert at cursor position
-        if (cursorInsert) {
-          await cursorInsert.insertAtCursor(cleanedText);
-          feedback.log("Text inserted at cursor.");
+          if (cursorInsert) {
+            await cursorInsert.insertAtCursor(cleanedText);
+            feedback.log("Text inserted at cursor.");
+          }
+
+          feedback.showNotification("Voice to Text", "Done!");
         }
 
+        // Always save last transcription (both modes)
+        lastTranscription.save(cleanedText, state.outputMode ?? "clipboard");
+        feedback.verboseLog(
+          "Last transcription saved",
+          state.outputMode ?? "clipboard",
+        );
+
         await feedback.playReadyBeep();
-        feedback.showNotification("Voice to Text", "Done!");
         feedback.log("Done!");
       } catch (error) {
         const message =
@@ -244,15 +317,16 @@ async function main() {
         state.status = "idle";
         state.recordingStartTime = null;
         state.audioFilePath = null;
+        state.outputMode = null;
       }
     } else if (state.status === "processing") {
       feedback.log("Still processing, please wait...");
     }
   }
 
-  // Setup hotkey listener
+  // Setup hotkey listener with both keys
   const hotkeyListener = await createHotkeyListener(
-    config.hotkey,
+    [config.hotkey, config.fileHotkey],
     handleHotkey,
   );
 
@@ -281,11 +355,11 @@ async function main() {
   // Show startup message based on actual input mode
   if (hotkeyListener.isGlobalHotkey()) {
     feedback.log(
-      `Voice-to-text ready. Press ${config.hotkey} to start recording.`,
+      `Voice-to-text ready. ${config.hotkey}: clipboard, ${config.fileHotkey}: file mode. Output: ${outputFilePath}`,
     );
   } else {
     feedback.log(
-      `Voice-to-text ready. Press Enter or Space to toggle recording. (Ctrl+C to exit)`,
+      `Voice-to-text ready. Enter/Space: clipboard, F: file mode. (Ctrl+C to exit)`,
     );
   }
 }
