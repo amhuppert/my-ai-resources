@@ -96,6 +96,8 @@ copy_file_if_exists ".env.local" "$WORKTREE_DIR/" ".env.local"
 copy_file_if_exists ".env" "$WORKTREE_DIR/" ".env"
 copy_file_if_exists ".cursorignore" "$WORKTREE_DIR/" ".cursorignore"
 copy_file_if_exists "CLAUDE.md" "$WORKTREE_DIR/" "CLAUDE.md"
+copy_file_if_exists "voice-context.md" "$WORKTREE_DIR/" "voice-context.md"
+copy_file_if_exists "voice.json" "$WORKTREE_DIR/" "voice.json"
 
 echo ""
 echo "✓ Worktree created at: $WORKTREE_DIR"
