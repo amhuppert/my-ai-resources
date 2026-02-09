@@ -4,8 +4,10 @@
 
 - Command-line tool that captures voice input and converts it to formatted text
 - User presses a global hotkey to start/stop recording from any application
+- Two output modes selected per-generation by which hotkey is pressed:
+  - **Clipboard mode** (default hotkey F9): one-off transcription copied to clipboard and optionally inserted at cursor
+  - **File mode** (default hotkey F10): transcription appended to a persistent output file with continuity-aware cleanup
 - Audio is transcribed via OpenAI, then cleaned up and formatted via Claude
-- Result is copied to clipboard and optionally inserted at the cursor position
 - Target users: developers in AI-assisted workflows who dictate text frequently
 - Runs as a long-lived process on macOS and Linux desktops
 - Operates entirely from the terminal with no GUI beyond system notifications
@@ -45,15 +47,17 @@
 
 ### FR1: Hotkey Activation
 
-- FR1.1: Tool listens for a configurable global hotkey (default: F9)
+- FR1.1: Tool listens for two configurable global hotkeys: clipboard hotkey (default: F9) and file hotkey (default: F10)
 - FR1.2: Supported hotkeys: F1–F12, Space, Enter
-- FR1.3: Hotkey toggles between idle and recording states
-- FR1.4: Hotkey press during processing state is ignored with a "still processing" message
-- FR1.5: On macOS, global hotkey works via a compiled Swift binary (MacKeyServer) communicating over stdio
-- FR1.6: On Linux, global hotkey reads kernel input events from `/dev/input/eventN`
-- FR1.7: Linux global hotkey requires user membership in the `input` group
-- FR1.8: If global hotkey is unavailable, tool falls back to terminal input mode (Enter/Space to toggle)
-- FR1.9: Terminal input mode requires the terminal window to have focus
+- FR1.3: Pressing either hotkey while idle starts recording; the pressed key determines the output mode for that generation
+- FR1.4: Pressing either hotkey while recording stops recording and begins processing
+- FR1.5: Hotkey press during processing state is ignored with a "still processing" message
+- FR1.6: The two configured hotkeys must be different — tool exits with error if they match
+- FR1.7: On macOS, global hotkey works via a compiled Swift binary (MacKeyServer) communicating over stdio
+- FR1.8: On Linux, global hotkey reads kernel input events from `/dev/input/eventN`
+- FR1.9: Linux global hotkey requires user membership in the `input` group
+- FR1.10: If global hotkey is unavailable, tool falls back to terminal input mode (Enter/Space for clipboard, F for file mode)
+- FR1.11: Terminal input mode requires the terminal window to have focus
 
 ### FR2: Audio Recording
 
@@ -80,14 +84,25 @@
 - FR4.5: Instructions files are injected before default instructions so custom rules take priority
 - FR4.6: A specific Claude model can be configured for cleanup via `claudeModel` option
 - FR4.7: If Claude CLI is not installed, fails to execute, returns non-zero exit, or produces empty output, the raw transcription is used as fallback
+- FR4.8: In file mode, the cleanup prompt uses a continuity-aware template that includes the tail of the output file (up to 8000 characters) as prior context
+- FR4.9: The file-mode cleanup prompt instructs the model to continue naturally from where the prior content ends, maintaining consistent terminology, style, and tone
+- FR4.10: The file-mode cleanup output must contain only the new text to append — no repetition of prior content
 
 ### FR5: Output
 
-- FR5.1: Cleaned text (or raw transcription on fallback) is copied to the system clipboard
-- FR5.2: If auto-insert is enabled, text is also typed at the current cursor position
-- FR5.3: Cursor insertion uses platform-specific tools: `osascript` (macOS), `xdotool` (Linux X11), `wtype` (Linux Wayland)
-- FR5.4: If the cursor insertion tool is unavailable, insertion fails silently — text remains on clipboard
-- FR5.5: Auto-insert can be disabled via configuration
+- FR5.1: Output mode is determined per-generation by which hotkey was pressed (FR1.3)
+- FR5.2: **Clipboard mode**: cleaned text is copied to the system clipboard
+- FR5.3: **Clipboard mode**: if auto-insert is enabled, text is also typed at the current cursor position
+- FR5.4: Cursor insertion uses platform-specific tools: `osascript` (macOS), `xdotool` (Linux X11), `wtype` (Linux Wayland)
+- FR5.5: If the cursor insertion tool is unavailable, insertion fails silently — text remains on clipboard
+- FR5.6: Auto-insert can be disabled via configuration
+- FR5.7: **File mode**: cleaned text is appended to the output file (default: `voice-output.md` in cwd)
+- FR5.8: **File mode**: if the output file does not exist, it is created lazily on first write
+- FR5.9: **File mode**: successive appends are separated by a blank line (`\n\n`)
+- FR5.10: The output file path can be configured via `outputFile` in config or `--output-file` CLI argument
+- FR5.11: `--clear-output` flag clears the output file on startup
+- FR5.12: Both modes save the last transcription to `.voice-last.json` in the current working directory (for future correction support)
+- FR5.13: The last-transcription file stores the cleaned text, timestamp, and output mode; it is overwritten on each generation
 
 ### FR6: Feedback
 
@@ -104,43 +119,59 @@
   2. Config file specified via `--config <path>`
   3. Local `voice.json` in the current working directory
   4. Global config at `~/.config/voice-to-text/config.json`
-- FR7.2: Regular config keys (hotkey, autoInsert, etc.) override per-key from higher layers
+- FR7.2: Regular config keys (hotkey, fileHotkey, autoInsert, etc.) override per-key from higher layers
 - FR7.3: File-path keys (contextFile, instructionsFile) accumulate across all layers — duplicates are deduplicated
-- FR7.4: Relative file paths are resolved relative to their originating config file's directory
-- FR7.5: Invalid JSON or failed Zod validation in a config file produces a stderr warning and the file is skipped
-- FR7.6: The installer creates the global config file with all defaults
+- FR7.4: The `outputFile` key uses last-defined-wins semantics (not accumulation), with per-layer path resolution
+- FR7.5: Relative file paths are resolved relative to their originating config file's directory
+- FR7.6: Invalid JSON or failed Zod validation in a config file produces a stderr warning and the file is skipped
+- FR7.7: The installer creates the global config file with all defaults
+- FR7.8: Config schema keys: `hotkey`, `fileHotkey`, `contextFile`, `instructionsFile`, `outputFile`, `claudeModel`, `autoInsert`, `beepEnabled`, `notificationEnabled`, `terminalOutputEnabled`, `maxRecordingDuration`
+- FR7.9: CLI arguments: `--hotkey`, `--file-hotkey`, `--context-file`, `--instructions-file`, `--output-file`, `--claude-model`, `--no-auto-insert`, `--no-beep`, `--no-notification`, `--no-terminal-output`, `--max-duration`, `--verbose`, `--clear-output`, `--config`
 
 ### FR8: Lifecycle
 
 - FR8.1: Tool runs as a long-lived foreground process until terminated
 - FR8.2: Ctrl+C (SIGINT) and SIGTERM trigger graceful shutdown
 - FR8.3: Shutdown stops the hotkey listener, clears timers, and cleans up temp audio files
-- FR8.4: On startup, tool displays a ready message indicating the active input mode and hotkey
+- FR8.4: On startup, tool displays a ready message showing both hotkeys, their modes, and the output file path
 
 ```mermaid
 stateDiagram-v2
     [*] --> Idle: Tool starts
-    Idle --> Recording: Hotkey pressed
-    Recording --> Processing: Hotkey pressed
-    Recording --> Processing: Max duration reached
-    Processing --> Idle: Output complete
-    Processing --> Idle: Error (fallback output)
+    Idle --> Recording_Clipboard: Clipboard hotkey pressed
+    Idle --> Recording_File: File hotkey pressed
+    Recording_Clipboard --> Processing_Clipboard: Any hotkey pressed
+    Recording_Clipboard --> Processing_Clipboard: Max duration reached
+    Recording_File --> Processing_File: Any hotkey pressed
+    Recording_File --> Processing_File: Max duration reached
+    Processing_Clipboard --> Idle: Clipboard copy (+ cursor insert) complete
+    Processing_File --> Idle: File append complete
+    Processing_Clipboard --> Idle: Error (fallback output)
+    Processing_File --> Idle: Error (fallback output)
 
     note right of Idle
-        Listening for hotkey
-        Ready message displayed
+        Listening for both hotkeys
+        Ready message shows both hotkeys
     end note
 
-    note right of Recording
+    note right of Recording_Clipboard
         Audio capture active
-        Start beep plays
-        Max duration timer running
+        Start beep, "clipboard mode" notification
     end note
 
-    note right of Processing
+    note right of Recording_File
+        Audio capture active
+        Start beep, "file mode" notification
+    end note
+
+    note right of Processing_Clipboard
         Transcribe → Cleanup → Copy → Insert
-        Stop beep plays
-        Hotkey press shows "still processing"
+        Save last transcription
+    end note
+
+    note right of Processing_File
+        Transcribe → Cleanup (with prior output) → Append to file
+        Save last transcription
     end note
 ```
 
