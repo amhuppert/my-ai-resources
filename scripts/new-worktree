@@ -35,8 +35,8 @@ copy_dir_if_exists() {
   local label="$3"
 
   if [ -d "$source_dir" ]; then
-    rm -rf "$destination_dir"
-    cp -r "$source_dir" "$destination_dir"
+    mkdir -p "$destination_dir"
+    cp -a "$source_dir/." "$destination_dir/"
     echo "  ✓ Copied $label"
   fi
 }
@@ -98,6 +98,28 @@ copy_file_if_exists ".cursorignore" "$WORKTREE_DIR/" ".cursorignore"
 copy_file_if_exists "CLAUDE.md" "$WORKTREE_DIR/" "CLAUDE.md"
 copy_file_if_exists "voice-context.md" "$WORKTREE_DIR/" "voice-context.md"
 copy_file_if_exists "voice.json" "$WORKTREE_DIR/" "voice.json"
+
+# Copy project-specific files/directories from worktrees.json if it exists
+if [ -f "worktrees.json" ]; then
+  echo "Reading project-specific paths from worktrees.json..."
+
+  # Copy directories
+  while IFS= read -r dir; do
+    [ -z "$dir" ] && continue
+    copy_dir_if_exists "$dir" "$WORKTREE_DIR/$dir" "$dir"
+  done < <(jq -r '.directories[]? // empty' worktrees.json)
+
+  # Copy files
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    # Ensure parent directory exists in worktree
+    file_parent="$(dirname "$file")"
+    if [ "$file_parent" != "." ]; then
+      mkdir -p "$WORKTREE_DIR/$file_parent"
+    fi
+    copy_file_if_exists "$file" "$WORKTREE_DIR/$file_parent/" "$file"
+  done < <(jq -r '.files[]? // empty' worktrees.json)
+fi
 
 echo ""
 echo "✓ Worktree created at: $WORKTREE_DIR"
