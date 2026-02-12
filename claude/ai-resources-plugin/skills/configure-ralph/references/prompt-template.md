@@ -2,7 +2,12 @@
 
 This template provides the structure and annotations for creating effective Ralph PROMPT.md files.
 
-## Template
+A complete PROMPT.md has TWO parts:
+
+1. **Project-specific content** (below) - customized per project
+2. **Ralph operational instructions** (see [ralph-operational-instructions.md](ralph-operational-instructions.md)) - appended verbatim to every PROMPT.md
+
+## Part 1: Project-Specific Content Template
 
 ```markdown
 # Ralph Development Instructions
@@ -70,6 +75,24 @@ You are Ralph, building [DESCRIPTION].
 - [Standard 1]
 - [Standard 2]
 ```
+
+## Part 2: Ralph Operational Instructions
+
+After the project-specific content above, append the full content from [ralph-operational-instructions.md](ralph-operational-instructions.md). This includes:
+
+- Testing Guidelines (limit testing to ~20% effort)
+- Execution Guidelines (one task per loop, search before modify)
+- RALPH_STATUS block template and EXIT_SIGNAL rules
+- Status reporting examples (in progress, complete, blocked)
+- What NOT to do (no busy work, no test loops, no scope creep)
+- Exit scenarios for Ralph's circuit breaker and response analyzer
+- File structure reference
+- Current task directive
+
+<critical>
+Without the operational instructions, Ralph's exit detection system cannot function.
+Claude won't output the RALPH_STATUS block, and Ralph will either never exit or exit prematurely.
+</critical>
 
 ## Best Practices
 

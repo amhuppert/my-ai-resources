@@ -48,10 +48,18 @@ This template provides the structure and guidelines for creating effective Ralph
 - [ ] [Task 1]
 - [ ] [Task 2]
 
+## Completed
+
+<!-- Items Ralph has finished will be moved here with [x] marks -->
+
 ## Discovered
 
 <!-- Ralph adds tasks here during development.
      Review these periodically and reprioritize if needed. -->
+
+## Notes
+
+- [Any relevant context about task dependencies or approach]
 ```
 
 ## Task Writing Guidelines
@@ -199,7 +207,14 @@ Final refinements:
 - [ ] Add health check endpoint (GET /health)
 - [ ] Configure structured JSON logging
 
+## Completed
+
 ## Discovered
 
 <!-- Ralph will add discovered tasks here -->
+
+## Notes
+
+- Foundation tasks must complete before Core Features
+- Use async fixtures in pytest for database tests
 ```

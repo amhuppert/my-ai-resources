@@ -43,7 +43,9 @@ Read the existing `.ralph/` files to understand:
 
 ### Step 3: Generate PROMPT.md
 
-Create `.ralph/PROMPT.md` following this structure:
+Create `.ralph/PROMPT.md` with TWO parts: project-specific content followed by Ralph operational instructions.
+
+**Part 1: Project-Specific Content** (customize per project):
 
 ```markdown
 # Ralph Development Instructions
@@ -69,8 +71,6 @@ You are Ralph, building [PROJECT_DESCRIPTION].
 1. [Specific, measurable goal]
 2. [Specific, measurable goal]
 
-- ...
-
 ## Data Entities / API Contracts
 
 [Define key models, endpoints, data structures with specific details]
@@ -89,6 +89,18 @@ You are Ralph, building [PROJECT_DESCRIPTION].
 - Specify testing requirements (coverage thresholds, test types)
 - Keep principles actionable - things Claude can verify
 </guidelines>
+
+**Part 2: Ralph Operational Instructions** (append verbatim from reference):
+
+Read [references/ralph-operational-instructions.md](references/ralph-operational-instructions.md) and append its content block (everything inside the ```markdown fence) to the end of the generated PROMPT.md.
+
+<critical>
+The operational instructions section is MANDATORY. Without it, Ralph's exit detection system cannot function because:
+- Claude won't output the RALPH_STATUS block that Ralph parses for exit signals
+- Claude won't know when to set EXIT_SIGNAL: true vs false
+- Ralph will either never exit or exit prematurely
+- The circuit breaker and response analyzer depend on structured status output
+</critical>
 
 ### Step 4: Generate fix_plan.md
 
@@ -117,30 +129,57 @@ Create `.ralph/fix_plan.md` with prioritized, actionable tasks:
 - [ ] [Documentation task]
 - [ ] [Refinement task]
 
+## Completed
+
+<!-- Items Ralph has finished will be moved here -->
+
 ## Discovered
 
 <!-- Ralph will add discovered tasks here as it works -->
+
+## Notes
+
+- [Any relevant context about task dependencies or approach]
 ```
 
 <guidelines type="fix-plan">
 - Each task should be specific and independently completable
 - Use checkbox format: `- [ ] Task description`
 - Order tasks by dependency (earlier tasks should not depend on later ones)
-- Include a "Discovered" section for Ralph to add tasks it finds
+- Include "Completed", "Discovered", and "Notes" sections
 - Tasks should be small enough to complete in one loop iteration
 - Avoid compound tasks - split "X and Y" into separate items
 </guidelines>
 
-### Step 5: Verify and Confirm
+### Step 5: Update .ralphrc Tool Permissions
+
+Read the current `.ralphrc` and check if `ALLOWED_TOOLS` matches the project's technology stack. Update if needed.
+
+**Tool permission patterns by project type:**
+
+| Project Type       | Required ALLOWED_TOOLS additions               |
+| ------------------ | ---------------------------------------------- |
+| TypeScript/Node.js | `Bash(npm *),Bash(npx *)`                      |
+| Python             | `Bash(pip *),Bash(python *),Bash(pytest)`      |
+| Rust               | `Bash(cargo *)`                                |
+| Go                 | `Bash(go *)`                                   |
+| General            | `Write,Read,Edit,Bash(git *)` (always include) |
+
+If the detected project type requires tools not in the current `ALLOWED_TOOLS`, update `.ralphrc` accordingly. Also update `PROJECT_TYPE` and `PROJECT_NAME` if they are still set to defaults.
+
+### Step 6: Verify and Confirm
 
 After generating files:
 
 1. Read both generated files back to verify correctness
-2. Present a summary to the user showing:
+2. Verify PROMPT.md contains the RALPH_STATUS block (search for `---RALPH_STATUS---`)
+3. Verify fix_plan.md has checkbox items with `- [ ]` format
+4. Present a summary to the user showing:
    - Key objectives identified
    - Number of tasks in fix_plan.md
    - Technology stack configured
-3. Remind user to run `ralph --monitor` to start the development loop
+   - Any `.ralphrc` changes made
+5. Remind user to run `ralph --monitor` to start the development loop
 
 ## Example Transformation
 
@@ -206,7 +245,78 @@ You are Ralph, building a REST API for a todo application with user authenticati
 - Input validation on all user-provided data
 - Unit tests for business logic, integration tests for endpoints
 - 80% minimum test coverage
-  </output-prompt-md>
+
+## Testing Guidelines (CRITICAL)
+
+- LIMIT testing to ~20% of your total effort per loop
+- PRIORITIZE: Implementation > Documentation > Tests
+- Only write tests for NEW functionality you implement
+- Do NOT refactor existing tests unless broken
+- Do NOT add "additional test coverage" as busy work
+- Focus on CORE functionality first, comprehensive testing later
+
+## Execution Guidelines
+
+- Before making changes: search codebase using subagents
+- After implementation: run ESSENTIAL tests for the modified code only
+- If tests fail: fix them as part of your current work
+- Keep .ralph/AGENT.md updated with build/run instructions
+- Document the WHY behind tests and implementations
+- No placeholder implementations - build it properly
+- ONE task per loop - focus on the most important thing
+
+## Status Reporting (CRITICAL - Ralph needs this!)
+
+**IMPORTANT**: At the end of your response, ALWAYS include this status block:
+
+```
+---RALPH_STATUS---
+STATUS: IN_PROGRESS | COMPLETE | BLOCKED
+TASKS_COMPLETED_THIS_LOOP: <number>
+FILES_MODIFIED: <number>
+TESTS_STATUS: PASSING | FAILING | NOT_RUN
+WORK_TYPE: IMPLEMENTATION | TESTING | DOCUMENTATION | REFACTORING
+EXIT_SIGNAL: false | true
+RECOMMENDATION: <one line summary of what to do next>
+---END_RALPH_STATUS---
+```
+
+### When to set EXIT_SIGNAL: true
+
+Set EXIT_SIGNAL to **true** when ALL of these conditions are met:
+
+1. All items in fix_plan.md are marked [x]
+2. All tests are passing (or no tests exist for valid reasons)
+3. No errors or warnings in the last execution
+4. All requirements from specs/ are implemented
+5. You have nothing meaningful left to implement
+
+### What NOT to do
+
+- Do NOT continue with busy work when EXIT_SIGNAL should be true
+- Do NOT run tests repeatedly without implementing new features
+- Do NOT refactor code that is already working fine
+- Do NOT add features not in the specifications
+- Do NOT forget to include the status block (Ralph depends on it!)
+
+## File Structure
+
+- .ralph/: Ralph-specific configuration and documentation
+  - specs/: Project specifications and requirements
+  - fix_plan.md: Prioritized TODO list
+  - AGENT.md: Project build and run instructions
+  - PROMPT.md: This file - Ralph development instructions
+  - logs/: Loop execution logs
+  - docs/generated/: Auto-generated documentation
+- src/: Source code implementation
+
+## Current Task
+
+Follow .ralph/fix_plan.md and choose the most important item to implement next.
+Use your judgment to prioritize what will have the biggest impact on project progress.
+
+Remember: Quality over speed. Build it right the first time. Know when you're done.
+</output-prompt-md>
 
 <output-fix-plan>
 # Fix Plan - Todo API
@@ -242,15 +352,30 @@ You are Ralph, building a REST API for a todo application with user authenticati
 - [ ] Ensure OpenAPI documentation is complete
 - [ ] Add README with setup and usage instructions
 
+## Completed
+
 ## Discovered
 
 <!-- Ralph will add discovered tasks here -->
-</output-fix-plan>
+
+## Notes
+
+- Authentication must be implemented before protected Todo endpoints
+- Use Alembic for database migrations if schema changes are needed
+  </output-fix-plan>
+
+<output-ralphrc-changes>
+Updated .ralphrc:
+- PROJECT_NAME="todo-api"
+- PROJECT_TYPE="python"
+- ALLOWED_TOOLS="Write,Read,Edit,Bash(git *),Bash(pip *),Bash(python *),Bash(pytest)"
+</output-ralphrc-changes>
 </example>
 
 ## References
 
 For detailed templates and best practices, see:
 
-- [references/prompt-template.md](references/prompt-template.md) - Full PROMPT.md template with annotations
+- [references/prompt-template.md](references/prompt-template.md) - PROMPT.md project-specific content template with annotations
+- [references/ralph-operational-instructions.md](references/ralph-operational-instructions.md) - Ralph operational instructions (MUST be appended to every PROMPT.md)
 - [references/fix-plan-template.md](references/fix-plan-template.md) - fix_plan.md template with task writing guidelines
