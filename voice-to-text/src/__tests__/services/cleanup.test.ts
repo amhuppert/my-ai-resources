@@ -35,8 +35,8 @@ mock.module("node:child_process", () => ({
     const child = new EventEmitter();
     const stdout = new EventEmitter();
     const stderr = new EventEmitter();
-    (child as Record<string, unknown>)["stdout"] = stdout;
-    (child as Record<string, unknown>)["stderr"] = stderr;
+    (child as unknown as Record<string, unknown>)["stdout"] = stdout;
+    (child as unknown as Record<string, unknown>)["stderr"] = stderr;
 
     // Emit events asynchronously to mimic real spawn
     queueMicrotask(() => {
@@ -245,8 +245,8 @@ describe("CleanupService", () => {
           const child = new EventEmitter();
           const stdout = new EventEmitter();
           const stderr = new EventEmitter();
-          (child as Record<string, unknown>)["stdout"] = stdout;
-          (child as Record<string, unknown>)["stderr"] = stderr;
+          (child as unknown as Record<string, unknown>)["stdout"] = stdout;
+          (child as unknown as Record<string, unknown>)["stderr"] = stderr;
 
           queueMicrotask(() => {
             stdout.emit("data", Buffer.from("chunk1 "));

@@ -1,0 +1,224 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 500" width="600" height="500">
+  <defs>
+    <!-- Starry background gradient -->
+    <radialGradient id="sky" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#1a0533" />
+      <stop offset="100%" stop-color="#0a001a" />
+    </radialGradient>
+    <!-- Carpet pattern -->
+    <pattern id="carpetPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <rect width="20" height="20" fill="#8B1A1A" />
+      <rect x="5" y="5" width="10" height="10" fill="#DAA520" rx="2" />
+      <circle cx="10" cy="10" r="3" fill="#8B1A1A" />
+    </pattern>
+    <!-- Magic glow -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <!-- Sparkle filter -->
+    <filter id="sparkle">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Night sky background -->
+  <rect width="600" height="500" fill="url(#sky)" />
+
+  <!-- Stars -->
+  <circle cx="50" cy="60" r="1.5" fill="#fff" opacity="0.8" />
+  <circle cx="150" cy="30" r="1" fill="#fff" opacity="0.6" />
+  <circle cx="250" cy="80" r="2" fill="#fff" opacity="0.9" />
+  <circle cx="400" cy="50" r="1.5" fill="#fff" opacity="0.7" />
+  <circle cx="520" cy="90" r="1" fill="#fff" opacity="0.5" />
+  <circle cx="80" cy="150" r="1" fill="#fff" opacity="0.6" />
+  <circle cx="530" cy="180" r="1.5" fill="#fff" opacity="0.8" />
+  <circle cx="470" cy="120" r="2" fill="#fff" opacity="0.7" />
+  <circle cx="100" cy="250" r="1" fill="#fff" opacity="0.5" />
+  <circle cx="550" cy="300" r="1.5" fill="#fff" opacity="0.6" />
+  <circle cx="30" cy="350" r="1" fill="#fff" opacity="0.4" />
+  <circle cx="320" cy="40" r="1.8" fill="#fff" opacity="0.8" />
+  <circle cx="180" cy="120" r="1.2" fill="#fff" opacity="0.6" />
+
+  <!-- Moon -->
+  <circle cx="480" cy="80" r="35" fill="#FFF8DC" opacity="0.9" />
+  <circle cx="495" cy="70" r="30" fill="url(#sky)" />
+
+  <!-- Magic trail behind carpet -->
+  <path d="M120 340 Q200 320 280 330 Q360 340 400 320"
+    stroke="#DAA520" stroke-width="3" fill="none" opacity="0.3" filter="url(#glow)">
+    <animate attributeName="opacity" values="0.1;0.4;0.1" dur="2s" repeatCount="indefinite" />
+  </path>
+  <path d="M140 360 Q220 340 300 350 Q370 355 410 335"
+    stroke="#9B59B6" stroke-width="2" fill="none" opacity="0.25" filter="url(#glow)">
+    <animate attributeName="opacity" values="0.15;0.35;0.15" dur="1.8s" repeatCount="indefinite" />
+  </path>
+
+  <!-- Sparkles along trail -->
+  <g filter="url(#sparkle)">
+    <circle cx="160" cy="345" r="3" fill="#FFD700">
+      <animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite" />
+      <animate attributeName="r" values="1;3;1" dur="1.5s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="220" cy="335" r="2.5" fill="#E8A0FF">
+      <animate attributeName="opacity" values="0;1;0" dur="1.2s" begin="0.3s"
+        repeatCount="indefinite" />
+      <animate attributeName="r" values="1;2.5;1" dur="1.2s" begin="0.3s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="280" cy="340" r="3" fill="#FFD700">
+      <animate attributeName="opacity" values="0;1;0" dur="1.8s" begin="0.6s"
+        repeatCount="indefinite" />
+      <animate attributeName="r" values="1;3;1" dur="1.8s" begin="0.6s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="340" cy="332" r="2" fill="#87CEEB">
+      <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.9s"
+        repeatCount="indefinite" />
+      <animate attributeName="r" values="1;2;1" dur="1.4s" begin="0.9s" repeatCount="indefinite" />
+    </circle>
+  </g>
+
+  <!-- Main group - carpet + chicken, with gentle float animation -->
+  <g>
+    <animateTransform attributeName="transform" type="translate"
+      values="0,0; 0,-8; 0,0" dur="3s" repeatCount="indefinite" />
+
+    <!-- Magic carpet shadow/glow underneath -->
+    <ellipse cx="350" cy="380" rx="110" ry="15" fill="#9B59B6" opacity="0.3" filter="url(#glow)">
+      <animate attributeName="opacity" values="0.2;0.4;0.2" dur="2s" repeatCount="indefinite" />
+    </ellipse>
+
+    <!-- Magic carpet - main shape with curve -->
+    <path
+      d="M220 340 Q260 325 350 330 Q440 335 480 345 
+             Q470 360 350 365 Q230 360 220 340Z"
+      fill="url(#carpetPattern)" stroke="#DAA520" stroke-width="2" />
+
+    <!-- Carpet fringe - front -->
+    <g stroke="#DAA520" stroke-width="1.5" fill="none">
+      <line x1="225" y1="342" x2="220" y2="355" />
+      <line x1="240" y1="338" x2="235" y2="352" />
+      <line x1="255" y1="335" x2="250" y2="349" />
+      <line x1="270" y1="333" x2="265" y2="347" />
+    </g>
+    <!-- Carpet fringe - back -->
+    <g stroke="#DAA520" stroke-width="1.5" fill="none">
+      <line x1="455" y1="348" x2="460" y2="362" />
+      <line x1="470" y1="346" x2="475" y2="360" />
+      <line x1="485" y1="344" x2="490" y2="356" />
+    </g>
+
+    <!-- Carpet decorative border -->
+    <path d="M235 338 Q350 320 470 343" stroke="#FFD700" stroke-width="1.5" fill="none"
+      opacity="0.6" />
+    <path d="M230 352 Q350 368 475 355" stroke="#FFD700" stroke-width="1.5" fill="none"
+      opacity="0.6" />
+
+    <!-- === CHICKEN === -->
+    <g transform="translate(330, 270)">
+      <!-- Chicken body -->
+      <ellipse cx="0" cy="30" rx="45" ry="35" fill="#F5DEB3" />
+      <ellipse cx="0" cy="30" rx="45" ry="35" fill="#FFF8DC" opacity="0.4" />
+
+      <!-- Breast feather detail -->
+      <ellipse cx="-5" cy="40" rx="25" ry="20" fill="#FAEBD7" opacity="0.6" />
+
+      <!-- Wing (raised triumphantly) -->
+      <path d="M-30 20 Q-70 -10 -55 -30 Q-40 -45 -25 -25 Q-15 -10 -20 10Z"
+        fill="#DEB887" stroke="#C4A265" stroke-width="1" />
+      <!-- Wing feather details -->
+      <line x1="-45" y1="-5" x2="-35" y2="-20" stroke="#C4A265" stroke-width="0.8" opacity="0.5" />
+      <line x1="-38" y1="0" x2="-30" y2="-15" stroke="#C4A265" stroke-width="0.8" opacity="0.5" />
+
+      <!-- Right wing (slightly back) -->
+      <path d="M30 25 Q55 10 50 -5 Q45 -15 35 0 Q30 10 30 25Z"
+        fill="#DEB887" stroke="#C4A265" stroke-width="1" />
+
+      <!-- Tail feathers -->
+      <path d="M35 15 Q65 -5 55 -20" stroke="#8B7355" stroke-width="3" fill="none"
+        stroke-linecap="round" />
+      <path d="M38 20 Q72 5 65 -10" stroke="#A0896C" stroke-width="2.5" fill="none"
+        stroke-linecap="round" />
+      <path d="M40 25 Q75 15 70 0" stroke="#8B7355" stroke-width="2" fill="none"
+        stroke-linecap="round" />
+
+      <!-- Neck -->
+      <path d="M-10 5 Q-12 -15 -5 -30" fill="#F5DEB3" stroke="none" />
+      <ellipse cx="-5" cy="-10" rx="15" ry="20" fill="#F5DEB3" />
+
+      <!-- Head -->
+      <circle cx="-5" cy="-35" r="18" fill="#F5DEB3" />
+
+      <!-- Comb (red crown) -->
+      <path d="M-12 -52 Q-10 -65 -5 -55 Q0 -68 5 -55 Q10 -65 8 -50"
+        fill="#CC0000" stroke="#AA0000" stroke-width="0.5" />
+
+      <!-- Eye -->
+      <circle cx="-14" cy="-38" r="4" fill="white" />
+      <circle cx="-15" cy="-38" r="2.5" fill="#1a1a1a" />
+      <circle cx="-16" cy="-39" r="1" fill="white" />
+
+      <!-- Beak -->
+      <path d="M-22 -33 L-35 -30 L-22 -28Z" fill="#FF8C00" stroke="#E07000" stroke-width="0.5" />
+
+      <!-- Wattle -->
+      <ellipse cx="-18" cy="-24" rx="4" ry="6" fill="#CC0000" />
+
+      <!-- Legs/feet on carpet -->
+      <line x1="-10" y1="60" x2="-12" y2="72" stroke="#FF8C00" stroke-width="3"
+        stroke-linecap="round" />
+      <line x1="10" y1="60" x2="12" y2="72" stroke="#FF8C00" stroke-width="3" stroke-linecap="round" />
+      <!-- Toes -->
+      <path d="M-18 72 L-12 72 L-6 72" stroke="#FF8C00" stroke-width="2" fill="none"
+        stroke-linecap="round" />
+      <path d="M6 72 L12 72 L18 72" stroke="#FF8C00" stroke-width="2" fill="none"
+        stroke-linecap="round" />
+    </g>
+
+    <!-- Magic sparkles around carpet edges -->
+    <g filter="url(#sparkle)">
+      <circle cx="240" cy="335" r="2" fill="#FFD700">
+        <animate attributeName="opacity" values="0;1;0" dur="1s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="460" cy="340" r="2.5" fill="#E8A0FF">
+        <animate attributeName="opacity" values="0;1;0" dur="1.3s" begin="0.5s"
+          repeatCount="indefinite" />
+      </circle>
+      <circle cx="350" cy="322" r="2" fill="#87CEEB">
+        <animate attributeName="opacity" values="0;1;0" dur="0.9s" begin="0.2s"
+          repeatCount="indefinite" />
+      </circle>
+      <circle cx="300" cy="360" r="1.5" fill="#FFD700">
+        <animate attributeName="opacity" values="0;1;0" dur="1.1s" begin="0.7s"
+          repeatCount="indefinite" />
+      </circle>
+      <circle cx="420" cy="358" r="2" fill="#E8A0FF">
+        <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.3s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+  </g>
+
+  <!-- Distant city silhouette at bottom -->
+  <g opacity="0.15" fill="#4a3670">
+    <rect x="0" y="460" width="600" height="40" />
+    <rect x="50" y="440" width="25" height="20" />
+    <rect x="90" y="430" width="15" height="30" />
+    <rect x="120" y="445" width="30" height="15" />
+    <rect x="200" y="420" width="20" height="40" />
+    <rect x="230" y="435" width="35" height="25" />
+    <rect x="300" y="425" width="12" height="35" />
+    <polygon points="305,425 311,400 317,425" />
+    <rect x="350" y="440" width="40" height="20" />
+    <rect x="420" y="430" width="18" height="30" />
+    <rect x="460" y="445" width="25" height="15" />
+    <rect x="510" y="435" width="30" height="25" />
+    <rect x="555" y="440" width="20" height="20" />
+  </g>
+</svg>

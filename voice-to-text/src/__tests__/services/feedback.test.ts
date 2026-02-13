@@ -36,6 +36,7 @@ const { createFeedbackService } = await import("../../services/feedback.js");
 function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
     hotkey: "F9",
+    fileHotkey: "F10",
     autoInsert: true,
     beepEnabled: true,
     notificationEnabled: true,

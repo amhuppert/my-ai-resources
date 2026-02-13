@@ -10,8 +10,10 @@
     "build": "bun build src/main.ts --compile --outfile dist/voice-to-text",
     "dev": "bun run src/main.ts",
     "install-tool": "bun run scripts/install.ts",
-    "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test": "bun test src/",
+    "test:integration": "bun test tests/",
+    "test:all": "bun test",
+    "test:watch": "bun test --watch src/"
   },
   "dependencies": {
     "clipboardy": "^4.0.0",
@@ -23,6 +25,7 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@types/bun": "^1.3.9",
     "@types/node": "^20.0.0",
     "@types/play-sound": "^1.1.2",
     "typescript": "^5.0.0"

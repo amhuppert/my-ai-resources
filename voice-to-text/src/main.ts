@@ -169,7 +169,7 @@ async function main() {
   }
   const recorder = createAudioRecorder();
   const transcriber = createTranscriber(apiKey);
-  const cleanupService = createCleanupService(config.claudeModel);
+  const cleanupService = createCleanupService(config.claudeModel, verbose);
   const cursorInsert = config.autoInsert ? createCursorInsertService() : null;
 
   // Max recording duration timer

@@ -276,6 +276,7 @@ describe("config", () => {
     test("CLI opts override file config values", () => {
       const fileConfig = {
         hotkey: "F9",
+        fileHotkey: "F10",
         autoInsert: true,
         beepEnabled: true,
         notificationEnabled: true,
@@ -290,6 +291,7 @@ describe("config", () => {
     test("undefined opts do not override", () => {
       const fileConfig = {
         hotkey: "F10",
+        fileHotkey: "F10",
         autoInsert: false,
         beepEnabled: true,
         notificationEnabled: true,
@@ -307,6 +309,7 @@ describe("config", () => {
     test("validates merged result against schema", () => {
       const fileConfig = {
         hotkey: "F9",
+        fileHotkey: "F10",
         autoInsert: true,
         beepEnabled: true,
         notificationEnabled: true,
