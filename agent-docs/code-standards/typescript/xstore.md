@@ -80,13 +80,10 @@ export function createQuizStore(quizService: QuizService) {
     } as QuizState,
     on: {
       startQuiz: (context, _event, enqueue) => {
-        // handler implementation
         return { ...context, status: "loading" as const };
       },
-      // ... other handlers
     },
   });
-
   return store;
 }
 
@@ -103,10 +100,15 @@ Define a store factory function that takes all dependencies as arguments:
 export function createQuizStore(quizService: QuizService) {
   const store = createStore({
     context: {
-      /* initial state */
+      status: "idle",
+      quiz: null,
+      answers: {},
     } as QuizState,
     on: {
-      /* event handlers */
+      startQuiz: (context, _event) => ({
+        ...context,
+        status: "loading" as const,
+      }),
     },
   });
   return store;
@@ -176,14 +178,12 @@ context: {
 ```typescript
 import { createStore } from "@xstate/store";
 
-// State type
 export type QuizState = {
   status: "idle" | "loading" | "active" | "completed";
   quiz: Quiz | null;
   answers: QuizAnswers;
 };
 
-// Individual event types (camelCase type names for trigger API)
 export type StartQuizEvent = { type: "startQuiz" };
 export type StartQuizSuccessEvent = { type: "startQuizSuccess"; quiz: Quiz };
 export type AnswerQuestionEvent = {
@@ -193,14 +193,12 @@ export type AnswerQuestionEvent = {
 };
 export type SubmitQuizEvent = { type: "submitQuiz" };
 
-// Event union type
 export type QuizEvents =
   | StartQuizEvent
   | StartQuizSuccessEvent
   | AnswerQuestionEvent
   | SubmitQuizEvent;
 
-// Store factory function
 export function createQuizStore(quizService: QuizService) {
   const store = createStore({
     context: {
@@ -240,20 +238,14 @@ export function createQuizStore(quizService: QuizService) {
       },
     },
   });
-
   return store;
 }
 
-// Store type
 export type QuizStore = ReturnType<typeof createQuizStore>;
 
-// Usage in components
 const { quizStore } = useQuizStore();
 
-// Simple event
 quizStore.trigger.startQuiz();
-
-// Event with payload (type field omitted)
 quizStore.trigger.answerQuestion({
   questionId: "q1" as QuestionID,
   answer: ["option1"],

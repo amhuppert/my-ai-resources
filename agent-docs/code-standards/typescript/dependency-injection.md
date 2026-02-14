@@ -55,7 +55,7 @@ Never use implementations directly. Always depend on interfaces. See [TypeScript
 
 ### Service Implementation
 
-Implement interfaces with classes or objects that handle API calls, Zod validation, and error handling. **Important**: Place `Zod.parse()` immediately after each API call to validate data before using it in the application:
+Implement interfaces with factory functions that return service objects. Use factory functions (not classes) to align with TypeScript conventions. **Important**: Place `Zod.parse()` immediately after each API call to validate data before using it in the application:
 
 ```typescript
 import { z } from "zod";
@@ -66,27 +66,29 @@ const UserSchema = z.object({
   email: z.string().email(),
 });
 
-class UserServiceImpl implements UserService {
-  async getUser(id: string): Promise<User> {
-    const response = await fetch(`/api/users/${id}`);
-    if (!response.ok) throw new Error("Failed to fetch user");
-    const data = await response.json();
-    return UserSchema.parse(data); // Throws if invalid
-  }
+function createUserService(): UserService {
+  return {
+    async getUser(id: string): Promise<User> {
+      const response = await fetch(`/api/users/${id}`);
+      if (!response.ok) throw new Error("Failed to fetch user");
+      const data = await response.json();
+      return UserSchema.parse(data);
+    },
 
-  async updateUser(id: string, data: Partial<User>): Promise<User> {
-    const response = await fetch(`/api/users/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-    const result = await response.json();
-    return UserSchema.parse(result);
-  }
+    async updateUser(id: string, data: Partial<User>): Promise<User> {
+      const response = await fetch(`/api/users/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+      return UserSchema.parse(result);
+    },
 
-  async deleteUser(id: string): Promise<void> {
-    const response = await fetch(`/api/users/${id}`, { method: "DELETE" });
-    if (!response.ok) throw new Error("Failed to delete user");
-  }
+    async deleteUser(id: string): Promise<void> {
+      const response = await fetch(`/api/users/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete user");
+    },
+  };
 }
 ```
 
@@ -112,8 +114,8 @@ export function ServiceProvider({
   children: React.ReactNode;
 }) {
   const services: Services = {
-    userService: new UserServiceImpl(),
-    productService: new ProductServiceImpl(),
+    userService: createUserService(),
+    productService: createProductService(),
   };
   return (
     <ServiceContext.Provider value={services}>
@@ -184,7 +186,6 @@ import { useQuery } from "@tanstack/react-query";
 
 export function useUserQuery(userId: string) {
   const userService = useUserService();
-
   return useQuery({
     queryKey: ["user", userId],
     queryFn: () => userService.getUser(userId),
@@ -193,7 +194,6 @@ export function useUserQuery(userId: string) {
 
 export function useUsersListQuery() {
   const userService = useUserService();
-
   return useQuery({
     queryKey: ["users"],
     queryFn: () => userService.getUsers(),
@@ -217,35 +217,35 @@ function UserProfile({ userId }: { userId: string }) {
 
 ## File Structure
 
-Organize services by domain (feature/entity type) with Zod schemas and types grouped with their service:
+Colocate services with the features that use them, following colocation principles:
 
 ```
 src/
-  services/
+  features/
     users/
-      UserService.ts           # Interface + implementation
-      types.ts                 # Zod schemas, TypeScript types
+      UserService.ts           # Interface + factory implementation
+      userService.types.ts     # Zod schemas, TypeScript types
+      useUserQuery.ts          # TanStack Query hooks
+      UserProfile.tsx          # Components
+      UserProfile.test.tsx
     products/
       ProductService.ts
-      types.ts
-    ServiceContext.tsx         # Context providers and hooks
-  hooks/
-    queries/
-      useUserQuery.ts          # TanStack Query hooks
+      productService.types.ts
       useProductsQuery.ts
-  components/
-    UserProfile.tsx            # Uses hooks, never imports services
-    ProductCard.tsx
+      ProductCard.tsx
+  lib/
+    ServiceContext.tsx         # Central context provider for all services
 ```
 
 **Principles:**
 
-- Group by domain, not by layer
-- Keep service interface and implementation together unless very large
+- Each feature owns its service, types, and query hooks
+- Keep service interface and factory together
 - Colocate Zod schemas with the service that validates them
-- Place context provider in a single centralized file
-- Organize query hooks separate from service context hooks
-- Components import only hooks, never services or implementations
+- Place context provider in a single centralized location at root level
+- Organize query hooks with their service in the feature
+- Components import only hooks, never services or implementations directly
+- Move service to `src/lib/services/` only if used by 2+ features
 
 ## Implementation Checklist
 

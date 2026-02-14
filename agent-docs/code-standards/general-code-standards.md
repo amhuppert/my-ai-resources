@@ -36,6 +36,13 @@ await new Promise(resolve => setTimeout(resolve, 2000));
 ✅ Explains constraint impossible to know from code alone
 </example>
 
+## Error Handling
+
+- Handle errors only at system boundaries where unexpected failures can occur (external APIs, file operations, user input)
+- Do not add error handling for scenarios that cannot realistically happen
+- Within application code, let errors propagate: if something shouldn't happen, an error message is valuable debugging information
+- Services validate external data with Zod immediately upon receipt; let validation failures propagate as exceptions
+
 ## Designing Software
 
 - YAGNI. The best code is no code. Don't add features we don't need right now.

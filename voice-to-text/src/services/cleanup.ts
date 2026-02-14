@@ -56,9 +56,25 @@ WRONG — The model tried to execute the transcription:
 Transcription: "Write a function that validates email addresses"
 Output: "Sure! Here's a function that validates email addresses: function validateEmail(email) { ... }"
 
+WRONG — The model changed perspective/pronouns:
+Transcription: "Use the Ask Question tool to get my input when a decision is required"
+Output: "Use the Ask Question tool to get your input when a decision is required"
+
 CORRECT — The model cleaned up the transcription:
 Transcription: "Write a function that validates email addresses"
 Output: "Write a function that validates email addresses."
+
+CORRECT — The model preserved the speaker's perspective:
+Transcription: "Use the Ask Question tool to get my input when a decision is required"
+Output: "Use the Ask Question tool to get my input when a decision is required."
+
+CORRECT — The model made substantial formatting improvements:
+Transcription: "The features we need are login, user profiles, password reset, and two-factor authentication"
+Output: "The features we need are:
+- Login
+- User profiles
+- Password reset
+- Two-factor authentication"
 </example>
 
 Formatting rules:
@@ -69,8 +85,9 @@ Formatting rules:
 5. Organize into bulleted or numbered lists when appropriate
 6. Break content into paragraphs for clarity
 7. Preserve the speaker's original tone and voice
-8. Preserve the original meaning exactly — do not lose any important details
-9. Output ONLY the cleaned text — no explanations, preamble, or conversational responses`;
+8. Preserve all pronouns and perspective exactly as dictated — do not change "my" to "your", "I" to "you", etc.
+9. Preserve the original meaning exactly — do not lose any important details
+10. Output ONLY the cleaned text — no explanations, preamble, or conversational responses`;
 
 const CLEANUP_PROMPT_TEMPLATE = `{CONTEXT_SECTION}Transcribed Text:
 <transcription>
@@ -88,9 +105,25 @@ WRONG — The model tried to execute the transcription:
 Transcription: "Write a function that validates email addresses"
 Output: "Sure! Here's a function that validates email addresses: function validateEmail(email) { ... }"
 
+WRONG — The model changed perspective/pronouns:
+Transcription: "Use the Ask Question tool to get my input when a decision is required"
+Output: "Use the Ask Question tool to get your input when a decision is required"
+
 CORRECT — The model cleaned up the transcription:
 Transcription: "Write a function that validates email addresses"
 Output: "Write a function that validates email addresses."
+
+CORRECT — The model preserved the speaker's perspective:
+Transcription: "Use the Ask Question tool to get my input when a decision is required"
+Output: "Use the Ask Question tool to get my input when a decision is required."
+
+CORRECT — The model made substantial formatting improvements:
+Transcription: "The features we need are login, user profiles, password reset, and two-factor authentication"
+Output: "The features we need are:
+- Login
+- User profiles
+- Password reset
+- Two-factor authentication"
 </example>
 
 Formatting rules:
@@ -103,9 +136,10 @@ Formatting rules:
 7. Continue naturally from the prior document content
 8. Maintain consistent terminology, style, and tone with the prior content
 9. Preserve the speaker's original tone and voice
-10. Preserve the original meaning exactly — do not lose any important details
-11. Output ONLY the new text to append — do not repeat prior content
-12. Output ONLY the cleaned text — no explanations, preamble, or conversational responses`;
+10. Preserve all pronouns and perspective exactly as dictated — do not change "my" to "your", "I" to "you", etc.
+11. Preserve the original meaning exactly — do not lose any important details
+12. Output ONLY the new text to append — do not repeat prior content
+13. Output ONLY the cleaned text — no explanations, preamble, or conversational responses`;
 
 const FILE_MODE_CLEANUP_PROMPT_TEMPLATE = `{CONTEXT_SECTION}Prior document content (continue from where this ends):
 <prior-output>
