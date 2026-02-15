@@ -199,6 +199,203 @@ Each feature has `.kiro/specs/<feature>/spec.json`:
 }
 ```
 
+## Modifying & Extending Features
+
+### Iterative Refinement (Before Implementation)
+
+Requirements, design, and tasks are **not** write-once artifacts. Re-run commands multiple times to refine outputs:
+
+```bash
+# Generate initial version
+/kiro:spec-requirements feature
+
+# Review and refine (run multiple times)
+/kiro:spec-requirements feature  # Updates based on feedback
+
+# Same for design and tasks
+/kiro:spec-design feature
+/kiro:spec-design feature        # Refine based on review
+```
+
+**Key behavior**:
+
+- AI **preserves your manual edits** when regenerating (merge mode)
+- Each run updates `requirements.md`, `design.md`, and `tasks.md` in-place
+- `spec.json` metadata reflects latest phase and approvals
+- No version history—use git to track changes across iterations
+
+**When to iterate**:
+
+- ✅ After AI review, you identify missing requirements
+- ✅ Team feedback requires design changes
+- ✅ Task breakdown too coarse or too fine-grained
+- ✅ Initial output too generic for your project context
+
+### Mid-Stream Requirement Changes
+
+If requirements change **during implementation**, use this workflow:
+
+```bash
+# 1. Edit requirements.md directly
+# (add/remove/modify EARS statements)
+
+# 2. Regenerate design to match new requirements
+/kiro:spec-design feature
+
+# 3. Regenerate tasks (may add/remove/reorder tasks)
+/kiro:spec-tasks feature
+
+# 4. Validate what's already implemented against new requirements
+/kiro:validate-impl feature
+
+# 5. Implement new/modified tasks
+/kiro:spec-impl feature [new-task-ids]
+```
+
+**Critical notes**:
+
+- ⚠️ Regenerating design & tasks may **invalidate** some completed implementation
+- ✅ Use `/kiro:validate-impl` to identify gaps between new requirements and old code
+- ✅ Commit after each phase change (requirements → design → tasks) for rollback capability
+- ❌ Avoid changing requirements after task approval unless unavoidable
+
+### Extending Existing Features
+
+For feature enhancements, use one of two patterns:
+
+#### Option 1: Create New Spec for Enhancement (Recommended)
+
+Treat extensions as **separate feature specs**:
+
+```bash
+# For an enhancement to existing "auth-system", create new spec
+/kiro:spec-init Add OAuth to existing username/password auth system
+# → Creates "auth-oauth-enhancement" or similar
+
+# Run full workflow on new spec
+/kiro:spec-requirements auth-oauth-enhancement
+/kiro:validate-gap auth-oauth-enhancement        # Analyze existing auth system
+/kiro:spec-design auth-oauth-enhancement
+/kiro:validate-design auth-oauth-enhancement     # Check integration points
+/kiro:spec-tasks auth-oauth-enhancement
+/kiro:spec-impl auth-oauth-enhancement
+```
+
+**Advantages**:
+
+- ✅ Clear spec for the **enhancement scope**
+- ✅ `/kiro:validate-gap` analyzes existing functionality
+- ✅ `/kiro:validate-design` checks integration compatibility
+- ✅ Each enhancement is independently trackable
+- ✅ Easier to rollback or abandon enhancement
+
+**Best for**:
+
+- Significant features (new auth method, payment system, etc.)
+- Team-wide work (multiple implementers)
+- Features requiring integration analysis with existing code
+
+#### Option 2: Extend Existing Spec
+
+Modify the original spec's requirements directly:
+
+```bash
+# Edit existing spec
+/kiro:spec-requirements auth-system  # Add new requirements to existing spec
+
+# Regenerate downstream documents
+/kiro:spec-design auth-system
+/kiro:spec-tasks auth-system
+
+# Implement new/modified tasks
+/kiro:spec-impl auth-system [new-task-ids]
+```
+
+**Advantages**:
+
+- ✅ Simpler for **small additions** (new field, extra validation)
+- ✅ Single spec tracks feature evolution
+- ✅ Fewer specs to manage
+
+**Disadvantages**:
+
+- ❌ Spec becomes complex over time
+- ❌ Hard to distinguish original vs extended requirements
+- ❌ Riskier if extension conflicts with existing design
+
+**Best for**:
+
+- Small additions (new field, extra validation, minor enhancement)
+- Tightly scoped changes
+- Single implementer
+
+### Workflow: Adding Requirements Mid-Implementation
+
+```bash
+# 1. Identify missing requirement during implementation
+#    (e.g., "I need email rate-limiting but it's not in requirements")
+
+# 2. Add requirement to requirements.md manually
+#    (add new EARS statement)
+
+# 3. Regenerate design
+/kiro:spec-design feature -y    # Auto-approve requirements
+
+# 4. Regenerate tasks
+/kiro:spec-tasks feature -y     # Auto-approve design
+
+# 5. Check what's affected
+/kiro:spec-status feature
+
+# 6. Implement new tasks
+/kiro:spec-impl feature [new-task-ids]
+
+# 7. Validate implementation hasn't broken anything
+/kiro:validate-impl feature
+```
+
+### Cascading Updates
+
+When **requirements change**, the cascade works like this:
+
+```
+Requirements Changed
+    ↓ (update file)
+Design Affected
+    ↓ (/kiro:spec-design feature)
+Tasks Regenerated
+    ↓ (/kiro:spec-tasks feature)
+Implementation May Need Updates
+    ↓ (/kiro:validate-impl feature to detect conflicts)
+```
+
+**Affected artifacts**:
+
+- `design.md` — Regenerated to match new requirements
+- `tasks.md` — Regenerated (task count/order may change)
+- `research.md` — May be regenerated if discovery changes
+- Existing implementation — Check for conflicts using `/kiro:validate-impl`
+
+**Conflict detection**:
+
+```bash
+# After significant requirement change, validate completed work
+/kiro:validate-impl feature
+
+# Reports which implemented tasks still match new requirements
+# Flags tasks that need re-implementation
+```
+
+### Best Practices for Modifications
+
+- 💡 **Keep steering fresh**: Run `/kiro:steering` periodically to keep AI context accurate
+- 💡 **Iterate early**: Refine requirements/design **before** starting implementation
+- 💡 **Use separate specs for extensions**: Reduces complexity and improves traceability
+- 💡 **Commit frequently**: After requirements change, design change, and task change
+- 💡 **Validate after cascading changes**: Always run `/kiro:validate-impl` after regenerating design/tasks
+- 💡 **Document why**: When modifying specs, add context in git commits explaining the change rationale
+- 💡 **Avoid ping-pong**: Don't frequently toggle between "extend existing" vs "new spec"—choose strategy upfront
+
 ## EARS Requirements Format
 
 Requirements use EARS (Easy Approach to Requirements Syntax) patterns:
