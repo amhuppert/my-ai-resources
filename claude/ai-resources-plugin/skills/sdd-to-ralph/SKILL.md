@@ -205,7 +205,8 @@ Convert CCSDD's `tasks.md` into Ralph's priority-based `fix_plan.md`.
    - Preserve task numbering (1.1, 1.2, etc.)
    - Extract `_Requirements: X, Y_` references → collect for Notes section
    - Remove `_Requirements: X, Y_` lines from task items (they go in Notes)
-5. **Add validation task** to the last priority section:
+5. **Add closing tasks** to the last priority section:
+   - `- [ ] Check off completed tasks in .kiro/specs/<feature-name>/tasks.md (mark \`- [ ]\` → \`- [x]\` for all implemented tasks)`
    - `- [ ] Run /kiro:validate-impl <feature-name> to validate implementation against spec requirements`
 6. **Add standard sections**: Completed, Discovered, Notes
 7. **Populate Notes** with requirement references extracted from tasks
@@ -228,6 +229,7 @@ Convert CCSDD's `tasks.md` into Ralph's priority-based `fix_plan.md`.
 ## Priority 3: Integration & Testing
 
 - [ ] [P2 task, marker stripped]
+- [ ] Check off completed tasks in .kiro/specs/<feature-name>/tasks.md (mark `- [ ]` → `- [x]` for all implemented tasks)
 - [ ] Run /kiro:validate-impl <feature-name> to validate implementation against spec requirements
 
 ## Completed
@@ -247,7 +249,7 @@ Convert CCSDD's `tasks.md` into Ralph's priority-based `fix_plan.md`.
 - Each task should be specific and independently completable in one Ralph loop (~15-30 min)
 - If CCSDD tasks are compound ("X and Y"), split them into separate items
 - Preserve dependency ordering within each priority section
-- The validation task is always last — it closes the spec→implementation→validation loop
+- The Kiro check-off and validation tasks are always last — they close the spec→implementation→validation loop
 </guidelines>
 
 Write the complete fix_plan.md to `.ralph/fix_plan.md`.
@@ -308,7 +310,8 @@ Read back generated files and verify:
 2. Has at least one `- [ ]` checkbox item
 3. Has `## Completed` section
 4. Has `## Discovered` section
-5. Contains `/kiro:validate-impl` validation task
+5. Contains Kiro tasks check-off task
+6. Contains `/kiro:validate-impl` validation task
 
 **If any check fails:** report the specific failure but do NOT delete files. Suggest re-running or manual fix.
 

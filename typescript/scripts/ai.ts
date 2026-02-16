@@ -15,6 +15,7 @@ import {
   formatAuditReport,
 } from "@/lib/config-audit-operations.js";
 import { findCursorRules } from "@/lib/cursor-rules-sync.js";
+import { installHook } from "@/scripts/install-hooks.js";
 
 const program = new Command();
 
@@ -409,6 +410,49 @@ program
     } catch (error) {
       console.error(
         `Error creating worktree: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      process.exit(1);
+    }
+  });
+
+const hooks = program.command("hooks").description("Manage Claude Code hooks");
+
+hooks
+  .command("notification")
+  .description("Install notification sound hook for the current project")
+  .action(async () => {
+    const { existsSync } = await import("fs");
+
+    const config = createDefaultConfig();
+    const notificationFile = join(
+      config.paths.projectClaudeDir,
+      "notification.mp3",
+    );
+
+    if (!existsSync(notificationFile)) {
+      console.error(`Error: ${notificationFile} not found`);
+      console.error(
+        "Add a notification.mp3 file to .claude/ before installing the hook",
+      );
+      process.exit(1);
+    }
+
+    try {
+      installHook(
+        "Notification",
+        "*",
+        "ffplay -nodisp -autoexit -loglevel quiet ./.claude/notification.mp3 < /dev/null",
+        config,
+        "command",
+        5,
+        true,
+      );
+      console.log("Notification hook installed successfully");
+    } catch (error) {
+      console.error(
+        `Error installing notification hook: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
       process.exit(1);
     }

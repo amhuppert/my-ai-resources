@@ -2,15 +2,11 @@
 
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { existsSync } from "fs";
 import {
   printInstallationHeader,
   installDirectory,
   installClaudeMd,
-  execCommand,
-  commandExists,
 } from "@/lib/installer-utils.js";
-import { installHook } from "@/scripts/install-hooks.js";
 import {
   type CommandExecutor,
   type InstallConfig,
@@ -70,42 +66,6 @@ async function main(
     projectClaudeFile,
     `Installing project-level CLAUDE.md -> ${projectClaudeFile}`,
   );
-
-  // 4. Install notification hook if audio file exists
-  const notificationFile = join(
-    config.paths.projectClaudeDir,
-    "notification.mp3",
-  );
-
-  if (existsSync(notificationFile)) {
-    console.log("Installing notification hook for .claude/notification.mp3");
-    if (await commandExists("bun", executor)) {
-      try {
-        installHook(
-          "Notification",
-          "*",
-          "ffplay -nodisp -autoexit -loglevel quiet ./.claude/notification.mp3 < /dev/null",
-          config,
-          "command",
-          5,
-          true,
-        );
-        console.log("Notification hook installed successfully");
-      } catch (error) {
-        console.log("Warning: Failed to install notification hook");
-        console.error(error);
-      }
-    } else {
-      console.log(
-        "Warning: bun not found, skipping notification hook installation",
-      );
-      console.log("Install bun to enable hook installation: https://bun.sh");
-    }
-  } else {
-    console.log(
-      "No .claude/notification.mp3 found, skipping notification hook installation",
-    );
-  }
 
   console.log("");
   console.log("project-level installation complete!");
