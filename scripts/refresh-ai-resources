@@ -1,7 +1,9 @@
 #! /bin/bash
 
-echo "Deleting Claude plugins cache..."
-rm -rf ~/.claude/plugins/cache/
+if [[ "$1" == "--clear-cache" ]]; then
+  echo "Deleting Claude plugins cache..."
+  rm -rf ~/.claude/plugins/cache/
+fi
 
 claude plugin uninstall ai-resources@ai-resources
 claude plugin install ai-resources@ai-resources

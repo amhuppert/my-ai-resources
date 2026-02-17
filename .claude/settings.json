@@ -1,5 +1,5 @@
 {
   "permissions": {
-    "deny": ["ai-ignored/**"]
+    "deny": ["Read(ai-ignored/**)"]
   }
 }

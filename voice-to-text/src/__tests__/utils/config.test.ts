@@ -122,6 +122,23 @@ describe("config", () => {
       expect(config).toBeNull();
       expect(errorSpy).toHaveBeenCalled();
     });
+
+    test("loads config from specified baseDir", () => {
+      const baseDir = "/projects/other-app";
+      fsFiles[join(baseDir, "voice.json")] = JSON.stringify({
+        hotkey: "F12",
+        beepEnabled: false,
+      });
+      const config = loadLocalConfig(baseDir);
+      expect(config).not.toBeNull();
+      expect(config!.hotkey).toBe("F12");
+      expect(config!.beepEnabled).toBe(false);
+    });
+
+    test("returns null when baseDir has no voice.json", () => {
+      const config = loadLocalConfig("/nonexistent/dir");
+      expect(config).toBeNull();
+    });
   });
 
   describe("resolveConfig()", () => {
@@ -269,6 +286,80 @@ describe("config", () => {
       expect(resolution.loadedFrom).toHaveLength(3);
       expect(resolution.loadedFrom[2].layer).toBe("specified");
       expect(resolution.loadedFrom[2].found).toBe(true);
+    });
+
+    test("projectDir loads local config from specified directory", () => {
+      const projectDir = "/projects/other-app";
+      fsFiles[join(projectDir, "voice.json")] = JSON.stringify({
+        hotkey: "F11",
+        contextFile: "project-ctx.md",
+      });
+
+      const resolution = resolveConfig({
+        cliOpts: {},
+        projectDir,
+      });
+      expect(resolution.config.hotkey).toBe("F11");
+      expect(resolution.config.contextFiles).toHaveLength(1);
+      expect(resolution.config.contextFiles[0]!.path).toBe(
+        resolve(projectDir, "project-ctx.md"),
+      );
+      expect(resolution.config.contextFiles[0]!.source).toBe("local");
+    });
+
+    test("projectDir resolves paths relative to project directory", () => {
+      const projectDir = "/projects/other-app";
+      fsFiles[join(projectDir, "voice.json")] = JSON.stringify({
+        contextFile: "voice-context.md",
+        instructionsFile: "instructions.md",
+        outputFile: "output.md",
+      });
+
+      const resolution = resolveConfig({
+        cliOpts: {},
+        projectDir,
+      });
+      expect(resolution.config.contextFiles[0]!.path).toBe(
+        resolve(projectDir, "voice-context.md"),
+      );
+      expect(resolution.config.instructionsFiles[0]!.path).toBe(
+        resolve(projectDir, "instructions.md"),
+      );
+      expect(resolution.config.resolvedOutputFile).toBe(
+        resolve(projectDir, "output.md"),
+      );
+    });
+
+    test("without projectDir behaves identically to current (uses cwd)", () => {
+      fsFiles[join(mockCwd, "voice.json")] = JSON.stringify({
+        contextFile: "ctx.md",
+      });
+
+      const withoutProjectDir = resolveConfig({ cliOpts: {} });
+      const withProjectDir = resolveConfig({
+        cliOpts: {},
+        projectDir: mockCwd,
+      });
+
+      expect(withoutProjectDir.config.contextFiles).toEqual(
+        withProjectDir.config.contextFiles,
+      );
+      expect(withoutProjectDir.config.hotkey).toBe(
+        withProjectDir.config.hotkey,
+      );
+    });
+
+    test("projectDir loadedFrom metadata shows correct path", () => {
+      const projectDir = "/projects/other-app";
+      const resolution = resolveConfig({
+        cliOpts: {},
+        projectDir,
+      });
+      expect(resolution.loadedFrom[1]!.layer).toBe("local");
+      expect(resolution.loadedFrom[1]!.path).toBe(
+        join(projectDir, "voice.json"),
+      );
+      expect(resolution.loadedFrom[1]!.found).toBe(false);
     });
   });
 

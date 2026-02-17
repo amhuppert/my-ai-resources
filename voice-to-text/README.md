@@ -1,13 +1,17 @@
 # Voice-to-Text CLI
 
-A command-line tool for capturing voice input and converting it to AI-ready formatted text. Records audio via hotkey, transcribes with OpenAI, cleans up with Claude, and copies to clipboard.
+A command-line tool for capturing voice input and converting it to AI-ready formatted text. Two modes: `listen` for hotkey-driven voice recording, `serve` for HTTP API access.
 
 ## Features
 
-- **Global hotkey activation** - Press F9 from any application (macOS, Linux)
+- **Two operating modes** - `listen` (hotkey-driven) and `serve` (HTTP API)
+- **Global hotkey activation** - Press F9/F10 from any application (macOS, Linux)
+- **Dual output modes** - Clipboard (F9) or file append with continuity (F10)
 - **OpenAI transcription** - Uses gpt-4o-transcribe for accurate speech-to-text
+- **Multi-format audio** - WAV, WebM, MP3, OGG, FLAC, M4A
 - **Claude cleanup** - Automatically formats and corrects transcription errors
-- **Clipboard integration** - Result is copied and ready to paste
+- **Project-scoped config** - Per-project `voice.json` with context and instructions
+- **HTTP server mode** - REST API for browser extensions, editor plugins, and other tools
 - **Desktop notifications** - Visual feedback for recording states
 - **Audio feedback** - Beep sounds indicate recording start/stop
 
@@ -68,7 +72,7 @@ The installer will:
 
 ```bash
 # Ensure ~/.local/bin is in your PATH
-voice-to-text
+voice-to-text --help
 ```
 
 ## Configuration
@@ -88,7 +92,7 @@ Configuration is resolved from multiple sources, with higher-priority sources ov
 
 ### Local Config File
 
-Place a `voice.json` file in your project directory to override global settings for that project. This file is automatically detected when you run `voice-to-text` from that directory.
+Place a `voice.json` file in your project directory to override global settings for that project. This file is automatically detected when you run `voice-to-text listen` from that directory, or when a server request includes the `projectPath` parameter.
 
 ```json
 {
@@ -147,49 +151,72 @@ The optional `instructionsFile` provides custom cleanup instructions to Claude. 
 
 ### CLI Options
 
+#### `listen` subcommand
+
 All configuration options can be overridden via command-line arguments. CLI arguments take precedence over all config file values.
 
 ```
-Usage: voice-to-text [options]
+Usage: voice-to-text listen [options]
 
 Options:
-  -V, --version                output the version number
   --config <path>              Path to configuration file
   --hotkey <key>               Global hotkey to toggle recording
+  --file-hotkey <key>          Global hotkey for file output mode
   --context-file <path>        Path to context file for Claude cleanup
   --instructions-file <path>   Path to instructions file for Claude cleanup
+  --output-file <path>         Path to output file for file mode
   --claude-model <model>       Claude model for cleanup step
   --no-auto-insert             Disable auto-insert at cursor
   --no-beep                    Disable audio feedback
   --no-notification            Disable desktop notifications
   --no-terminal-output         Disable terminal output
   --max-duration <seconds>     Maximum recording duration in seconds
+  --verbose                    Enable verbose logging
+  --clear-output               Clear output file on startup
   -h, --help                   display help for command
+```
+
+#### `serve` subcommand
+
+```
+Usage: voice-to-text serve [options]
+
+Options:
+  -p, --port <port>   Server port (default: 7880)
+  --host <host>       Server host (default: "127.0.0.1")
+  --verbose           Enable verbose logging
+  -h, --help          display help for command
 ```
 
 ### Examples
 
 ```bash
-# Use default config file settings
-voice-to-text
+# Listen mode with default config
+voice-to-text listen
 
 # Override hotkey and disable beeps
-voice-to-text --hotkey F10 --no-beep
+voice-to-text listen --hotkey F10 --no-beep
 
 # Use a specific config file
-voice-to-text --config ~/projects/my-app/voice-config.json
+voice-to-text listen --config ~/projects/my-app/voice-config.json
 
 # Specify context and instructions files
-voice-to-text --context-file ./context.md --instructions-file ./instructions.md
+voice-to-text listen --context-file ./context.md --instructions-file ./instructions.md
 
 # Use a specific Claude model
-voice-to-text --claude-model claude-sonnet-4-5-20250929
+voice-to-text listen --claude-model claude-sonnet-4-5-20250929
+
+# Start the HTTP server on default port
+voice-to-text serve
+
+# Start server on custom port
+voice-to-text serve --port 9000 --verbose
 ```
 
-### Starting the Tool
+### Starting Listen Mode
 
 ```bash
-voice-to-text
+voice-to-text listen
 ```
 
 Output (global hotkey mode):
@@ -202,6 +229,26 @@ Output (terminal input mode):
 
 ```
 Voice-to-text ready. Press Enter or Space to toggle recording. (Ctrl+C to exit)
+```
+
+### Starting Server Mode
+
+```bash
+voice-to-text serve
+```
+
+Output:
+
+```
+Voice2Text server listening on http://127.0.0.1:7880
+```
+
+Transcribe via curl:
+
+```bash
+curl -X POST http://127.0.0.1:7880/transcribe \
+  -F "audio=@recording.webm" \
+  -F "projectPath=/path/to/project"
 ```
 
 ### Recording Workflow
@@ -376,7 +423,8 @@ Binary is output to `dist/voice-to-text`.
 ### Running in Development Mode
 
 ```bash
-bun run dev
+bun run dev listen        # Listen mode
+bun run serve             # Server mode
 ```
 
 ### Project Structure
@@ -384,17 +432,21 @@ bun run dev
 ```
 voice-to-text/
 ├── src/
-│   ├── main.ts              # Entry point, state machine
+│   ├── main.ts              # Entry point, subcommand routing
+│   ├── server.ts            # HTTP server (serve subcommand)
 │   ├── types.ts             # Type definitions
 │   ├── services/
 │   │   ├── audio-recorder.ts   # Microphone capture
-│   │   ├── transcriber.ts      # OpenAI API integration
+│   │   ├── transcriber.ts      # OpenAI API integration (multi-format)
 │   │   ├── cleanup.ts          # Claude CLI integration
 │   │   ├── clipboard.ts        # Clipboard operations
 │   │   ├── cursor-insert.ts    # Auto-insert at cursor position
+│   │   ├── file-output.ts      # File append output
+│   │   ├── last-transcription.ts # Last transcription store
 │   │   └── feedback.ts         # Notifications and sounds
 │   └── utils/
 │       ├── config.ts           # Configuration loading
+│       ├── context.ts          # Context file reading
 │       ├── hotkey.ts           # Global hotkey listener
 │       └── wav-encoder.ts      # Audio format conversion
 ├── assets/

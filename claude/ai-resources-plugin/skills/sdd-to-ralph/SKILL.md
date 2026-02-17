@@ -181,75 +181,42 @@ Write the complete PROMPT.md to `.ralph/PROMPT.md`.
 
 ## Step 5: Generate fix_plan.md
 
-Convert CCSDD's `tasks.md` into Ralph's priority-based `fix_plan.md`.
-
-### Parallel Marker Mapping
-
-| CCSDD Marker | Ralph Section                          |
-| ------------ | -------------------------------------- |
-| `(P0)`       | `## Priority 1: Foundation`            |
-| `(P1)`       | `## Priority 2: Core Implementation`   |
-| `(P2)`       | `## Priority 3: Integration & Testing` |
+Convert CCSDD's `tasks.md` into Ralph's `fix_plan.md` using `/kiro:spec-impl` commands.
 
 ### Conversion Algorithm
 
 1. **Parse tasks.md** — extract all checkbox items (`- [ ]` or `- [x]`)
-2. **Group by parallel marker** — match `(P0)`, `(P1)`, `(P2)` at end of task text
-3. **Handle unmarked tasks**:
-   - If parent task has a marker → inherit parent's marker
-   - If root-level with no marker → assign P0 (foundation)
-   - Log warnings for inferred assignments in Notes section
-4. **Clean task text**:
-   - Strip `(P0)`, `(P1)`, `(P2)` markers from text
-   - Preserve `- [ ]` checkbox format
-   - Preserve task numbering (1.1, 1.2, etc.)
-   - Extract `_Requirements: X, Y_` references → collect for Notes section
-   - Remove `_Requirements: X, Y_` lines from task items (they go in Notes)
-5. **Add closing tasks** to the last priority section:
-   - `- [ ] Check off completed tasks in .kiro/specs/<feature-name>/tasks.md (mark \`- [ ]\` → \`- [x]\` for all implemented tasks)`
-   - `- [ ] Run /kiro:validate-impl <feature-name> to validate implementation against spec requirements`
-6. **Add standard sections**: Completed, Discovered, Notes
-7. **Populate Notes** with requirement references extracted from tasks
+2. **Identify leaf tasks** — tasks with no sub-tasks (e.g., `1.1`, `1.2`, `2.3`). Skip parent-only tasks (e.g., `1.` if it has `1.1`, `1.2` children)
+3. **Extract task IDs** — the numeric prefix of each leaf task (e.g., `1.1`, `2.3`)
+4. **Generate spec-impl commands** — one per leaf task, in order
+5. **Add closing task** — `/kiro:validate-impl` as final item
+6. **Add standard sections**: Completed, Discovered
 
 ### Output Format
 
 ```markdown
 # Fix Plan - <feature-name>
 
-## Priority 1: Foundation
+## Tasks
 
-- [ ] [P0 task, marker stripped]
-- [ ] [P0 task, marker stripped]
-
-## Priority 2: Core Implementation
-
-- [ ] [P1 task, marker stripped]
-- [ ] [P1 task, marker stripped]
-
-## Priority 3: Integration & Testing
-
-- [ ] [P2 task, marker stripped]
-- [ ] Check off completed tasks in .kiro/specs/<feature-name>/tasks.md (mark `- [ ]` → `- [x]` for all implemented tasks)
-- [ ] Run /kiro:validate-impl <feature-name> to validate implementation against spec requirements
+- [ ] /kiro:spec-impl <feature-name> 1.1
+- [ ] /kiro:spec-impl <feature-name> 1.2
+- [ ] /kiro:spec-impl <feature-name> 1.3
+- [ ] /kiro:spec-impl <feature-name> 2.1
+- [ ] /kiro:spec-impl <feature-name> 2.2
+- [ ] /kiro:validate-impl <feature-name>
 
 ## Completed
 
 ## Discovered
 
 <!-- Ralph will add discovered tasks here -->
-
-## Notes
-
-- Task 1.3 implements Requirements 1, 2
-- Task 2.1 implements Requirements 3, 4
-- [Any inferred marker warnings]
 ```
 
 <guidelines type="fix-plan">
-- Each task should be specific and independently completable in one Ralph loop (~15-30 min)
-- If CCSDD tasks are compound ("X and Y"), split them into separate items
-- Preserve dependency ordering within each priority section
-- The Kiro check-off and validation tasks are always last — they close the spec→implementation→validation loop
+- Only include leaf tasks — parent tasks are organizational groupings, not implementable units
+- Preserve the task ordering from tasks.md (respects dependency structure via P0/P1/P2 ordering)
+- The /kiro:validate-impl task is always last — it closes the spec→implementation→validation loop
 </guidelines>
 
 Write the complete fix_plan.md to `.ralph/fix_plan.md`.
@@ -306,12 +273,11 @@ Read back generated files and verify:
 
 ### fix_plan.md checks
 
-1. Has at least one `## Priority` section
-2. Has at least one `- [ ]` checkbox item
+1. Has `## Tasks` section
+2. Has at least one `- [ ] /kiro:spec-impl` item
 3. Has `## Completed` section
 4. Has `## Discovered` section
-5. Contains Kiro tasks check-off task
-6. Contains `/kiro:validate-impl` validation task
+5. Contains `/kiro:validate-impl` as final task item
 
 **If any check fails:** report the specific failure but do NOT delete files. Suggest re-running or manual fix.
 
@@ -324,12 +290,11 @@ Successfully bridged CCSDD spec to Ralph!
 
 Feature: <feature-name>
 
-Task Breakdown:
-  Priority 1 (Foundation):          X tasks
-  Priority 2 (Core Implementation): Y tasks
-  Priority 3 (Integration):         Z tasks
-  + Validation task
-  Total: N tasks
+Tasks: N spec-impl commands + validation
+  /kiro:spec-impl <feature-name> 1.1
+  /kiro:spec-impl <feature-name> 1.2
+  ...
+  /kiro:validate-impl <feature-name>
 
 Files Generated:
   .ralph/PROMPT.md
@@ -341,7 +306,7 @@ Configuration Updated:
   .ralphrc PROJECT_NAME = "<feature-name>"
   .ralphrc PROJECT_TYPE = "<type>"
 
-[Any warnings about incomplete phases, inferred markers, etc.]
+[Any warnings about incomplete phases, etc.]
 
 Next Steps:
   1. Review .ralph/PROMPT.md and .ralph/fix_plan.md

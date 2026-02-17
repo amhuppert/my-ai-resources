@@ -14,17 +14,20 @@ cd voice-to-text && bun run build
 cd voice-to-text && bun test
 
 # Run development mode for manual testing
-cd voice-to-text && bun run dev
+cd voice-to-text && bun run dev listen
 ```
 
 ## Run Instructions
 
 ```bash
-# Run the compiled binary (after installation)
-voice-to-text
+# Run listen mode (hotkey-driven recording)
+voice-to-text listen
+
+# Run server mode (HTTP API)
+voice-to-text serve
 
 # Or run directly from dist/
-./voice-to-text/dist/voice-to-text
+./voice-to-text/dist/voice-to-text listen
 ```
 
 ## Install Instructions

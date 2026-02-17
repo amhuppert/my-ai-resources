@@ -1,12 +1,17 @@
 ---
 name: add-voice-context
-description: This skill should be used when the user wants to add context to the voice-to-text context file for the current project. Handles adding misheard words, terminology corrections, and project-specific information to improve transcription cleanup quality.
+description: This skill should be used when the user wants to add context to the voice-to-text context file for the current project. Handles adding misheard words, terminology corrections, and project-specific information to improve transcription cleanup quality. Also supports updating the global voice context file when the user specifies "global" (e.g., "add X to the global voice context").
 allowed-tools: Read, Glob, Edit, Write
 ---
 
 # Add Voice-to-Text Context
 
-Add new context entries to the project's voice-to-text context file to improve transcription cleanup accuracy. This addresses cases where the cleanup step produces incorrect output — either misheard terms, wrong spelling, or missing domain knowledge.
+Add new context entries to a voice-to-text context file to improve transcription cleanup accuracy. This addresses cases where the cleanup step produces incorrect output — either misheard terms, wrong spelling, or missing domain knowledge.
+
+Supports two context levels:
+
+- **Project-level** (default) — context specific to the current project, stored alongside `voice.json`
+- **Global-level** — context shared across all projects, stored alongside `~/.config/voice-to-text/config.json`
 
 ## How the context file works
 
@@ -21,7 +26,20 @@ Project Context:
 
 Claude uses this to correctly spell project-specific terms, recognize domain vocabulary, and apply naming conventions. Adding targeted entries prevents repeated transcription errors.
 
-## Step 1: Locate and read the context file
+## Step 1: Determine the target level and locate the context file
+
+First, determine whether the user wants to update the **project-level** or **global-level** context file.
+
+**Use global-level** if the user explicitly mentions "global", "global context", "global config", "global voice context", or `~/.config/voice-to-text/`. Otherwise default to **project-level**.
+
+### Global-level resolution
+
+1. Read `~/.config/voice-to-text/config.json` to find the `contextFile` value
+2. Resolve the `contextFile` path relative to `~/.config/voice-to-text/` (e.g., if `contextFile` is `"global-context.md"`, the full path is `~/.config/voice-to-text/global-context.md`)
+3. If `config.json` does not exist or has no `contextFile`, inform the user that global voice-to-text is not configured. Stop here.
+4. Read the context file contents
+
+### Project-level resolution (default)
 
 1. Read `voice.json` in the current directory to find the `contextFile` path
 2. If `voice.json` does not exist, check for a `voice-context.md` in the current directory
@@ -84,6 +102,7 @@ When adding a misheard word correction, include the common misheard form in the 
 
 After editing, display:
 
+- Whether the **project-level** or **global-level** context file was updated (and its path)
 - The specific entry or entries that were added
 - Which section they were added to
 - A brief reminder: changes take effect on the next voice-to-text recording

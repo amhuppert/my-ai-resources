@@ -1,7 +1,7 @@
 import { Command } from "commander";
-import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { resolveConfig } from "./utils/config.js";
+import { readContextFilesContent } from "./utils/context.js";
 import { createHotkeyListener } from "./utils/hotkey.js";
 import { createFeedbackService } from "./services/feedback.js";
 import {
@@ -14,34 +14,20 @@ import { copyToClipboard } from "./services/clipboard.js";
 import { createCursorInsertService } from "./services/cursor-insert.js";
 import { createFileOutputService } from "./services/file-output.js";
 import { createLastTranscriptionService } from "./services/last-transcription.js";
-import type { AppState, Config, OutputMode, ResolvedFileRef } from "./types.js";
-
-const TRANSCRIPTION_INSTRUCTIONS = "Accurately transcribe the spoken audio.";
-
-const TRANSCRIPTION_INSTRUCTIONS_WITH_CONTEXT =
-  "Accurately transcribe the spoken audio. The context below contains domain-specific terminology, names, and phrases to help you recognize words correctly. Use it only as hints for accurate transcription—do not alter, add to, or reinterpret what was actually spoken.";
-
-function readContextFilesContent(files: ResolvedFileRef[]): string | undefined {
-  const contents: string[] = [];
-  for (const file of files) {
-    if (!existsSync(file.path)) continue;
-    try {
-      const content = readFileSync(file.path, "utf-8").trim();
-      if (content) contents.push(content);
-    } catch {
-      // Silently skip unreadable files
-    }
-  }
-  if (contents.length === 0) return TRANSCRIPTION_INSTRUCTIONS;
-  return `${TRANSCRIPTION_INSTRUCTIONS_WITH_CONTEXT}\n\n<context>\n${contents.join("\n\n")}\n</context>`;
-}
+import { startServer } from "./server.js";
+import type { AppState, Config, OutputMode } from "./types.js";
 
 const program = new Command();
 
 program
   .name("voice-to-text")
   .description("Capture voice input and convert to AI-ready formatted text")
-  .version("1.0.0")
+  .version("1.0.0");
+
+// Listen subcommand — hotkey-driven voice recording (original default behavior)
+program
+  .command("listen")
+  .description("Listen for hotkeys and record voice input")
   .option("--config <path>", "Path to configuration file")
   .option("--hotkey <key>", "Global hotkey to toggle recording")
   .option("--context-file <path>", "Path to context file for Claude cleanup")
@@ -62,11 +48,26 @@ program
     "--max-duration <seconds>",
     "Maximum recording duration in seconds",
     parseInt,
-  );
+  )
+  .action(listenAction);
+
+// Serve subcommand — HTTP server mode
+program
+  .command("serve")
+  .description("Start the Voice2Text HTTP server")
+  .option("-p, --port <port>", "Server port", parseInt, 7880)
+  .option("--host <host>", "Server host", "127.0.0.1")
+  .option("--verbose", "Enable verbose logging")
+  .action((opts) => {
+    startServer(
+      { port: opts.port, host: opts.host },
+      opts.verbose === true,
+    );
+  });
 
 program.parse();
 
-async function main() {
+async function listenAction(opts: Record<string, unknown>) {
   // Validate environment
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -75,28 +76,27 @@ async function main() {
   }
 
   // Load configuration: global -> local voice.json -> --config file -> CLI args
-  const opts = program.opts();
   const verbose = opts.verbose === true;
 
   const cliOpts: Partial<Config> = {};
-  if (opts.hotkey !== undefined) cliOpts.hotkey = opts.hotkey;
-  if (opts.fileHotkey !== undefined) cliOpts.fileHotkey = opts.fileHotkey;
-  if (opts.contextFile !== undefined) cliOpts.contextFile = opts.contextFile;
+  if (opts.hotkey !== undefined) cliOpts.hotkey = opts.hotkey as string;
+  if (opts.fileHotkey !== undefined) cliOpts.fileHotkey = opts.fileHotkey as string;
+  if (opts.contextFile !== undefined) cliOpts.contextFile = opts.contextFile as string;
   if (opts.instructionsFile !== undefined)
-    cliOpts.instructionsFile = opts.instructionsFile;
-  if (opts.outputFile !== undefined) cliOpts.outputFile = opts.outputFile;
-  if (opts.claudeModel !== undefined) cliOpts.claudeModel = opts.claudeModel;
-  if (opts.autoInsert !== undefined) cliOpts.autoInsert = opts.autoInsert;
-  if (opts.beep !== undefined) cliOpts.beepEnabled = opts.beep;
+    cliOpts.instructionsFile = opts.instructionsFile as string;
+  if (opts.outputFile !== undefined) cliOpts.outputFile = opts.outputFile as string;
+  if (opts.claudeModel !== undefined) cliOpts.claudeModel = opts.claudeModel as string;
+  if (opts.autoInsert !== undefined) cliOpts.autoInsert = opts.autoInsert as boolean;
+  if (opts.beep !== undefined) cliOpts.beepEnabled = opts.beep as boolean;
   if (opts.notification !== undefined)
-    cliOpts.notificationEnabled = opts.notification;
+    cliOpts.notificationEnabled = opts.notification as boolean;
   if (opts.terminalOutput !== undefined)
-    cliOpts.terminalOutputEnabled = opts.terminalOutput;
+    cliOpts.terminalOutputEnabled = opts.terminalOutput as boolean;
   if (opts.maxDuration !== undefined)
-    cliOpts.maxRecordingDuration = opts.maxDuration;
+    cliOpts.maxRecordingDuration = opts.maxDuration as number;
 
   const { config, loadedFrom } = resolveConfig({
-    configPath: opts.config,
+    configPath: opts.config as string | undefined,
     cliOpts,
   });
 
@@ -364,4 +364,3 @@ async function main() {
   }
 }
 
-main();

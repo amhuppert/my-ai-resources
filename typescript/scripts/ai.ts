@@ -418,6 +418,75 @@ program
 const hooks = program.command("hooks").description("Manage Claude Code hooks");
 
 hooks
+  .command("format <formatter>")
+  .description(
+    "Install code formatting hook (runs formatter after file writes/edits)",
+  )
+  .action(async (formatter: string) => {
+    const { existsSync, mkdirSync, writeFileSync, chmodSync } = await import(
+      "fs"
+    );
+
+    const supportedFormatters = ["prettier"];
+    if (!supportedFormatters.includes(formatter)) {
+      console.error(`Error: Unsupported formatter "${formatter}"`);
+      console.error(`Supported formatters: ${supportedFormatters.join(", ")}`);
+      process.exit(1);
+    }
+
+    const config = createDefaultConfig();
+    const hooksDir = join(config.paths.projectClaudeDir, "hooks");
+    const scriptPath = join(hooksDir, "format-code.sh");
+
+    if (!existsSync(hooksDir)) {
+      mkdirSync(hooksDir, { recursive: true });
+    }
+
+    const script = [
+      "#!/bin/bash",
+      "",
+      "# PostToolUse hook: format files after Write/Edit",
+      'input=$(cat)',
+      'file_path=$(echo "$input" | jq -r \'.tool_input.file_path // empty\' 2>/dev/null)',
+      "",
+      'if [ -z "$file_path" ]; then',
+      "  exit 0",
+      "fi",
+      "",
+      'case "$file_path" in',
+      "  *.ts|*.tsx|*.js|*.jsx|*.mts|*.cts|*.mjs|*.cjs)",
+      '    if npx prettier --write "$file_path" > /dev/null 2>&1; then',
+      '      echo "Formatted $file_path with prettier"',
+      "    fi",
+      "    ;;",
+      "esac",
+      "",
+      "exit 0",
+      "",
+    ].join("\n");
+
+    writeFileSync(scriptPath, script, "utf-8");
+    chmodSync(scriptPath, 0o755);
+
+    const hookCommand =
+      'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/format-code.sh"';
+
+    try {
+      installHook("PostToolUse", "Write|Edit", hookCommand, config, "command", 10, true);
+      console.log("Code formatting hook installed successfully");
+      console.log(`Formatter: ${formatter}`);
+      console.log(`Script: ${scriptPath}`);
+    } catch (error) {
+      console.error(
+        `Error installing format hook: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      process.exit(1);
+    }
+  });
+
+hooks
   .command("notification")
   .description("Install notification sound hook for the current project")
   .action(async () => {

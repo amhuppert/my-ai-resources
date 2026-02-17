@@ -48,3 +48,23 @@ export interface AppState {
   audioFilePath: string | null;
   outputMode: OutputMode | null;
 }
+
+// Server types
+
+export interface ServerConfig {
+  port: number;
+  host: string;
+}
+
+export interface TranscribeResponse {
+  text: string;
+}
+
+export interface TranscribeErrorResponse {
+  error: string;
+}
+
+export interface HealthResponse {
+  status: "ok";
+  version: string;
+}

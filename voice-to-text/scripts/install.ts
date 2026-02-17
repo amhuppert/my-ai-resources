@@ -207,7 +207,7 @@ async function main() {
   console.log("\n✅ Installation complete!\n");
   console.log("Usage:");
   console.log("  1. Make sure ~/.local/bin is in your PATH");
-  console.log("  2. Run: voice-to-text");
+  console.log("  2. Run: voice-to-text listen");
   console.log("  3. Press F9 to start recording, F9 again to stop");
   console.log("  4. The cleaned text will be copied to your clipboard\n");
 

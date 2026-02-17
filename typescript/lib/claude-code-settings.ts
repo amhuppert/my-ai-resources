@@ -3,61 +3,75 @@ import { z } from "zod";
 /**
  * Valid hook types for Claude Code
  */
-export const HookTypeSchema = z.literal("command");
+export const HookTypeSchema = z.enum(["command", "prompt", "agent"]);
 
 /**
  * Valid hook events for Claude Code
  */
 export const HookEventSchema = z.enum([
+  "SessionStart",
+  "UserPromptSubmit",
   "PreToolUse",
+  "PermissionRequest",
   "PostToolUse",
+  "PostToolUseFailure",
   "Notification",
-  "Stop",
+  "SubagentStart",
   "SubagentStop",
+  "Stop",
+  "TeammateIdle",
+  "TaskCompleted",
   "PreCompact",
+  "SessionEnd",
 ]);
 
 /**
- * Individual hook configuration
+ * Individual hook configuration.
+ * Fields vary by type: command hooks use `command`, prompt/agent hooks use `prompt`.
  */
 export const HookConfigSchema = z.object({
-  /** Hook type - must be "command" */
   type: HookTypeSchema,
-  /** Command to execute */
-  command: z.string(),
-  /** Timeout in seconds (optional) */
+  command: z.string().optional(),
+  prompt: z.string().optional(),
   timeout: z.number().positive().optional(),
+  async: z.boolean().optional(),
+  model: z.string().optional(),
+  statusMessage: z.string().optional(),
+  once: z.boolean().optional(),
 });
 
 /**
  * Hook matcher configuration
  */
 export const HookMatcherSchema = z.object({
-  /** Pattern to match against */
-  matcher: z.string(),
+  /** Pattern to match against (omit to match all) */
+  matcher: z.string().optional(),
   /** Array of hooks to execute */
   hooks: z.array(HookConfigSchema),
 });
 
 /**
- * Hooks configuration for Claude Code
+ * Hooks configuration for Claude Code.
+ * Uses .passthrough() to accept new event types added in future Claude Code versions.
  */
 export const HooksSchema = z
   .object({
-    /** Pre-tool-use hooks */
+    SessionStart: z.array(HookMatcherSchema).optional(),
+    UserPromptSubmit: z.array(HookMatcherSchema).optional(),
     PreToolUse: z.array(HookMatcherSchema).optional(),
-    /** Post-tool-use hooks */
+    PermissionRequest: z.array(HookMatcherSchema).optional(),
     PostToolUse: z.array(HookMatcherSchema).optional(),
-    /** Notification hooks */
+    PostToolUseFailure: z.array(HookMatcherSchema).optional(),
     Notification: z.array(HookMatcherSchema).optional(),
-    /** Stop hooks */
-    Stop: z.array(HookMatcherSchema).optional(),
-    /** Subagent stop hooks */
+    SubagentStart: z.array(HookMatcherSchema).optional(),
     SubagentStop: z.array(HookMatcherSchema).optional(),
-    /** Pre-compact hooks */
+    Stop: z.array(HookMatcherSchema).optional(),
+    TeammateIdle: z.array(HookMatcherSchema).optional(),
+    TaskCompleted: z.array(HookMatcherSchema).optional(),
     PreCompact: z.array(HookMatcherSchema).optional(),
+    SessionEnd: z.array(HookMatcherSchema).optional(),
   })
-  .strict();
+  .passthrough();
 
 /**
  * Permissions configuration for Claude Code

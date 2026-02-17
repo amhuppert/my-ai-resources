@@ -3,14 +3,19 @@
 ## App Summary
 
 - Command-line tool that captures voice input and converts it to formatted text
-- User presses a global hotkey to start/stop recording from any application
-- Two output modes selected per-generation by which hotkey is pressed:
+- Two subcommands:
+  - **`listen`**: long-lived foreground process with global hotkey activation for voice recording
+  - **`serve`**: HTTP API server for programmatic transcription from any client
+- In listen mode, user presses a global hotkey to start/stop recording from any application
+- Two output modes in listen mode selected per-generation by which hotkey is pressed:
   - **Clipboard mode** (default hotkey F9): one-off transcription copied to clipboard and optionally inserted at cursor
   - **File mode** (default hotkey F10): transcription appended to a persistent output file with continuity-aware cleanup
 - Audio is transcribed via OpenAI, then cleaned up and formatted via Claude
+- Supports multiple audio formats: WAV, WebM, MP3, OGG, FLAC, M4A
 - Target users: developers in AI-assisted workflows who dictate text frequently
-- Runs as a long-lived process on macOS and Linux desktops
-- Operates entirely from the terminal with no GUI beyond system notifications
+- Runs on macOS and Linux desktops
+- Listen mode operates entirely from the terminal with no GUI beyond system notifications
+- Server mode exposes an HTTP endpoint for integration with browser extensions, editor plugins, and other tools
 
 ## Design Principles
 
@@ -74,6 +79,8 @@
 - FR3.2: Requires `OPENAI_API_KEY` environment variable — tool exits with error if missing
 - FR3.3: If context files exist, their contents are included as a transcription prompt to improve domain term recognition
 - FR3.4: Context is provided as hints only — it must not alter, add to, or reinterpret what was spoken
+- FR3.5: Supported audio formats: WAV, WebM, MP3, OGG, FLAC, M4A
+- FR3.6: MIME type is determined from the file extension; unrecognized extensions default to WAV
 
 ### FR4: Text Cleanup
 
@@ -123,14 +130,16 @@
 - FR7.3: File-path keys (contextFile, instructionsFile) accumulate across all layers — duplicates are deduplicated
 - FR7.4: The `outputFile` key uses last-defined-wins semantics (not accumulation), with per-layer path resolution
 - FR7.5: Relative file paths are resolved relative to their originating config file's directory
-- FR7.6: Invalid JSON or failed Zod validation in a config file produces a stderr warning and the file is skipped
-- FR7.7: The installer creates the global config file with all defaults
-- FR7.8: Config schema keys: `hotkey`, `fileHotkey`, `contextFile`, `instructionsFile`, `outputFile`, `claudeModel`, `autoInsert`, `beepEnabled`, `notificationEnabled`, `terminalOutputEnabled`, `maxRecordingDuration`
-- FR7.9: CLI arguments: `--hotkey`, `--file-hotkey`, `--context-file`, `--instructions-file`, `--output-file`, `--claude-model`, `--no-auto-insert`, `--no-beep`, `--no-notification`, `--no-terminal-output`, `--max-duration`, `--verbose`, `--clear-output`, `--config`
+- FR7.6: When a `projectDir` is specified (by server mode's `projectPath` parameter), the local config layer loads `voice.json` from that directory and resolves relative paths against it, instead of using the process working directory
+- FR7.7: Invalid JSON or failed Zod validation in a config file produces a stderr warning and the file is skipped
+- FR7.8: The installer creates the global config file with all defaults
+- FR7.9: Config schema keys: `hotkey`, `fileHotkey`, `contextFile`, `instructionsFile`, `outputFile`, `claudeModel`, `autoInsert`, `beepEnabled`, `notificationEnabled`, `terminalOutputEnabled`, `maxRecordingDuration`
+- FR7.10: CLI arguments (`listen` subcommand): `--hotkey`, `--file-hotkey`, `--context-file`, `--instructions-file`, `--output-file`, `--claude-model`, `--no-auto-insert`, `--no-beep`, `--no-notification`, `--no-terminal-output`, `--max-duration`, `--verbose`, `--clear-output`, `--config`
+- FR7.11: CLI arguments (`serve` subcommand): `--port` (default: 7880), `--host` (default: 127.0.0.1), `--verbose`
 
-### FR8: Lifecycle
+### FR8: Listen Lifecycle
 
-- FR8.1: Tool runs as a long-lived foreground process until terminated
+- FR8.1: Listen mode runs as a long-lived foreground process until terminated
 - FR8.2: Ctrl+C (SIGINT) and SIGTERM trigger graceful shutdown
 - FR8.3: Shutdown stops the hotkey listener, clears timers, and cleans up temp audio files
 - FR8.4: On startup, tool displays a ready message showing both hotkeys, their modes, and the output file path
@@ -175,12 +184,52 @@ stateDiagram-v2
     end note
 ```
 
-### FR9: Installation
+### FR9: Server Mode
 
-- FR9.1: Installer checks for system dependencies (sox/arecord) and OPENAI_API_KEY
-- FR9.2: Installer builds the binary from source and copies to `~/.local/bin/voice-to-text`
-- FR9.3: Installer creates `~/.config/voice-to-text/` directory with default config and audio assets
-- FR9.4: On macOS, installer compiles the MacKeyServer Swift binary to `~/.config/voice-to-text/bin/`
+- FR9.1: The `serve` subcommand starts an HTTP server for programmatic transcription
+- FR9.2: Server listens on a configurable host (default: `127.0.0.1`) and port (default: `7880`)
+- FR9.3: `POST /transcribe` accepts a multipart form with an `audio` file and optional `projectPath` string
+- FR9.4: The `projectPath` parameter scopes config resolution to that directory — the server loads `voice.json` from the specified project directory instead of its own working directory
+- FR9.5: The server pipeline is identical to listen mode: transcribe via OpenAI, then cleanup via Claude CLI
+- FR9.6: If cleanup fails, the raw transcription is returned as fallback
+- FR9.7: Response is JSON: `{ "text": "<cleaned text>" }` on success, `{ "error": "<message>" }` on failure
+- FR9.8: `GET /health` returns `{ "status": "ok", "version": "<version>" }`
+- FR9.9: Missing `audio` field or non-file value returns 400
+- FR9.10: Internal errors return 500 with error message
+- FR9.11: All responses include CORS headers (open origin) for browser client access
+- FR9.12: CORS preflight (OPTIONS) is handled with 204
+- FR9.13: Uploaded audio is written to a temp file and cleaned up after processing, including on error paths
+- FR9.14: `--verbose` flag logs request details, timing, and temp file operations
+- FR9.15: Requires `OPENAI_API_KEY` environment variable — server exits with error if missing
+
+```mermaid
+stateDiagram-v2
+    [*] --> Listening: serve subcommand
+    Listening --> Processing: POST /transcribe received
+
+    state Processing {
+        [*] --> WriteTempFile
+        WriteTempFile --> ResolveConfig: projectPath scopes config
+        ResolveConfig --> Transcribe: OpenAI API
+        Transcribe --> Cleanup: Claude CLI
+        Cleanup --> Respond: JSON response
+        Transcribe --> Respond: Cleanup fails (fallback)
+    }
+
+    Processing --> Listening: Response sent + temp file cleaned
+
+    note right of Listening
+        HTTP server on host:port
+        Health check at GET /health
+    end note
+```
+
+### FR10: Installation
+
+- FR10.1: Installer checks for system dependencies (sox/arecord) and OPENAI_API_KEY
+- FR10.2: Installer builds the binary from source and copies to `~/.local/bin/voice-to-text`
+- FR10.3: Installer creates `~/.config/voice-to-text/` directory with default config and audio assets
+- FR10.4: On macOS, installer compiles the MacKeyServer Swift binary to `~/.config/voice-to-text/bin/`
 
 ### NFR1: Platform Support
 

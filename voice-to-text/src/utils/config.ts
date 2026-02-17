@@ -37,8 +37,8 @@ export function loadConfig(): Config {
   }
 }
 
-export function loadLocalConfig(): Config | null {
-  const localPath = join(process.cwd(), LOCAL_CONFIG_NAME);
+export function loadLocalConfig(baseDir?: string): Config | null {
+  const localPath = join(baseDir ?? process.cwd(), LOCAL_CONFIG_NAME);
   if (!existsSync(localPath)) {
     return null;
   }
@@ -64,8 +64,10 @@ function resolveFilePath(filePath: string, baseDir: string): string {
 export function resolveConfig(options: {
   configPath?: string;
   cliOpts: Partial<Config>;
+  projectDir?: string;
 }): ConfigResolution {
   const loadedFrom: ConfigSource[] = [];
+  const localBaseDir = options.projectDir ?? process.cwd();
 
   // Layer 1 (lowest priority): global config
   const globalConfig = loadConfig();
@@ -75,11 +77,11 @@ export function resolveConfig(options: {
     found: existsSync(CONFIG_PATH),
   });
 
-  // Layer 2: local voice.json
-  const localConfig = loadLocalConfig();
+  // Layer 2: local voice.json (from projectDir if provided, else cwd)
+  const localConfig = loadLocalConfig(options.projectDir);
   loadedFrom.push({
     layer: "local",
-    path: join(process.cwd(), LOCAL_CONFIG_NAME),
+    path: join(localBaseDir, LOCAL_CONFIG_NAME),
     found: localConfig !== null,
   });
 
@@ -142,7 +144,7 @@ export function resolveConfig(options: {
       baseDir: string;
     }[] = [
       { config: globalConfig, source: "global", baseDir: CONFIG_DIR },
-      { config: localConfig, source: "local", baseDir: process.cwd() },
+      { config: localConfig, source: "local", baseDir: localBaseDir },
       {
         config: specifiedConfig,
         source: "specified",
@@ -176,7 +178,7 @@ export function resolveConfig(options: {
     if (globalConfig.outputFile)
       resolved = resolveFilePath(globalConfig.outputFile, CONFIG_DIR);
     if (localConfig?.outputFile)
-      resolved = resolveFilePath(localConfig.outputFile, process.cwd());
+      resolved = resolveFilePath(localConfig.outputFile, localBaseDir);
     if (specifiedConfig?.outputFile)
       resolved = resolveFilePath(
         specifiedConfig.outputFile,
