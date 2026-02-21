@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" width="480" height="360">
+  <defs>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1a0a2e" />
+      <stop offset="100%" stop-color="#2d1b4e" />
+    </linearGradient>
+    <linearGradient id="carpetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6b2d5c" />
+      <stop offset="50%" stop-color="#9b4d8a" />
+      <stop offset="100%" stop-color="#5c1f4d" />
+    </linearGradient>
+    <radialGradient id="moon" cx="30%" cy="20%" r="40%">
+      <stop offset="0%" stop-color="#fef9e7" />
+      <stop offset="100%" stop-color="#fef9e7" stop-opacity="0" />
+    </radialGradient>
+    <filter id="softGlow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Night sky -->
+  <rect width="480" height="360" fill="url(#sky)" />
+  <circle cx="120" cy="70" r="45" fill="url(#moon)" opacity="0.95" />
+
+  <!-- Magic carpet -->
+  <g transform="translate(240, 220)" filter="url(#softGlow)">
+    <path
+      d="M-100 -20 C-60 -45 60 -45 100 -20 C115 10 100 40 60 35 L-60 35 C-100 40 -115 10 -100 -20 Z"
+      fill="url(#carpetGrad)" stroke="#c77bb8" stroke-width="2" />
+    <path d="M-70 -5 L70 -5 M-50 15 L50 15 M-30 28 L30 28" stroke="#3d1a35" stroke-width="1.5"
+      fill="none" opacity="0.6" />
+  </g>
+
+  <!-- Chicken body -->
+  <g transform="translate(240, 200)">
+    <!-- Tail feathers -->
+    <path d="M-35 -25 Q-55 -15 -50 5 Q-45 20 -35 15" fill="#f5deb3" stroke="#daa520"
+      stroke-width="1" />
+    <path d="M-30 -30 Q-50 -10 -42 8" fill="#f5deb3" stroke="#daa520" stroke-width="1" />
+    <!-- Body -->
+    <ellipse cx="0" cy="5" rx="38" ry="32" fill="#fff8dc" stroke="#daa520" stroke-width="1.5" />
+    <!-- Wing on carpet -->
+    <ellipse cx="-15" cy="8" rx="18" ry="22" fill="#faf0e6" stroke="#c4a35a" stroke-width="1" />
+    <!-- Breast -->
+    <path d="M-25 20 Q0 38 25 20 Q20 28 0 32 Q-20 28 -25 20 Z" fill="#fffacd" />
+    <!-- Neck -->
+    <path d="M8 -25 L18 -55 Q22 -58 25 -52 L20 -48 Q18 -42 12 -28 Z" fill="#fff8dc" stroke="#daa520"
+      stroke-width="1" />
+    <!-- Head -->
+    <ellipse cx="28" cy="-52" rx="14" ry="16" fill="#fff8dc" stroke="#daa520" stroke-width="1" />
+    <!-- Comb -->
+    <path d="M22 -62 L26 -72 L30 -68 L34 -75 L38 -70 L36 -62" fill="#c41e3a" stroke="#8b0000"
+      stroke-width="0.8" />
+    <!-- Beak -->
+    <path d="M38 -50 L52 -48 L40 -46 Z" fill="#ff8c00" stroke="#cc6600" stroke-width="0.8" />
+    <!-- Eye -->
+    <circle cx="34" cy="-54" r="3" fill="#1a1a1a" />
+    <circle cx="35" cy="-55" r="0.8" fill="#fff" />
+    <!-- Wattle -->
+    <ellipse cx="32" cy="-42" rx="4" ry="6" fill="#c41e3a" />
+    <!-- Legs (folded on carpet) -->
+    <path d="M-12 32 L-8 38 M8 32 L12 38" stroke="#daa520" stroke-width="2.5" fill="none"
+      stroke-linecap="round" />
+  </g>
+
+  <!-- Small stars -->
+  <g fill="#fff" opacity="0.8">
+    <circle cx="380" cy="50" r="1.5" />
+    <circle cx="420" cy="90" r="1" />
+    <circle cx="350" cy="120" r="1" />
+    <circle cx="60" cy="150" r="1.5" />
+  </g>
+</svg>

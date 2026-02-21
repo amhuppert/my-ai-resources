@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+show_help() {
+    cat << EOF
+Usage: kill-by-port <port> [<port> ...] [--signal <sig>] [--help]
+
+Description:
+    Kill all processes listening on any of the specified ports.
+    Requires lsof to be installed.
+
+Arguments:
+    port            One or more port numbers to target
+    --signal <sig>  Signal to send (default: TERM). E.g. KILL, HUP, INT
+    --help          Show this help message
+
+Examples:
+    kill-by-port 3000
+    kill-by-port 3000 4000 5000
+    kill-by-port 8080 --signal KILL
+
+EOF
+}
+
+SIGNAL="TERM"
+PORTS=()
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help)
+            show_help
+            exit 0
+            ;;
+        --signal)
+            SIGNAL="${2:-}"
+            if [[ -z "$SIGNAL" ]]; then
+                echo "Error: --signal requires a value" >&2
+                exit 1
+            fi
+            shift 2
+            ;;
+        -*)
+            echo "Error: Unknown option '$1'" >&2
+            echo "Use --help for usage information" >&2
+            exit 1
+            ;;
+        *)
+            if ! [[ $1 =~ ^[0-9]+$ ]]; then
+                echo "Error: '$1' is not a valid port number" >&2
+                exit 1
+            fi
+            PORTS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [[ ${#PORTS[@]} -eq 0 ]]; then
+    echo "Error: at least one port is required" >&2
+    echo "Use --help for usage information" >&2
+    exit 1
+fi
+
+if ! command -v lsof &> /dev/null; then
+    echo "Error: lsof is required but not installed" >&2
+    exit 1
+fi
+
+KILLED=0
+
+for PORT in "${PORTS[@]}"; do
+    PIDS=$(lsof -ti :"$PORT" 2>/dev/null || true)
+    if [[ -z "$PIDS" ]]; then
+        echo "No processes found on port $PORT"
+        continue
+    fi
+
+    COUNT=$(echo "$PIDS" | wc -l | tr -d ' ')
+    echo "Sending SIG${SIGNAL} to ${COUNT} process(es) on port ${PORT}..."
+    echo "$PIDS" | xargs kill "-${SIGNAL}" 2>/dev/null && echo "Done." || echo "Failed to kill some processes on port ${PORT}."
+    KILLED=$((KILLED + COUNT))
+done
+
+if [[ $KILLED -gt 0 ]]; then
+    echo "Total: sent SIG${SIGNAL} to ${KILLED} process(es)."
+fi

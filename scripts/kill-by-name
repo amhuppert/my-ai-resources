@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+show_help() {
+    cat << EOF
+Usage: kill-by-name <name> [--signal <sig>] [--help]
+
+Description:
+    Kill all processes whose name matches the given string.
+    Uses pkill, which matches against the process name (not full command line).
+
+Arguments:
+    name            Process name to match (substring match)
+    --signal <sig>  Signal to send (default: TERM). E.g. KILL, HUP, INT
+    --help          Show this help message
+
+Examples:
+    kill-by-name node
+    kill-by-name python --signal KILL
+    kill-by-name "my-server"
+
+EOF
+}
+
+SIGNAL="TERM"
+NAME=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help)
+            show_help
+            exit 0
+            ;;
+        --signal)
+            SIGNAL="${2:-}"
+            if [[ -z "$SIGNAL" ]]; then
+                echo "Error: --signal requires a value" >&2
+                exit 1
+            fi
+            shift 2
+            ;;
+        -*)
+            echo "Error: Unknown option '$1'" >&2
+            echo "Use --help for usage information" >&2
+            exit 1
+            ;;
+        *)
+            if [[ -n "$NAME" ]]; then
+                echo "Error: Unexpected argument '$1'" >&2
+                exit 1
+            fi
+            NAME="$1"
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$NAME" ]]; then
+    echo "Error: process name is required" >&2
+    echo "Use --help for usage information" >&2
+    exit 1
+fi
+
+if ! pgrep -x "$NAME" > /dev/null 2>&1 && ! pgrep "$NAME" > /dev/null 2>&1; then
+    echo "No processes found matching '$NAME'"
+    exit 0
+fi
+
+COUNT=$(pgrep -c "$NAME" 2>/dev/null || echo 0)
+echo "Sending SIG${SIGNAL} to ${COUNT} process(es) matching '${NAME}'..."
+
+pkill "--signal=${SIGNAL}" "$NAME" && echo "Done." || echo "No matching processes found."

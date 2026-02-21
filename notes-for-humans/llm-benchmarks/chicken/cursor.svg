@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 400" width="500" height="400">
+  <defs>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2c1810" />
+      <stop offset="50%" stop-color="#8b4513" />
+      <stop offset="100%" stop-color="#d2691e" />
+    </linearGradient>
+    <pattern id="carpet" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect width="24" height="24" fill="#4a1942" />
+      <path d="M12 0 L12 24 M0 12 L24 12" stroke="#7b2d6e" stroke-width="1" fill="none" />
+      <circle cx="12" cy="12" r="4" fill="#9c4d8a" opacity="0.6" />
+    </pattern>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Sunset sky -->
+  <rect width="500" height="400" fill="url(#sky)" />
+  <ellipse cx="400" cy="60" rx="60" ry="50" fill="#ff9f43" opacity="0.9" />
+  <ellipse cx="400" cy="55" rx="50" ry="45" fill="#ffd93d" opacity="0.95" />
+
+  <!-- Magic carpet - floating ribbon shape -->
+  <g transform="translate(250, 240)" filter="url(#glow)">
+    <path d="M-90 -15 Q-80 -30 0 -25 Q80 -30 90 -15 Q95 5 90 25 Q0 35 -90 25 Q-95 5 -90 -15Z"
+      fill="url(#carpet)" stroke="#e8b4e0" stroke-width="2" />
+    <path d="M-85 -12 Q0 -20 85 -12" stroke="#e8b4e0" stroke-width="1" fill="none" opacity="0.7" />
+    <!-- Fringe -->
+    <g stroke="#e8b4e0" stroke-width="1">
+      <line x1="-95" y1="-5" x2="-105" y2="5" />
+      <line x1="-88" y1="5" x2="-98" y2="18" />
+      <line x1="88" y1="5" x2="98" y2="18" />
+      <line x1="95" y1="-5" x2="105" y2="5" />
+    </g>
+    <!-- Sparkles -->
+    <circle cx="-70" cy="-20" r="2" fill="#ffd93d" opacity="0.9" />
+    <circle cx="70" cy="-18" r="2" fill="#ffd93d" opacity="0.9" />
+    <circle cx="0" cy="-30" r="2.5" fill="#ff9f43" opacity="0.8" />
+  </g>
+
+  <!-- Chicken seated on carpet -->
+  <g transform="translate(250, 200)">
+    <!-- Tail (fluffy, facing forward as if seated) -->
+    <ellipse cx="-40" cy="30" rx="22" ry="28" fill="#f5deb3" />
+    <ellipse cx="-45" cy="25" rx="18" ry="22" fill="#deb887" />
+    <ellipse cx="-38" cy="35" rx="15" ry="20" fill="#daa520" />
+
+    <!-- Body -->
+    <ellipse cx="0" cy="25" rx="38" ry="32" fill="#f5deb3" />
+    <ellipse cx="5" cy="35" rx="22" ry="18" fill="#fff8dc" opacity="0.7" />
+
+    <!-- Wing (tucked, resting) -->
+    <path d="M-15 15 Q-35 0 -25 -15 Q-10 -5 0 10Z" fill="#deb887" />
+    <path d="M25 20 Q45 5 40 -10 Q30 0 25 20Z" fill="#deb887" opacity="0.9" />
+
+    <!-- Legs (crossed, relaxed posture) -->
+    <path d="M-15 52 L-18 68" stroke="#ff8c00" stroke-width="4" stroke-linecap="round" />
+    <path d="M15 52 L12 68" stroke="#ff8c00" stroke-width="4" stroke-linecap="round" />
+    <path d="M-24 68 L-18 70 L-12 68" stroke="#ff8c00" stroke-width="2" fill="none" />
+    <path d="M18 68 L12 70 L6 68" stroke="#ff8c00" stroke-width="2" fill="none" />
+
+    <!-- Neck -->
+    <path d="M-5 0 Q-8 -25 0 -45" fill="#f5deb3" stroke="none" />
+    <ellipse cx="0" cy="-40" rx="14" ry="18" fill="#f5deb3" />
+
+    <!-- Head -->
+    <circle cx="0" cy="-58" r="16" fill="#f5deb3" />
+
+    <!-- Comb -->
+    <path d="M-8 -72 Q-5 -82 0 -78 Q5 -84 8 -72" fill="#dc3545" stroke="#b02a37" stroke-width="0.5" />
+
+    <!-- Eye (looking ahead, content) -->
+    <circle cx="-6" cy="-60" r="4" fill="white" />
+    <circle cx="-7" cy="-60" r="2.5" fill="#1a1a1a" />
+
+    <!-- Beak -->
+    <path d="M-12 -54 L-22 -52 L-12 -50Z" fill="#ff8c00" stroke="#e07b00" stroke-width="0.5" />
+
+    <!-- Wattle -->
+    <ellipse cx="-16" cy="-48" rx="3" ry="5" fill="#dc3545" />
+  </g>
+</svg>
