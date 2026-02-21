@@ -160,15 +160,15 @@ for i in "${!selected_paths[@]}"; do
     if $should_force_remove; then
       git -C "$MAIN_REPO" worktree remove --force "$path"
       info "Force removed: $label"
-      ((removed++))
+      ((++removed))
     else
       info "Skipped: $label"
-      ((skipped++))
+      ((++skipped))
     fi
   else
     git -C "$MAIN_REPO" worktree remove "$path"
     info "Removed: $label"
-    ((removed++))
+    ((++removed))
   fi
 done
 
