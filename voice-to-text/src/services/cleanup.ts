@@ -226,7 +226,17 @@ function runClaudeCli(
   spawnFn: SpawnFn = spawn as unknown as SpawnFn,
 ): Promise<string> {
   return new Promise((resolve) => {
-    const args = ["-p", prompt, "--tools", "", "--system-prompt", systemPrompt];
+    const args = [
+      "-p",
+      prompt,
+      "--tools",
+      "",
+      "--system-prompt",
+      systemPrompt,
+      "--strict-mcp-config",
+      "--mcp-config",
+      '{"mcpServers": {}}',
+    ];
     if (model) {
       args.push("--model", model);
     }

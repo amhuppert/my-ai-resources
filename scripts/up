@@ -1,0 +1,18 @@
+# Shell function — source this file or add to .bashrc/.zshrc
+# Usage: up 3  (goes up 3 directories)
+
+up() {
+  local levels="${1:-1}"
+
+  if ! [[ "$levels" =~ ^[0-9]+$ ]] || [ "$levels" -eq 0 ]; then
+    echo "Usage: up <positive-integer>" >&2
+    return 1
+  fi
+
+  local path=""
+  for ((i = 0; i < levels; i++)); do
+    path+="../"
+  done
+
+  cd "$path" || return 1
+}
