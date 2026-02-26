@@ -52,6 +52,10 @@ export function startServer(
     async fetch(request: Request): Promise<Response> {
       const url = new URL(request.url);
 
+      if (verbose) {
+        console.log(`[server] ${request.method} ${url.pathname}`);
+      }
+
       // CORS preflight
       if (request.method === "OPTIONS") {
         return new Response(null, { status: 204, headers: corsHeaders() });
@@ -74,6 +78,9 @@ export function startServer(
   });
 
   console.log(`Voice2Text server listening on http://${config.host}:${config.port}`);
+  if (verbose) {
+    console.log(`[server] Config: port=${config.port}, host=${config.host}, verbose=true`);
+  }
   return server;
 }
 
@@ -89,6 +96,7 @@ async function handleTranscribe(
     const formData = await request.formData();
     const audioFile = formData.get("audio");
     const projectPath = formData.get("projectPath");
+    const context = formData.get("context");
 
     if (!audioFile || !(audioFile instanceof File)) {
       return jsonResponse(
@@ -98,8 +106,14 @@ async function handleTranscribe(
     }
 
     if (verbose) {
-      console.log(`[server] Received audio: ${audioFile.name} (${audioFile.size} bytes)`);
-      if (projectPath) console.log(`[server] Project path: ${projectPath}`);
+      console.log(`[server] Audio: ${audioFile.name} (${audioFile.size} bytes, type=${audioFile.type})`);
+      console.log(`[server] Project path: ${projectPath ?? "(none)"}`);
+      if (context) {
+        const ctxStr = String(context);
+        console.log(`[server] Context (${ctxStr.length} chars):\n${"─".repeat(40)}\n${ctxStr}\n${"─".repeat(40)}`);
+      } else {
+        console.log(`[server] Context: (none)`);
+      }
     }
 
     // Write audio to temp file
@@ -117,16 +131,39 @@ async function handleTranscribe(
 
     // Resolve config (project-scoped if projectPath provided)
     const projectDir = typeof projectPath === "string" ? projectPath : undefined;
-    const { config } = resolveConfig({
+    const { config, loadedFrom } = resolveConfig({
       cliOpts: {},
       projectDir,
     });
+
+    if (verbose) {
+      for (const source of loadedFrom) {
+        console.log(`[server] Config [${source.layer}] ${source.path} (${source.found ? "loaded" : "not found"})`);
+      }
+      const { contextFiles, instructionsFiles, resolvedOutputFile, ...configValues } = config;
+      console.log(`[server] Resolved config:\n${JSON.stringify(configValues, null, 2)}`);
+    }
 
     // Build transcription prompt from context files
     const transcriptionPrompt = readContextFilesContent(config.contextFiles);
 
     if (verbose) {
-      console.log(`[server] Context files: ${config.contextFiles.length}`);
+      if (config.contextFiles.length > 0) {
+        const lines = config.contextFiles.map((f) => `  [${f.source}] ${f.path}`).join("\n");
+        console.log(`[server] Context files (${config.contextFiles.length}):\n${lines}`);
+      } else {
+        console.log(`[server] Context files: none`);
+      }
+      if (config.instructionsFiles.length > 0) {
+        const lines = config.instructionsFiles.map((f) => `  [${f.source}] ${f.path}`).join("\n");
+        console.log(`[server] Instructions files (${config.instructionsFiles.length}):\n${lines}`);
+      } else {
+        console.log(`[server] Instructions files: none`);
+      }
+    }
+
+    if (verbose) {
+      console.log(`[server] Transcription prompt: ${transcriptionPrompt || "(none)"}`);
     }
 
     // Transcribe via OpenAI
@@ -134,21 +171,33 @@ async function handleTranscribe(
     const transcription = await transcriber.transcribe(tempFilePath, transcriptionPrompt);
 
     if (verbose) {
-      console.log(`[server] Transcription completed in ${Date.now() - startTime}ms`);
+      console.log(`[server] Transcription (${Date.now() - startTime}ms):\n${"─".repeat(40)}\n${transcription}\n${"─".repeat(40)}`);
     }
 
     // Cleanup via Claude CLI (fallback to raw transcription on failure)
+    const priorOutput = typeof context === "string" && context.trim() ? context : undefined;
+
+    if (verbose) {
+      if (priorOutput) {
+        console.log(`[server] Prior output context (${priorOutput.length} chars):\n${"─".repeat(40)}\n${priorOutput}\n${"─".repeat(40)}`);
+      } else {
+        console.log(`[server] Prior output context: (none)`);
+      }
+    }
+
     let cleanedText: string;
     try {
       const cleanupStart = Date.now();
-      const { text } = await cleanupService.cleanup(
+      const { text, prompt: cleanupPrompt } = await cleanupService.cleanup(
         transcription,
         config.contextFiles,
         config.instructionsFiles,
+        priorOutput,
       );
       cleanedText = text;
       if (verbose) {
-        console.log(`[server] Cleanup completed in ${Date.now() - cleanupStart}ms`);
+        console.log(`[server] Cleanup prompt:\n${"─".repeat(40)}\n${cleanupPrompt}\n${"─".repeat(40)}`);
+        console.log(`[server] Cleanup result (${Date.now() - cleanupStart}ms):\n${"─".repeat(40)}\n${cleanedText}\n${"─".repeat(40)}`);
       }
     } catch {
       if (verbose) {
