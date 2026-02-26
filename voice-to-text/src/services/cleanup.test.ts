@@ -54,7 +54,7 @@ describe("createCleanupService", () => {
     const { spawnFn, calls } = createMockSpawn();
     const service = createCleanupService("haiku", false, spawnFn);
 
-    await service.cleanup("test input", [], []);
+    await service.cleanup("test input", [], [], []);
 
     expect(calls).toHaveLength(1);
     expect(calls[0].command).toBe("claude");
@@ -67,7 +67,7 @@ describe("createCleanupService", () => {
     const { spawnFn, calls } = createMockSpawn();
     const service = createCleanupService(undefined, false, spawnFn);
 
-    await service.cleanup("test input", [], []);
+    await service.cleanup("test input", [], [], []);
 
     expect(calls).toHaveLength(1);
     expect(calls[0].args).not.toContain("--model");
@@ -77,7 +77,7 @@ describe("createCleanupService", () => {
     const { spawnFn } = createMockSpawn({ stdoutData: "cleaned output" });
     const service = createCleanupService(undefined, false, spawnFn);
 
-    const result = await service.cleanup("test input", [], []);
+    const result = await service.cleanup("test input", [], [], []);
 
     expect(result.text).toBe("cleaned output");
   });
@@ -86,7 +86,7 @@ describe("createCleanupService", () => {
     const { spawnFn } = createMockSpawn({ exitCode: 1 });
     const service = createCleanupService(undefined, false, spawnFn);
 
-    const result = await service.cleanup("raw input", [], []);
+    const result = await service.cleanup("raw input", [], [], []);
 
     expect(result.text).toBe("raw input");
   });
@@ -95,7 +95,7 @@ describe("createCleanupService", () => {
     const { spawnFn } = createMockSpawn({ shouldError: true });
     const service = createCleanupService(undefined, false, spawnFn);
 
-    const result = await service.cleanup("raw input", [], []);
+    const result = await service.cleanup("raw input", [], [], []);
 
     expect(result.text).toBe("raw input");
   });
@@ -104,7 +104,7 @@ describe("createCleanupService", () => {
     const { spawnFn, calls } = createMockSpawn();
     const service = createCleanupService(undefined, false, spawnFn);
 
-    await service.cleanup("hello world", [], []);
+    await service.cleanup("hello world", [], [], []);
 
     const prompt = calls[0].args[1];
     expect(prompt).toContain("<transcription>\nhello world\n</transcription>");
@@ -114,7 +114,7 @@ describe("createCleanupService", () => {
     const { spawnFn, calls } = createMockSpawn();
     const service = createCleanupService(undefined, false, spawnFn);
 
-    await service.cleanup("test", [], [], "prior text");
+    await service.cleanup("test", [], [], [], "prior text");
 
     const prompt = calls[0].args[1];
     expect(prompt).toContain("<prior-output>\nprior text\n</prior-output>");
@@ -125,7 +125,7 @@ describe("createCleanupService", () => {
     const { spawnFn, calls } = createMockSpawn();
     const service = createCleanupService(undefined, false, spawnFn);
 
-    await service.cleanup("test input", [], []);
+    await service.cleanup("test input", [], [], []);
 
     expect(calls[0].options.timeout).toBe(60000);
     expect(calls[0].options.stdio).toEqual(["ignore", "pipe", "pipe"]);

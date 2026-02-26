@@ -12,6 +12,7 @@ export interface CleanupService {
   cleanup(
     text: string,
     contextFiles: ResolvedFileRef[],
+    vocabularyFiles: ResolvedFileRef[],
     instructionsFiles: ResolvedFileRef[],
     priorOutput?: string,
   ): Promise<{ text: string; prompt: string }>;
@@ -26,7 +27,7 @@ const SOURCE_LABELS: Record<ResolvedFileRef["source"], string> = {
 
 function buildFileSections(
   files: ResolvedFileRef[],
-  type: "context" | "additional-instructions",
+  type: "context" | "vocabulary" | "additional-instructions",
 ): string {
   const sections: string[] = [];
 
@@ -36,8 +37,13 @@ function buildFileSections(
       const content = readFileSync(file.path, "utf-8");
       const label = SOURCE_LABELS[file.source];
       const tagPrefix = label.toLowerCase();
+      const typeLabels = {
+        context: "Context",
+        vocabulary: "Vocabulary",
+        "additional-instructions": "Additional Instructions",
+      } as const;
       sections.push(
-        `${label} ${type === "context" ? "Context" : "Additional Instructions"}:\n<${tagPrefix}-${type}>\n${content}\n</${tagPrefix}-${type}>`,
+        `${label} ${typeLabels[type]}:\n<${tagPrefix}-${type}>\n${content}\n</${tagPrefix}-${type}>`,
       );
     } catch {
       // Silently skip unreadable files
@@ -89,7 +95,7 @@ Formatting rules:
 9. Preserve the original meaning exactly — do not lose any important details
 10. Output ONLY the cleaned text — no explanations, preamble, or conversational responses`;
 
-const CLEANUP_PROMPT_TEMPLATE = `{CONTEXT_SECTION}Transcribed Text:
+const CLEANUP_PROMPT_TEMPLATE = `{CONTEXT_SECTION}{VOCABULARY_SECTION}Transcribed Text:
 <transcription>
 {TRANSCRIPTION}
 </transcription>
@@ -141,7 +147,7 @@ Formatting rules:
 12. Output ONLY the new text to append — do not repeat prior content
 13. Output ONLY the cleaned text — no explanations, preamble, or conversational responses`;
 
-const FILE_MODE_CLEANUP_PROMPT_TEMPLATE = `{CONTEXT_SECTION}Prior document content (continue from where this ends):
+const FILE_MODE_CLEANUP_PROMPT_TEMPLATE = `{CONTEXT_SECTION}{VOCABULARY_SECTION}Prior document content (continue from where this ends):
 <prior-output>
 {PRIOR_OUTPUT}
 </prior-output>
@@ -162,10 +168,12 @@ export function createCleanupService(
     async cleanup(
       text: string,
       contextFiles: ResolvedFileRef[],
+      vocabularyFiles: ResolvedFileRef[],
       instructionsFiles: ResolvedFileRef[],
       priorOutput?: string,
     ): Promise<{ text: string; prompt: string }> {
       const contextSection = buildFileSections(contextFiles, "context");
+      const vocabularySection = buildFileSections(vocabularyFiles, "vocabulary");
       const instructionsSection = buildFileSections(
         instructionsFiles,
         "additional-instructions",
@@ -181,6 +189,7 @@ export function createCleanupService(
 
       let prompt = template
         .replace("{CONTEXT_SECTION}", contextSection)
+        .replace("{VOCABULARY_SECTION}", vocabularySection)
         .replace("{INSTRUCTIONS_SECTION}", instructionsSection)
         .replace("{TRANSCRIPTION}", text);
 

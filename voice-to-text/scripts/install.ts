@@ -4,6 +4,7 @@ import {
   mkdirSync,
   copyFileSync,
   writeFileSync,
+  readFileSync,
   readdirSync,
 } from "node:fs";
 import { homedir, platform } from "node:os";
@@ -18,6 +19,14 @@ const ASSETS_DIR = join(CONFIG_DIR, "assets");
 const CONFIG_BIN_DIR = join(CONFIG_DIR, "bin");
 const BIN_DIR = join(homedir(), ".local", "bin");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
+const SCHEMA_PATH = join(CONFIG_DIR, "voice-schema.json");
+const CURSOR_SETTINGS_PATH = join(
+  homedir(),
+  ".config",
+  "Cursor",
+  "User",
+  "settings.json",
+);
 
 function checkCommand(cmd: string): boolean {
   const result = spawnSync("which", [cmd], { encoding: "utf-8" });
@@ -38,6 +47,58 @@ function printError(message: string): void {
 
 function printSuccess(message: string): void {
   console.log(`✓ ${message}`);
+}
+
+interface JsonSchemaEntry {
+  fileMatch: string[];
+  url: string;
+}
+
+/**
+ * Add or update a json.schemas entry in Cursor's user settings.
+ * Merges into the existing array without removing other entries.
+ */
+function installCursorJsonSchema(
+  schemaUrl: string,
+  fileMatch: string[],
+): void {
+  if (!existsSync(CURSOR_SETTINGS_PATH)) {
+    printWarning(
+      `Cursor settings not found at ${CURSOR_SETTINGS_PATH}. Skipping schema registration.`,
+    );
+    return;
+  }
+
+  const raw = readFileSync(CURSOR_SETTINGS_PATH, "utf-8");
+  let settings: Record<string, unknown>;
+  try {
+    settings = JSON.parse(raw);
+  } catch {
+    printWarning("Could not parse Cursor settings.json. Skipping schema registration.");
+    return;
+  }
+
+  const schemas: JsonSchemaEntry[] = Array.isArray(settings["json.schemas"])
+    ? (settings["json.schemas"] as JsonSchemaEntry[])
+    : [];
+
+  // Find existing entry matching the same fileMatch pattern
+  const existingIndex = schemas.findIndex(
+    (s) =>
+      Array.isArray(s.fileMatch) &&
+      s.fileMatch.some((m) => fileMatch.includes(m)),
+  );
+
+  const entry: JsonSchemaEntry = { fileMatch, url: schemaUrl };
+
+  if (existingIndex >= 0) {
+    schemas[existingIndex] = entry;
+  } else {
+    schemas.push(entry);
+  }
+
+  settings["json.schemas"] = schemas;
+  writeFileSync(CURSOR_SETTINGS_PATH, JSON.stringify(settings, null, 2));
 }
 
 async function main() {
@@ -201,6 +262,27 @@ async function main() {
     printSuccess(`Created default config at ${CONFIG_PATH}`);
   } else {
     printSuccess(`Config already exists at ${CONFIG_PATH}`);
+  }
+
+  // Install JSON schema for voice.json
+  printStep("Installing JSON schema for voice.json...");
+  const schemaSource = join(projectRoot, "dist", "voice-schema.json");
+  if (existsSync(schemaSource)) {
+    copyFileSync(schemaSource, SCHEMA_PATH);
+    printSuccess(`Installed schema to ${SCHEMA_PATH}`);
+
+    // Register schema with Cursor
+    try {
+      installCursorJsonSchema(`file://${SCHEMA_PATH}`, ["**/voice.json"]);
+      printSuccess("Registered voice.json schema with Cursor");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      printWarning(`Failed to register schema with Cursor: ${msg}`);
+    }
+  } else {
+    printWarning(
+      `Schema not found at ${schemaSource}. Run 'bun run build' first.`,
+    );
   }
 
   // Final message

@@ -1,29 +1,20 @@
 ---
 name: init-voice-config
-description: This skill should be used when the user wants to initialize voice-to-text configuration for the current project. Creates a voice.json config file and generates a project-specific context file to improve transcription cleanup quality.
-allowed-tools: Read, Glob, Grep, Write(voice.json), Write(voice-context.md), Agent
+description: This skill should be used when the user wants to initialize voice-to-text configuration for the current project. Creates a voice.json config file and generates project-specific vocabulary and context files to improve transcription and cleanup quality.
+allowed-tools: Read, Glob, Grep, Write(voice.json), Write(voice-context.md), Write(voice-vocabulary.md), Agent
 ---
 
 # Initialize Voice-to-Text Project Config
 
-Create a local `voice.json` config and a `voice-context.md` context file in the current directory. The context file is the primary deliverable — it provides project-specific knowledge to the Claude cleanup step so transcribed text is corrected accurately.
+Create a local `voice.json` config, a `voice-vocabulary.md` vocabulary file, and a `voice-context.md` context file in the current directory.
 
-## How voice-to-text uses the context file
+## How voice-to-text uses these files
 
-During cleanup, the transcribed text is sent to Claude with a prompt that includes:
+The voice-to-text tool has two steps, each using different files:
 
-```
-Project Context:
-<context>
-{contents of the context file}
-</context>
-```
+**Transcription step (OpenAI)** — Uses `voice-vocabulary.md` only. This file is a flat list of terms sent as vocabulary hints to help the transcription model accurately recognize domain-specific words. It should contain only terms, one per line, with no descriptions or markdown structure.
 
-Claude uses this context to:
-
-- Correctly spell project-specific terms, library names, and acronyms
-- Understand domain vocabulary that may be misheard by the transcriber
-- Recognize technical terms and format them appropriately (e.g., camelCase, PascalCase)
+**Cleanup step (Claude)** — Uses `voice-context.md` and `voice-vocabulary.md`. The context file provides rich project knowledge (descriptions, terminology definitions, naming conventions) to help Claude correctly format and clean up the transcribed text. The vocabulary file is included as additional reference.
 
 ## Step 1: Gather project information
 
@@ -50,7 +41,39 @@ For Claude Code commands, skills, and agents, scan these locations:
   - `{plugin-dir}/skills/*/SKILL.md` — Plugin skills. Read YAML frontmatter for `name` and `description`.
   - `{plugin-dir}/agents/**/*.md` — Plugin agents. Read YAML frontmatter for `name` and `description`. Use the filename (without `.md`) as the agent name if no `name` field exists.
 
-## Step 2: Generate voice-context.md
+## Step 2a: Generate voice-vocabulary.md
+
+Write `voice-vocabulary.md` in the current directory. This file is a flat list of terms, one per line, with no markdown structure, headers, or descriptions. Include:
+
+- Technology and library names (exact spelling and capitalization)
+- Key type names, function names, and identifiers from the codebase
+- Acronyms and abbreviations
+- Slash command names (e.g., `/init-voice-config`)
+- Domain terms that the transcription model might not recognize
+
+Example:
+
+```
+TypeScript
+Zod
+Bun
+Commander.js
+Claude Code
+CLAUDE.md
+ResolvedFileRef
+ConfigSchema
+/init-voice-config
+/add-voice-context
+```
+
+Guidelines:
+
+- One term per line, no descriptions
+- Include correct capitalization
+- Omit widely known terms (JavaScript, React, Git) unless they have unusual capitalization in the project
+- Keep focused on terms a transcription model might mishear or misspell
+
+## Step 2b: Generate voice-context.md
 
 Write `voice-context.md` in the current directory with the following structure:
 
@@ -92,16 +115,18 @@ Write `voice.json` in the current directory:
 
 ```json
 {
-  "contextFile": "./voice-context.md"
+  "contextFile": "./voice-context.md",
+  "vocabularyFile": "./voice-vocabulary.md"
 }
 ```
 
-This config sets only the context file path. All other settings inherit from the global config at `~/.config/voice-to-text/config.json`.
+This config sets the context and vocabulary file paths. All other settings inherit from the global config at `~/.config/voice-to-text/config.json`.
 
 ## Step 4: Confirm
 
-After creating both files, display:
+After creating all three files, display:
 
+- The generated `voice-vocabulary.md` content
 - The generated `voice-context.md` content
 - Confirmation that `voice.json` was created
 - Remind the user: run `voice-to-text` from this directory to use the local config

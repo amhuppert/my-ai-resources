@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { join } from "node:path";
 import { resolveConfig } from "./utils/config.js";
-import { readContextFilesContent } from "./utils/context.js";
+import { buildTranscriptionPrompt } from "./utils/context.js";
 import { createHotkeyListener } from "./utils/hotkey.js";
 import { createFeedbackService } from "./services/feedback.js";
 import {
@@ -31,6 +31,10 @@ program
   .option("--config <path>", "Path to configuration file")
   .option("--hotkey <key>", "Global hotkey to toggle recording")
   .option("--context-file <path>", "Path to context file for Claude cleanup")
+  .option(
+    "--vocabulary-file <path>",
+    "Path to vocabulary file for transcription hints",
+  )
   .option(
     "--instructions-file <path>",
     "Path to instructions file for Claude cleanup",
@@ -82,6 +86,7 @@ async function listenAction(opts: Record<string, unknown>) {
   if (opts.hotkey !== undefined) cliOpts.hotkey = opts.hotkey as string;
   if (opts.fileHotkey !== undefined) cliOpts.fileHotkey = opts.fileHotkey as string;
   if (opts.contextFile !== undefined) cliOpts.contextFile = opts.contextFile as string;
+  if (opts.vocabularyFile !== undefined) cliOpts.vocabularyFile = opts.vocabularyFile as string;
   if (opts.instructionsFile !== undefined)
     cliOpts.instructionsFile = opts.instructionsFile as string;
   if (opts.outputFile !== undefined) cliOpts.outputFile = opts.outputFile as string;
@@ -142,6 +147,7 @@ async function listenAction(opts: Record<string, unknown>) {
   }
   const {
     contextFiles,
+    vocabularyFiles,
     instructionsFiles,
     resolvedOutputFile,
     ...configValues
@@ -155,6 +161,14 @@ async function listenAction(opts: Record<string, unknown>) {
     feedback.verboseLog(`Context files (${contextFiles.length})`, lines);
   } else {
     feedback.verboseLog("Context files", "none");
+  }
+  if (vocabularyFiles.length > 0) {
+    const lines = vocabularyFiles
+      .map((f) => `  [${f.source}] ${f.path}`)
+      .join("\n");
+    feedback.verboseLog(`Vocabulary files (${vocabularyFiles.length})`, lines);
+  } else {
+    feedback.verboseLog("Vocabulary files", "none");
   }
   if (instructionsFiles.length > 0) {
     const lines = instructionsFiles
@@ -228,8 +242,8 @@ async function listenAction(opts: Record<string, unknown>) {
         state.audioFilePath = audioFilePath;
 
         // Transcribe
-        const transcriptionPrompt = readContextFilesContent(
-          config.contextFiles,
+        const transcriptionPrompt = buildTranscriptionPrompt(
+          config.vocabularyFiles,
         );
         feedback.verboseLog("Transcription prompt", transcriptionPrompt);
         const transcription = await transcriber.transcribe(
@@ -262,6 +276,7 @@ async function listenAction(opts: Record<string, unknown>) {
           await cleanupService.cleanup(
             transcription,
             config.contextFiles,
+            config.vocabularyFiles,
             config.instructionsFiles,
             priorOutput,
           );

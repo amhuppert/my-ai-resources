@@ -7,7 +7,7 @@
     "voice-to-text": "./dist/voice-to-text"
   },
   "scripts": {
-    "build": "bun build src/main.ts --compile --outfile dist/voice-to-text",
+    "build": "bun build src/main.ts --compile --outfile dist/voice-to-text && bun run scripts/generate-schema.ts",
     "dev": "bun run src/main.ts listen",
     "serve": "bun run src/main.ts serve",
     "install-tool": "bun run scripts/install.ts",
@@ -23,7 +23,7 @@
     "node-notifier": "^10.0.1",
     "openai": "^4.0.0",
     "play-sound": "^1.1.6",
-    "zod": "^3.22.0"
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/bun": "^1.3.9",

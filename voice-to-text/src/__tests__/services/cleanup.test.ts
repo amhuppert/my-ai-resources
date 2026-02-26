@@ -77,7 +77,7 @@ describe("CleanupService", () => {
     test("prompt includes <transcription> tags wrapping input text", async () => {
       spawnBehavior = { stdout: "cleaned", stderr: "", exitCode: 0 };
       const svc = createCleanupService();
-      const result = await svc.cleanup("hello world", [], []);
+      const result = await svc.cleanup("hello world", [], [], []);
       expect(result.prompt).toContain("<transcription>");
       expect(result.prompt).toContain("hello world");
       expect(result.prompt).toContain("</transcription>");
@@ -94,7 +94,7 @@ describe("CleanupService", () => {
       ];
 
       const svc = createCleanupService();
-      const result = await svc.cleanup("text", contextFiles, []);
+      const result = await svc.cleanup("text", contextFiles, [], []);
 
       expect(result.prompt).toContain("<global-context>");
       expect(result.prompt).toContain("global context content");
@@ -115,7 +115,7 @@ describe("CleanupService", () => {
       ];
 
       const svc = createCleanupService();
-      const result = await svc.cleanup("text", contextFiles, []);
+      const result = await svc.cleanup("text", contextFiles, [], []);
 
       expect(result.prompt).toContain("<config-context>");
       expect(result.prompt).toContain("specified content");
@@ -136,7 +136,7 @@ describe("CleanupService", () => {
       ];
 
       const svc = createCleanupService();
-      const result = await svc.cleanup("text", [], instrFiles);
+      const result = await svc.cleanup("text", [], [], instrFiles);
 
       expect(result.prompt).toContain("<global-additional-instructions>");
       expect(result.prompt).toContain("global instructions");
@@ -155,7 +155,7 @@ describe("CleanupService", () => {
       ];
 
       const svc = createCleanupService();
-      const result = await svc.cleanup("text", contextFiles, []);
+      const result = await svc.cleanup("text", contextFiles, [], []);
 
       expect(result.prompt).not.toContain("<global-context>");
     });
@@ -163,7 +163,7 @@ describe("CleanupService", () => {
     test("empty file arrays produce no context/instructions sections", async () => {
       spawnBehavior = { stdout: "cleaned", stderr: "", exitCode: 0 };
       const svc = createCleanupService();
-      const result = await svc.cleanup("text", [], []);
+      const result = await svc.cleanup("text", [], [], []);
 
       // Should not contain any context tags
       expect(result.prompt).not.toContain("-context>");
@@ -179,7 +179,7 @@ describe("CleanupService", () => {
         exitCode: 0,
       };
       const svc = createCleanupService();
-      const result = await svc.cleanup("original", [], []);
+      const result = await svc.cleanup("original", [], [], []);
       expect(result.text).toBe("cleaned text");
       expect(result.prompt).toContain("<transcription>");
     });
@@ -187,7 +187,7 @@ describe("CleanupService", () => {
     test("model passed as --model arg to claude CLI", async () => {
       spawnBehavior = { stdout: "cleaned", stderr: "", exitCode: 0 };
       const svc = createCleanupService("claude-sonnet-4-5-20250929");
-      await svc.cleanup("text", [], []);
+      await svc.cleanup("text", [], [], []);
 
       expect(spawnCalls).toHaveLength(1);
       expect(spawnCalls[0].command).toBe("claude");
@@ -198,7 +198,7 @@ describe("CleanupService", () => {
     test("no --model arg when model is undefined", async () => {
       spawnBehavior = { stdout: "cleaned", stderr: "", exitCode: 0 };
       const svc = createCleanupService();
-      await svc.cleanup("text", [], []);
+      await svc.cleanup("text", [], [], []);
 
       expect(spawnCalls[0].args).not.toContain("--model");
     });
@@ -211,7 +211,7 @@ describe("CleanupService", () => {
         error: new Error("spawn failed"),
       };
       const svc = createCleanupService();
-      const result = await svc.cleanup("original text", [], []);
+      const result = await svc.cleanup("original text", [], [], []);
       expect(result.text).toBe("original text");
     });
 
@@ -222,14 +222,14 @@ describe("CleanupService", () => {
         exitCode: 1,
       };
       const svc = createCleanupService();
-      const result = await svc.cleanup("original text", [], []);
+      const result = await svc.cleanup("original text", [], [], []);
       expect(result.text).toBe("original text");
     });
 
     test("falls back to original text on empty stdout", async () => {
       spawnBehavior = { stdout: "", stderr: "", exitCode: 0 };
       const svc = createCleanupService();
-      const result = await svc.cleanup("original text", [], []);
+      const result = await svc.cleanup("original text", [], [], []);
       expect(result.text).toBe("original text");
     });
 
@@ -261,7 +261,7 @@ describe("CleanupService", () => {
       const { createCleanupService: createSvc } =
         await import("../../services/cleanup.js");
       const svc = createSvc();
-      const result = await svc.cleanup("original", [], []);
+      const result = await svc.cleanup("original", [], [], []);
       expect(result.text).toBe("chunk1 chunk2");
     });
   });

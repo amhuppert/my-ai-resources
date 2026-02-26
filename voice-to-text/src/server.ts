@@ -2,7 +2,7 @@ import { writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { resolveConfig } from "./utils/config.js";
-import { readContextFilesContent } from "./utils/context.js";
+import { buildTranscriptionPrompt } from "./utils/context.js";
 import { createTranscriber } from "./services/transcriber.js";
 import { createCleanupService } from "./services/cleanup.js";
 import type {
@@ -144,8 +144,8 @@ async function handleTranscribe(
       console.log(`[server] Resolved config:\n${JSON.stringify(configValues, null, 2)}`);
     }
 
-    // Build transcription prompt from context files
-    const transcriptionPrompt = readContextFilesContent(config.contextFiles);
+    // Build transcription prompt from vocabulary files
+    const transcriptionPrompt = buildTranscriptionPrompt(config.vocabularyFiles);
 
     if (verbose) {
       if (config.contextFiles.length > 0) {
@@ -153,6 +153,12 @@ async function handleTranscribe(
         console.log(`[server] Context files (${config.contextFiles.length}):\n${lines}`);
       } else {
         console.log(`[server] Context files: none`);
+      }
+      if (config.vocabularyFiles.length > 0) {
+        const lines = config.vocabularyFiles.map((f) => `  [${f.source}] ${f.path}`).join("\n");
+        console.log(`[server] Vocabulary files (${config.vocabularyFiles.length}):\n${lines}`);
+      } else {
+        console.log(`[server] Vocabulary files: none`);
       }
       if (config.instructionsFiles.length > 0) {
         const lines = config.instructionsFiles.map((f) => `  [${f.source}] ${f.path}`).join("\n");
@@ -191,6 +197,7 @@ async function handleTranscribe(
       const { text, prompt: cleanupPrompt } = await cleanupService.cleanup(
         transcription,
         config.contextFiles,
+        config.vocabularyFiles,
         config.instructionsFiles,
         priorOutput,
       );

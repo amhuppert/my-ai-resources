@@ -4,6 +4,7 @@ export const ConfigSchema = z.object({
   hotkey: z.string().default("F9"),
   fileHotkey: z.string().default("F10"),
   contextFile: z.string().optional(),
+  vocabularyFile: z.string().optional(),
   instructionsFile: z.string().optional(),
   outputFile: z.string().optional(),
   claudeModel: z.string().optional(),
@@ -25,6 +26,7 @@ export type OutputMode = "clipboard" | "file";
 
 export type ResolvedConfig = Config & {
   contextFiles: ResolvedFileRef[];
+  vocabularyFiles: ResolvedFileRef[];
   instructionsFiles: ResolvedFileRef[];
   resolvedOutputFile?: string;
 };

@@ -114,6 +114,7 @@ export function resolveConfig(options: {
   // --- Accumulate context/instructions files; resolve outputFile separately ---
   const SPECIAL_FILE_KEYS = [
     "contextFile",
+    "vocabularyFile",
     "instructionsFile",
     "outputFile",
   ] as const;
@@ -123,7 +124,7 @@ export function resolveConfig(options: {
     : process.cwd();
 
   function collectFiles(
-    field: "contextFile" | "instructionsFile",
+    field: "contextFile" | "vocabularyFile" | "instructionsFile",
   ): ResolvedFileRef[] {
     // CLI overrides all layers
     if (options.cliOpts[field] !== undefined) {
@@ -166,6 +167,7 @@ export function resolveConfig(options: {
   }
 
   const contextFiles = collectFiles("contextFile");
+  const vocabularyFiles = collectFiles("vocabularyFile");
   const instructionsFiles = collectFiles("instructionsFile");
 
   // --- Resolve outputFile path (last-defined wins, with per-layer path resolution) ---
@@ -220,6 +222,7 @@ export function resolveConfig(options: {
     config: {
       ...parsed,
       contextFiles,
+      vocabularyFiles,
       instructionsFiles,
       resolvedOutputFile,
     },

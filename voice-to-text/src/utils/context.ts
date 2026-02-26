@@ -1,24 +1,30 @@
 import { readFileSync, existsSync } from "node:fs";
 import type { ResolvedFileRef } from "../types.js";
 
-const TRANSCRIPTION_INSTRUCTIONS = "Accurately transcribe the spoken audio.";
+const TRANSCRIPTION_BASE = "Accurately transcribe the spoken audio.";
 
-const TRANSCRIPTION_INSTRUCTIONS_WITH_CONTEXT =
-  "Accurately transcribe the spoken audio. The context below contains domain-specific terminology, names, and phrases to help you recognize words correctly. Use it only as hints for accurate transcription—do not alter, add to, or reinterpret what was actually spoken.";
+export function buildTranscriptionPrompt(
+  vocabularyFiles: ResolvedFileRef[],
+): string {
+  const terms: string[] = [];
+  const seen = new Set<string>();
 
-export function readContextFilesContent(
-  files: ResolvedFileRef[],
-): string | undefined {
-  const contents: string[] = [];
-  for (const file of files) {
+  for (const file of vocabularyFiles) {
     if (!existsSync(file.path)) continue;
     try {
-      const content = readFileSync(file.path, "utf-8").trim();
-      if (content) contents.push(content);
+      const content = readFileSync(file.path, "utf-8");
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed && !seen.has(trimmed)) {
+          seen.add(trimmed);
+          terms.push(trimmed);
+        }
+      }
     } catch {
       // Silently skip unreadable files
     }
   }
-  if (contents.length === 0) return TRANSCRIPTION_INSTRUCTIONS;
-  return `${TRANSCRIPTION_INSTRUCTIONS_WITH_CONTEXT}\n\n<context>\n${contents.join("\n\n")}\n</context>`;
+
+  if (terms.length === 0) return TRANSCRIPTION_BASE;
+  return `${TRANSCRIPTION_BASE} Domain vocabulary: ${terms.join(", ")}.`;
 }
