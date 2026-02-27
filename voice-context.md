@@ -13,8 +13,6 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **Eta** - Template rendering (not "ETA" the acronym)
 - **openai** / **OpenAI SDK** - OpenAI API client (Responses API integration)
 - **@modelcontextprotocol/sdk** - MCP protocol implementation
-- **SQLite** - Database for memory-bank-mcp
-- **nanoid** - Unique ID generator
 - **jsonc-parser** - JSON with comments parser
 - **clipboardy** - Clipboard access
 - **node-notifier** - Desktop notifications
@@ -51,7 +49,7 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 
 ## Naming Conventions
 
-- **kebab-case** for file names, CLI commands, MCP server names, and skill names (e.g., `memory-bank-mcp`, `init-voice-config`)
+- **kebab-case** for file names, CLI commands, MCP server names, and skill names (e.g., `cursor-shortcuts-mcp`, `init-voice-config`)
 - **camelCase** for TypeScript variables and functions (e.g., `installUser`, `deepMerge`)
 - **PascalCase** for TypeScript types and Zod schemas (e.g., `ClaudeSettings`, `McpServer`, `ConfigSchema`)
 - Hierarchical slugs use forward slashes: `feature-x/sub-feature-y`

@@ -78,7 +78,6 @@ await new Promise(resolve => setTimeout(resolve, 2000));
 ## MCP Tools
 
 - Use context7 MCP tools for latest 3rd party library docs.
-- Use memory-bank MCP tools for structured project context (see Memory Bank MCP section below).
 
 ## Document Map
 
@@ -86,38 +85,9 @@ See @document-map.md to understand key files and how to navigate the codebase.
 
 ## Memory Bank
 
-Persistent memory across sessions via markdown files and MCP database.
-
-**Markdown files** (read first for context):
+Persistent memory across sessions via markdown files.
 
 - @memory-bank/project-brief.md - High-level overview, tech stack, key decisions
 - @memory-bank/focus.md - Current work-in-progress and remaining tasks
-
-**MCP database** (`.claude/memory-bank.db`): Structured data for features, paths, requirements, objectives, tasks. See Memory Bank MCP section below.
-
-## Memory Bank MCP
-
-The memory-bank MCP server provides structured queries and tracking via `.claude/memory-bank.db`.
-
-### When to Use
-
-- **Finding relevant files**: `find_relevant_paths` with a natural language query
-- **Getting feature context**: `get_feature_context` for paths + requirements of a feature
-- **Getting objective context**: `get_objective_context` for tasks, linked features/tickets
-- **Building comprehensive context**: `build_context` for markdown summary of objective and/or features
-
-### Data Model
-
-- **Features**: Hierarchical areas (`auth`, `auth/oauth`, `user-management/roles`)
-- **Paths**: Files/directories with descriptions and "use when" conditions
-- **Requirements**: Linked to features, with notes
-- **Objectives**: Work goals with status, linked to tasks and tickets
-
-### Workflow
-
-1. Read markdown files (focus.md, project-brief.md) for initial context
-2. Use `find_relevant_paths` or `get_feature_context` when searching for specific files
-3. Update objective/task status as work progresses
-4. Keep focus.md and MCP data in sync when objectives change
 
 <!-- End of standard instructions -->
