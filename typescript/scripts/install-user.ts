@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
 
 import { join, dirname } from "path";
+import { mkdirSync, writeFileSync } from "fs";
 import { fileURLToPath } from "url";
+import { z } from "zod/v4";
 import {
   printInstallationHeader,
   installDirectory,
@@ -16,6 +18,8 @@ import {
   createDefaultConfig,
   createDefaultExecutor,
 } from "@/lib/install-types.js";
+import { WorktreeFilesSchema } from "@/lib/worktree-files-schema.js";
+import { installCursorJsonSchema } from "@/lib/cursor-settings.js";
 
 /**
  * Get the directory where this script is located
@@ -195,6 +199,27 @@ async function main(
     } else {
       console.log("ai-resources plugin installed successfully");
     }
+  }
+
+  // 7. Install worktree-files JSON schema and register with Cursor
+  console.log("Installing worktree-files JSON schema...");
+  try {
+    const schemasDir = join(config.paths.userClaudeDir, "schemas");
+    mkdirSync(schemasDir, { recursive: true });
+
+    const jsonSchema = z.toJSONSchema(WorktreeFilesSchema);
+    const schemaPath = join(schemasDir, "worktree-files-schema.json");
+    writeFileSync(schemaPath, JSON.stringify(jsonSchema, null, 2) + "\n");
+    console.log(`  Schema written to ${schemaPath}`);
+
+    installCursorJsonSchema(
+      `file://${schemaPath}`,
+      ["**/worktree-files.json"],
+    );
+    console.log("  Registered worktree-files.json schema with Cursor");
+  } catch (error) {
+    console.log("Warning: Failed to install worktree-files schema");
+    if (error instanceof Error) console.log(`  ${error.message}`);
   }
 
   console.log("");

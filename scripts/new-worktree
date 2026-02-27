@@ -2,7 +2,7 @@
 set -e
 
 if [ -z "$1" ]; then
-  echo "Usage: $0 <new-branch-name>"
+  echo "Usage: $0 <branch-name>"
   echo "Example: $0 feat/my-feature"
   exit 1
 fi
@@ -29,104 +29,46 @@ esac
 WORKTREE_ROOT="$WORKTREE_BASE/$PROJECT_NAME"
 WORKTREE_DIR="$WORKTREE_ROOT/$SAFE_DIR_NAME"
 
-copy_dir_if_exists() {
-  local source_dir="$1"
-  local destination_dir="$2"
-  local label="$3"
-
-  if [ -d "$source_dir" ]; then
-    mkdir -p "$destination_dir"
-    cp -a "$source_dir/." "$destination_dir/"
-    echo "  ✓ Copied $label"
-  fi
-}
-
-copy_file_if_exists() {
-  local source_file="$1"
-  local destination_dir="$2"
-  local label="$3"
-
-  if [ -f "$source_file" ]; then
-    cp -f "$source_file" "$destination_dir"
-    echo "  ✓ Copied $label"
-  fi
-}
-
 # Ensure project worktree root exists
 mkdir -p "$WORKTREE_ROOT"
 
 echo "Fetching latest from origin..."
 git fetch origin
 
-echo "Creating worktree at '$WORKTREE_DIR' for branch '$NEW_BRANCH' from '$BASE_REF'..."
-git worktree add -b "$NEW_BRANCH" "$WORKTREE_DIR" "$BASE_REF"
+# Determine branch existence
+LOCAL_EXISTS=false
+REMOTE_EXISTS=false
 
-echo "Navigating to worktree directory..."
+if git show-ref --verify --quiet "refs/heads/$NEW_BRANCH"; then
+  LOCAL_EXISTS=true
+fi
+
+if git show-ref --verify --quiet "refs/remotes/origin/$NEW_BRANCH"; then
+  REMOTE_EXISTS=true
+fi
+
+if [ "$LOCAL_EXISTS" = true ]; then
+  # Branch exists locally (cases 2 and 4) — use existing local branch
+  echo "Using existing local branch '$NEW_BRANCH'..."
+  git worktree add "$WORKTREE_DIR" "$NEW_BRANCH"
+elif [ "$REMOTE_EXISTS" = true ]; then
+  # Branch exists on remote only (case 3) — create local tracking branch
+  echo "Creating local branch '$NEW_BRANCH' tracking 'origin/$NEW_BRANCH'..."
+  git worktree add --track -b "$NEW_BRANCH" "$WORKTREE_DIR" "origin/$NEW_BRANCH"
+else
+  # Branch doesn't exist anywhere (case 1) — create new branch from BASE_REF
+  echo "Creating new branch '$NEW_BRANCH' from '$BASE_REF'..."
+  git worktree add -b "$NEW_BRANCH" "$WORKTREE_DIR" "$BASE_REF"
+fi
+
 cd "$WORKTREE_DIR"
 
-echo "Setting upstream to 'origin/$NEW_BRANCH'..."
-git push -u origin "$NEW_BRANCH"
-
-echo ""
-echo "Setting up worktree environment..."
-
-# Install Ralph Loop for Cursor
-echo "Installing Ralph Loop for Cursor..."
-curl -fsSL https://raw.githubusercontent.com/agrimsingh/ralph-wiggum-cursor/main/install.sh | bash
-
-echo "Discarding Ralph Loop's .gitignore changes..."
-git checkout -- .gitignore 2>/dev/null || true
-
-# Return to original repo to copy files
-echo "Copying configuration from $ORIGINAL_DIR..."
-cd "$ORIGINAL_DIR"
-
-echo "Copying configuration files and directories..."
-copy_dir_if_exists ".cursor" "$WORKTREE_DIR/.cursor" ".cursor"
-copy_dir_if_exists "dev-local" "$WORKTREE_DIR/dev-local" "dev-local"
-copy_dir_if_exists ".claude" "$WORKTREE_DIR/.claude" ".claude"
-
-if [ -d "memory-bank" ]; then
-  mkdir -p "$WORKTREE_DIR/memory-bank"
-  copy_file_if_exists "memory-bank/focus.md" "$WORKTREE_DIR/memory-bank/" "memory-bank/focus.md"
-  copy_file_if_exists "memory-bank/project-brief.md" "$WORKTREE_DIR/memory-bank/" "memory-bank/project-brief.md"
-fi
-
-copy_file_if_exists ".env.local" "$WORKTREE_DIR/" ".env.local"
-copy_file_if_exists ".env" "$WORKTREE_DIR/" ".env"
-copy_file_if_exists ".cursorignore" "$WORKTREE_DIR/" ".cursorignore"
-copy_file_if_exists "CLAUDE.md" "$WORKTREE_DIR/" "CLAUDE.md"
-copy_file_if_exists "voice-context.md" "$WORKTREE_DIR/" "voice-context.md"
-copy_file_if_exists "voice.json" "$WORKTREE_DIR/" "voice.json"
-
-# Copy project-specific files/directories from worktrees.json if it exists
-if [ -f "worktrees.json" ]; then
-  echo "Reading project-specific paths from worktrees.json..."
-
-  # Copy directories
-  while IFS= read -r dir; do
-    [ -z "$dir" ] && continue
-    copy_dir_if_exists "$dir" "$WORKTREE_DIR/$dir" "$dir"
-  done < <(jq -r '.directories[]? // empty' worktrees.json)
-
-  # Copy files
-  while IFS= read -r file; do
-    [ -z "$file" ] && continue
-    # Ensure parent directory exists in worktree
-    file_parent="$(dirname "$file")"
-    if [ "$file_parent" != "." ]; then
-      mkdir -p "$WORKTREE_DIR/$file_parent"
-    fi
-    copy_file_if_exists "$file" "$WORKTREE_DIR/$file_parent/" "$file"
-  done < <(jq -r '.files[]? // empty' worktrees.json)
-fi
+# Delegate environment setup to setup-worktree
+ROOT_WORKTREE_PATH="$ORIGINAL_DIR" setup-worktree
 
 echo ""
 echo "✓ Worktree created at: $WORKTREE_DIR"
-echo "✓ Branch '$NEW_BRANCH' created from '$BASE_REF'"
-echo "✓ Upstream set to 'origin/$NEW_BRANCH'"
-echo "✓ Ralph Loop installed"
-echo "✓ Configuration files copied"
+echo "✓ Branch: $NEW_BRANCH"
 echo ""
 echo "To navigate to the worktree:"
 echo "  cd $WORKTREE_DIR"

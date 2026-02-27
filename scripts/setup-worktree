@@ -1,0 +1,98 @@
+#!/bin/bash
+set -e
+
+if [ -z "$ROOT_WORKTREE_PATH" ]; then
+  echo "Error: ROOT_WORKTREE_PATH environment variable is not set."
+  echo ""
+  echo "ROOT_WORKTREE_PATH must point to the root of the source repository"
+  echo "whose configuration files should be copied into this worktree."
+  echo ""
+  echo "Usage:"
+  echo "  ROOT_WORKTREE_PATH=/path/to/source/repo setup-worktree"
+  exit 1
+fi
+
+if [ ! -d "$ROOT_WORKTREE_PATH" ]; then
+  echo "Error: ROOT_WORKTREE_PATH '$ROOT_WORKTREE_PATH' is not a valid directory."
+  exit 1
+fi
+
+WORKTREE_DIR="$(pwd)"
+
+copy_dir_if_exists() {
+  local source_dir="$1"
+  local destination_dir="$2"
+  local label="$3"
+
+  if [ -d "$source_dir" ]; then
+    mkdir -p "$destination_dir"
+    cp -a "$source_dir/." "$destination_dir/"
+    echo "  ✓ Copied $label"
+  fi
+}
+
+copy_file_if_exists() {
+  local source_file="$1"
+  local destination_dir="$2"
+  local label="$3"
+
+  if [ -f "$source_file" ]; then
+    cp -f "$source_file" "$destination_dir"
+    echo "  ✓ Copied $label"
+  fi
+}
+
+echo "Setting up worktree environment..."
+echo "  Source: $ROOT_WORKTREE_PATH"
+echo "  Target: $WORKTREE_DIR"
+
+# Install Ralph Loop for Cursor
+echo "Installing Ralph Loop for Cursor..."
+curl -fsSL https://raw.githubusercontent.com/agrimsingh/ralph-wiggum-cursor/main/install.sh | bash
+
+echo "Discarding Ralph Loop's .gitignore changes..."
+git checkout -- .gitignore 2>/dev/null || true
+
+echo "Copying configuration files and directories..."
+
+copy_dir_if_exists "$ROOT_WORKTREE_PATH/.cursor" "$WORKTREE_DIR/.cursor" ".cursor"
+copy_dir_if_exists "$ROOT_WORKTREE_PATH/dev-local" "$WORKTREE_DIR/dev-local" "dev-local"
+copy_dir_if_exists "$ROOT_WORKTREE_PATH/.claude" "$WORKTREE_DIR/.claude" ".claude"
+
+if [ -d "$ROOT_WORKTREE_PATH/memory-bank" ]; then
+  mkdir -p "$WORKTREE_DIR/memory-bank"
+  copy_file_if_exists "$ROOT_WORKTREE_PATH/memory-bank/focus.md" "$WORKTREE_DIR/memory-bank/" "memory-bank/focus.md"
+  copy_file_if_exists "$ROOT_WORKTREE_PATH/memory-bank/project-brief.md" "$WORKTREE_DIR/memory-bank/" "memory-bank/project-brief.md"
+fi
+
+copy_file_if_exists "$ROOT_WORKTREE_PATH/.env.local" "$WORKTREE_DIR/" ".env.local"
+copy_file_if_exists "$ROOT_WORKTREE_PATH/.env" "$WORKTREE_DIR/" ".env"
+copy_file_if_exists "$ROOT_WORKTREE_PATH/.cursorignore" "$WORKTREE_DIR/" ".cursorignore"
+copy_file_if_exists "$ROOT_WORKTREE_PATH/CLAUDE.md" "$WORKTREE_DIR/" "CLAUDE.md"
+copy_file_if_exists "$ROOT_WORKTREE_PATH/voice-context.md" "$WORKTREE_DIR/" "voice-context.md"
+copy_file_if_exists "$ROOT_WORKTREE_PATH/voice.json" "$WORKTREE_DIR/" "voice.json"
+
+# Copy project-specific files/directories from worktree-files.json if it exists
+if [ -f "$ROOT_WORKTREE_PATH/worktree-files.json" ]; then
+  echo "Reading project-specific paths from worktree-files.json..."
+
+  # Copy directories
+  while IFS= read -r dir; do
+    [ -z "$dir" ] && continue
+    copy_dir_if_exists "$ROOT_WORKTREE_PATH/$dir" "$WORKTREE_DIR/$dir" "$dir"
+  done < <(jq -r '.directories[]? // empty' "$ROOT_WORKTREE_PATH/worktree-files.json")
+
+  # Copy files
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    # Ensure parent directory exists in worktree
+    file_parent="$(dirname "$file")"
+    if [ "$file_parent" != "." ]; then
+      mkdir -p "$WORKTREE_DIR/$file_parent"
+    fi
+    copy_file_if_exists "$ROOT_WORKTREE_PATH/$file" "$WORKTREE_DIR/$file_parent/" "$file"
+  done < <(jq -r '.files[]? // empty' "$ROOT_WORKTREE_PATH/worktree-files.json")
+fi
+
+echo ""
+echo "✓ Worktree environment setup complete"
