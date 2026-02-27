@@ -1,5 +1,6 @@
 {
   "contextFile": "./voice-context.md",
+  "vocabularyFile": "./voice-vocabulary.md",
   "hotkey": "F9",
   "outputFile": "./PROMPT.md"
 }
