@@ -67,47 +67,7 @@ async function main(
     true,
   );
 
-  // 3. Install cursor-shortcuts-mcp globally
-  console.log("Installing cursor-shortcuts-mcp globally...");
-  const mcpDir = join(SCRIPT_DIR, "cursor-shortcuts-mcp");
-
-  if (await commandExists("bun", executor)) {
-    try {
-      console.log("Building cursor-shortcuts-mcp...");
-      const buildResult = await execCommand("bun", ["run", "build"], executor, {
-        cwd: mcpDir,
-      });
-
-      if (!buildResult.success) {
-        console.log("Warning: Failed to build cursor-shortcuts-mcp");
-        console.error(buildResult.stderr);
-      } else {
-        console.log("Linking cursor-shortcuts-mcp globally...");
-        const linkResult = await execCommand("bun", ["link"], executor, {
-          cwd: mcpDir,
-        });
-
-        if (!linkResult.success) {
-          console.log("Warning: Failed to link cursor-shortcuts-mcp");
-          console.error(linkResult.stderr);
-        } else {
-          console.log("cursor-shortcuts-mcp installed successfully");
-        }
-      }
-    } catch (error) {
-      console.log("Warning: Failed to install cursor-shortcuts-mcp");
-      console.error(error);
-    }
-  } else {
-    console.log(
-      "Warning: bun not found, skipping cursor-shortcuts-mcp installation",
-    );
-    console.log(
-      "Install bun to enable MCP server installation: https://bun.sh",
-    );
-  }
-
-  // 4. Install Claude Code settings using TypeScript installer
+  // 3. Install Claude Code settings using TypeScript installer
   console.log("Installing Claude Code user-level settings...");
   if (await commandExists("bun", executor)) {
     try {
@@ -127,50 +87,7 @@ async function main(
     console.log("Install bun to enable settings installation: https://bun.sh");
   }
 
-  // 5. Install MCP servers for Claude Code
-  console.log("Adding MCP servers to Claude Code");
-
-  // Add cursor-shortcuts-mcp (globally linked via bun)
-  const cursorShortcutsResult = await execCommand(
-    "claude",
-    [
-      "mcp",
-      "add",
-      "cursor-shortcuts",
-      "cursor-shortcuts-mcp",
-      "--scope",
-      "user",
-    ],
-    executor,
-  );
-
-  if (!cursorShortcutsResult.success) {
-    console.log("Warning: Failed to add cursor-shortcuts MCP server");
-    console.error(cursorShortcutsResult.stderr);
-  }
-
-  // Add Context7 MCP server
-  const context7Result = await execCommand(
-    "claude",
-    [
-      "mcp",
-      "add",
-      "--transport",
-      "sse",
-      "context7",
-      "https://mcp.context7.com/sse",
-      "--scope",
-      "user",
-    ],
-    executor,
-  );
-
-  if (!context7Result.success) {
-    console.log("Warning: Failed to add Context7 MCP server");
-    console.error(context7Result.stderr);
-  }
-
-  // 6. Install ai-workflow-resources plugin
+  // 4. Install ai-workflow-resources plugin
   console.log("Installing ai-workflow-resources plugin...");
 
   const marketplacePath = join(SCRIPT_DIR, "claude");
@@ -201,7 +118,7 @@ async function main(
     }
   }
 
-  // 7. Install worktree-files JSON schema and register with Cursor
+  // 5. Install worktree-files JSON schema and register with Cursor
   console.log("Installing worktree-files JSON schema...");
   try {
     const schemasDir = join(config.paths.userClaudeDir, "schemas");
