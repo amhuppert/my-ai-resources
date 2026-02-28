@@ -80,6 +80,25 @@ for PORT in "${PORTS[@]}"; do
     echo "Sending SIG${SIGNAL} to ${COUNT} process(es) on port ${PORT}..."
     echo "$PIDS" | xargs kill "-${SIGNAL}" 2>/dev/null && echo "Done." || echo "Failed to kill some processes on port ${PORT}."
     KILLED=$((KILLED + COUNT))
+
+    if [[ "$SIGNAL" == "TERM" ]]; then
+        for (( i=0; i<5; i++ )); do
+            sleep 1
+            STILL_ALIVE=()
+            while IFS= read -r PID; do
+                [[ -z "$PID" ]] && continue
+                if kill -0 "$PID" 2>/dev/null; then
+                    STILL_ALIVE+=("$PID")
+                fi
+            done <<< "$PIDS"
+            [[ ${#STILL_ALIVE[@]} -eq 0 ]] && break
+        done
+
+        if [[ ${#STILL_ALIVE[@]} -gt 0 ]]; then
+            echo "${#STILL_ALIVE[@]} process(es) on port ${PORT} did not exit, sending SIGKILL..."
+            kill -KILL "${STILL_ALIVE[@]}" 2>/dev/null || true
+        fi
+    fi
 done
 
 if [[ $KILLED -gt 0 ]]; then
