@@ -1,5 +1,10 @@
 {
   "permissions": {
-    "deny": ["Read(ai-ignored/**)"]
+    "deny": [
+      "Read(ai-ignored/**)"
+    ]
+  },
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true
   }
 }
