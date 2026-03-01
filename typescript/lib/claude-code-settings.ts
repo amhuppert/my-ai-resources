@@ -90,22 +90,26 @@ export const PermissionsSchema = z.object({
 });
 
 /**
- * Main Claude Code settings configuration
+ * Main Claude Code settings configuration.
+ * Uses .passthrough() to preserve fields not in our schema (e.g. enabledPlugins,
+ * extraKnownMarketplaces) so the installer doesn't silently strip them.
  */
-export const ClaudeCodeSettingsSchema = z.object({
-  /** Path to script for generating auth value */
-  apiKeyHelper: z.string().optional(),
-  /** Days to retain chat transcripts (default: 30) */
-  cleanupPeriodDays: z.number().positive().optional(),
-  /** Environment variables */
-  env: z.record(z.string(), z.string()).optional(),
-  /** Include "co-authored-by Claude" in git commits (default: true) */
-  includeCoAuthoredBy: z.boolean().optional(),
-  /** Permissions configuration */
-  permissions: PermissionsSchema.optional(),
-  /** Hooks configuration */
-  hooks: HooksSchema.optional(),
-});
+export const ClaudeCodeSettingsSchema = z
+  .object({
+    /** Path to script for generating auth value */
+    apiKeyHelper: z.string().optional(),
+    /** Days to retain chat transcripts (default: 30) */
+    cleanupPeriodDays: z.number().positive().optional(),
+    /** Environment variables */
+    env: z.record(z.string(), z.string()).optional(),
+    /** Include "co-authored-by Claude" in git commits (default: true) */
+    includeCoAuthoredBy: z.boolean().optional(),
+    /** Permissions configuration */
+    permissions: PermissionsSchema.optional(),
+    /** Hooks configuration */
+    hooks: HooksSchema.optional(),
+  })
+  .passthrough();
 
 // Export types
 export type HookType = z.infer<typeof HookTypeSchema>;
