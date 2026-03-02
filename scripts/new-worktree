@@ -58,7 +58,7 @@ elif [ "$REMOTE_EXISTS" = true ]; then
 else
   # Branch doesn't exist anywhere (case 1) — create new branch from BASE_REF
   echo "Creating new branch '$NEW_BRANCH' from '$BASE_REF'..."
-  git worktree add -b "$NEW_BRANCH" "$WORKTREE_DIR" "$BASE_REF"
+  git worktree add --no-track -b "$NEW_BRANCH" "$WORKTREE_DIR" "$BASE_REF"
 fi
 
 cd "$WORKTREE_DIR"
