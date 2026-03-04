@@ -1,34 +1,36 @@
 ---
 name: code-standards-review
-description: Use this skill when reviewing a codebase for adherence to code standards. This skill performs comprehensive standards audits using specialized agents with progressive disclosure to determine which standards apply to the specific codebase. Examples:
+description: >
+  Use this skill when reviewing a codebase for adherence to code standards. This skill performs comprehensive standards audits
+  using specialized agents with progressive disclosure to determine which standards apply to the specific codebase.
 
-<example>
-Context: User has a React TypeScript project they want to audit
-user: "Review my codebase for code standards violations"
-assistant: "I'll use the code-standards-review skill to audit your entire codebase against project standards."
-<commentary>
-Direct request for code standards review makes this skill appropriate.
-</commentary>
-</example>
 
-<example>
-Context: User wants to review only a specific directory
-user: "Check my /src/features directory for standards compliance"
-assistant: "I'll use the code-standards-review skill to review the /src/features scope against applicable standards."
-<commentary>
-Scoped review request indicates this skill should analyze a specific directory.
-</commentary>
-</example>
+  <example>
+  Context: User has a React TypeScript project they want to audit
+  user: "Review my codebase for code standards violations"
+  assistant: "I'll use the code-standards-review skill to audit your entire codebase against project standards."
+  <commentary>
+  Direct request for code standards review makes this skill appropriate.
+  </commentary>
+  </example>
 
-<example>
-Context: User is setting up a new project and wants standards guidance
-user: "Audit my new React app for any code standards issues"
-assistant: "I'll launch the code-standards-review skill to perform a comprehensive audit with findings and recommendations."
-<commentary>
-New project audit is a clear use case for this skill.
-</commentary>
-</example>
+  <example>
+  Context: User wants to review only a specific directory
+  user: "Check my /src/features directory for standards compliance"
+  assistant: "I'll use the code-standards-review skill to review the /src/features scope against applicable standards."
+  <commentary>
+  Scoped review request indicates this skill should analyze a specific directory.
+  </commentary>
+  </example>
 
+  <example>
+  Context: User is setting up a new project and wants standards guidance
+  user: "Audit my new React app for any code standards issues"
+  assistant: "I'll launch the code-standards-review skill to perform a comprehensive audit with findings and recommendations."
+  <commentary>
+  New project audit is a clear use case for this skill.
+  </commentary>
+  </example>
 ---
 
 # Code Standards Review Skill
