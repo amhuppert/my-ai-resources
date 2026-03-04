@@ -68,6 +68,7 @@ The skill uses progressive disclosure to launch only relevant agents:
 **TypeScript Projects:**
 
 - **TypeScript Type Safety Reviewer** - Validates or identifies type safety issues
+- **Testing Reviewer** - Audits test quality, mocking strategy, and test value vs. maintenance cost
 - **Zustand Reviewer** - Validates existing stores OR identifies where Zustand should be used (prescriptive pattern)
 - **Dependency Injection Reviewer** - Validates existing DI OR identifies where DI should be introduced (prescriptive pattern)
 
@@ -85,6 +86,7 @@ When applicable standards are determined, specialized agents are launched in par
 - **General Standards Reviewer** - Code quality, control flow, comments, error handling, YAGNI
 - **Colocation Reviewer** - Organization and file structure
 - **TypeScript Type Safety Reviewer** - Type safety standards
+- **Testing Reviewer** - Test quality, mocking strategy, test value vs. maintenance cost
 - **Zustand Reviewer** - State management best practices (validates existing or identifies where to use)
 - **Dependency Injection Reviewer** - Service layer and DI patterns (validates existing or identifies where to use)
 - **TanStack Query Reviewer** - Data fetching patterns (validates existing or identifies where to use)
@@ -162,6 +164,7 @@ The skill produces:
 ### TypeScript Projects
 
 - **TypeScript** - Type safety and strict typing (prescriptive: identifies unsafe patterns)
+- **Testing** - Test quality, mocking strategy, and test value vs. maintenance cost
 - **Zustand** - State management best practices (prescriptive: identifies where to use or improve)
 - **Dependency Injection** - Service layer and context patterns (prescriptive: identifies where to use or improve)
 
@@ -170,12 +173,13 @@ The skill produces:
 - **Colocation** - File organization and structural patterns (any architecture)
 - **TanStack Query** - Query key factories and caching patterns (prescriptive: identifies where to use or improve)
 
-Each standard has comprehensive reference documentation available in the skill's `references/` directory for detailed guidance. The Zustand, Dependency Injection, and TanStack Query agents are **prescriptive reviewers** that identify both violations of existing implementations AND opportunities to adopt these preferred patterns even if not currently used.
+Each standard has comprehensive reference documentation available in the skill's `references/` directory for detailed guidance. The Testing reviewer works in conjunction with the Dependency Injection reviewer — proper DI eliminates most mocking needs. The Zustand, Dependency Injection, and TanStack Query agents are **prescriptive reviewers** that identify both violations of existing implementations AND opportunities to adopt these preferred patterns even if not currently used.
 
 ## Standards Referenced
 
 - `@references/colocation-standards.md` - Code organization principles
 - `@references/general-code-standards.md` - Quality and design principles
+- `@references/testing-standards.md` - Test quality, mocking strategy, test value
 - `@references/zustand-reference.md` - State management best practices
 - `@references/dependency-injection.md` - Service layer patterns
 - `@references/typescript-general.md` - Type safety standards
