@@ -1,0 +1,11 @@
+{
+  "presets": [
+    {
+      "id": "manual",
+      "name": "Manual",
+      "isManual": true,
+      "enabled": true,
+      "rules": []
+    }
+  ]
+}

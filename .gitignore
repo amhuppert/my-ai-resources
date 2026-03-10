@@ -22,3 +22,4 @@ typescript/.ralph/live.log
 voice-output.md
 .voice-last.json
 .worktrees
+.vscode/settings.json
