@@ -46,13 +46,6 @@ echo "Setting up worktree environment..."
 echo "  Source: $ROOT_WORKTREE_PATH"
 echo "  Target: $WORKTREE_DIR"
 
-# Install Ralph Loop for Cursor
-echo "Installing Ralph Loop for Cursor..."
-curl -fsSL https://raw.githubusercontent.com/agrimsingh/ralph-wiggum-cursor/main/install.sh | bash
-
-echo "Discarding Ralph Loop's .gitignore changes..."
-git checkout -- .gitignore 2>/dev/null || true
-
 echo "Copying configuration files and directories..."
 
 copy_dir_if_exists "$ROOT_WORKTREE_PATH/.cursor" "$WORKTREE_DIR/.cursor" ".cursor"
