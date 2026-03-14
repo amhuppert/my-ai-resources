@@ -61,8 +61,8 @@ else:
 
 Before running agents, detect project characteristics:
 
-1. **TypeScript**: Check if `tsconfig.json` exists OR grep `memory-bank/project-brief.md` for "TypeScript"
-2. **Expo**: Check if `app.json` contains "expo" key OR grep `memory-bank/project-brief.md` for "Expo"
+1. **TypeScript**: Check if `tsconfig.json` exists OR grep `.kiro/steering/tech.md` for "TypeScript"
+2. **Expo**: Check if `app.json` contains "expo" key OR grep `.kiro/steering/tech.md` for "Expo"
 3. **Design System**: Check if `memory-bank/DESIGN-AGENTS.md` contains `design-system-file:` and the referenced file exists
 
 Store detection results for agent selection.
@@ -104,7 +104,7 @@ Use this workflow when creating a design from scratch.
 
 Read these files to understand the project context:
 
-1. `memory-bank/project-brief.md` - Project overview and tech stack
+1. `.kiro/steering/tech.md` - Project overview and tech stack
 2. Find requirements file:
    - Check `memory-bank/DESIGN-AGENTS.md` for `requirements-file:` config
    - If not found, glob for `memory-bank/*requirements*.md` or `memory-bank/*REQUIREMENTS*.md`
@@ -169,7 +169,7 @@ Review the design at `{DESIGN_DIR}/design-draft.md` against [agent's specialty].
 
 Also read:
 - Requirements file: [path]
-- Project brief: memory-bank/project-brief.md
+- Project brief: .kiro/steering/tech.md
 [If design-system-agent: - Design system: [path]]
 
 Write your review to `{DESIGN_DIR}/review-{agent-name}.md`

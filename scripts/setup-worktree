@@ -55,7 +55,6 @@ copy_dir_if_exists "$ROOT_WORKTREE_PATH/.claude" "$WORKTREE_DIR/.claude" ".claud
 if [ -d "$ROOT_WORKTREE_PATH/memory-bank" ]; then
   mkdir -p "$WORKTREE_DIR/memory-bank"
   copy_file_if_exists "$ROOT_WORKTREE_PATH/memory-bank/focus.md" "$WORKTREE_DIR/memory-bank/" "memory-bank/focus.md"
-  copy_file_if_exists "$ROOT_WORKTREE_PATH/memory-bank/project-brief.md" "$WORKTREE_DIR/memory-bank/" "memory-bank/project-brief.md"
 fi
 
 copy_file_if_exists "$ROOT_WORKTREE_PATH/.env.local" "$WORKTREE_DIR/" ".env.local"

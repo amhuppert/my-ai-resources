@@ -9,7 +9,6 @@ node-notifier
 proper-lockfile
 write-file-atomic
 CLAUDE.md
-document-map.md
 MCP
 voice-to-text
 Ralph
@@ -19,16 +18,13 @@ PRD
 lgit
 code-tree
 read-file
-memory-bank
 focus.md
-project-brief.md
+steering files
 YAGNI
 ConfigSchema
 ResolvedFileRef
 ai-resources
-memory-bank-plugin
 cursor-shortcuts-mcp
-memory-bank-mcp
 modelcontextprotocol
 /test-slash-command
 /audit-standards
@@ -51,7 +47,6 @@ modelcontextprotocol
 /ai-resources:design
 /ai-resources:fix-merge-conflicts
 /ai-resources:init-design-config
-/ai-resources:init-document-map
 /ai-resources:init-voice-config
 /ai-resources:jog-users-memory
 /ai-resources:latex
@@ -62,15 +57,7 @@ modelcontextprotocol
 /ai-resources:skill-creator
 /ai-resources:steer
 /ai-resources:understand-objective-anthropic
-/ai-resources:update-project-brief
 /ai-resources:worktree
-/memory-bank:add-feature
-/memory-bank:complete-objective
-/memory-bank:mb-quick-add
-/memory-bank:mb-status
-/memory-bank:memory-context
-/memory-bank:start-objective
-/memory-bank:sync-memory-bank
 code-reviewer
 requirements-validation-agent
 software-engineering-agent

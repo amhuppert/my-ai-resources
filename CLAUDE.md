@@ -3,17 +3,14 @@
 - When writing TypeScript code, follow all TypeScript standards in 'agent-docs/code-standards/typescript/typescript-general.md'
   <project-level-instructions>
 
-## Document Map
+## Steering Context
 
-@document-map.md
+@.kiro/steering/product.md
+@.kiro/steering/tech.md
+@.kiro/steering/structure.md
 
-## Memory Bank
+## Session Focus
 
-The memory bank is a set of files with critical context. It gives Claude a persistent memory.
-
-Files:
-
-- @memory-bank/project-brief.md - Project brief (high-level overview, tech stack, key architectural decisions, and important commands)
 - @memory-bank/focus.md - Current focus: work-in-progress, progress, remaining tasks
 
 ## Project Rules
@@ -22,7 +19,6 @@ Review rule descriptions below to identify relevant rules for the current task. 
 
 ### Meta
 
-- **.cursor/rules/meta/memory-bank.mdc**: This rule should be used always (alwaysApply: true) when working with memory bank files to maintain project context across AI sessions. Requires reading all memory bank files at task start and updating focus.md when completing tasks.
 - **.cursor/rules/meta/creating-rules.mdc**: This rule should be used when creating or updating Cursor rule files (.mdc) in .cursor/rules/. Provides standards for frontmatter (description, globs, alwaysApply), file organization, and AI-optimized formatting with inline examples.
 - **.cursor/rules/meta/minimal-standards-docs.mdc**: This rule should be used when creating project-wide standards documents (.md or .mdc files) to ensure minimal token usage. Enforces bulleted list structure with maximum two-level heading depth and single-line imperative instructions.
 - **.cursor/rules/meta/mermaid-diagrams-for-agent.mdc**: This rule should be used when creating Mermaid diagrams in markdown or .mdc files for AI consumption. Requires inline comments throughout diagrams, header comments explaining purpose, and embedded context to eliminate external documentation dependencies.
@@ -113,15 +109,16 @@ await new Promise(resolve => setTimeout(resolve, 2000));
 
 - Use context7 MCP tools for latest 3rd party library docs.
 
-## Document Map
+## Steering Context
 
-See @document-map.md to understand key files and how to navigate the codebase.
+Project context via Kiro steering files in `.kiro/steering/`.
 
-## Memory Bank
+- @.kiro/steering/product.md - Product vision and use cases
+- @.kiro/steering/tech.md - Tech stack, architecture, key commands
+- @.kiro/steering/structure.md - Codebase structure and conventions
 
-Persistent memory across sessions via markdown files.
+## Session Focus
 
-- @memory-bank/project-brief.md - High-level overview, tech stack, key decisions
 - @memory-bank/focus.md - Current work-in-progress and remaining tasks
 
 <!-- End of standard instructions -->

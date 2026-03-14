@@ -13,10 +13,11 @@ Support for:
 - `claude/` - Claude Code configuration files, plugin definition, and user/project CLAUDE.md templates
 - `cursor/` - Shared Cursor files (rules, commands) to be installed to other projects
 - `cursor-shortcuts-mcp/` - MCP server for AI-powered keyboard shortcut recommendations
-- `memory-bank/` - Persistent context files (project-brief.md, focus.md) for AI memory
+- `.kiro/` - Kiro SDD steering files for project context
+- `memory-bank/` - Session tracking (focus.md) for AI-assisted development
 - `prompts/` - Saved LLM prompts and prompt templates
 - `scripts/` - CLI utility scripts (lgit, code-tree, read-file, push-main)
-- `typescript/` - TypeScript tooling for installation, settings management, and document map generation
+- `typescript/` - TypeScript tooling for installation and settings management
 - `.claude/` - Claude Code project-level configuration for this repository
 - `.cursor/` - Cursor IDE configuration for this repository
 

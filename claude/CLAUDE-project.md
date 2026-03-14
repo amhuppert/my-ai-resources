@@ -79,15 +79,16 @@ await new Promise(resolve => setTimeout(resolve, 2000));
 
 - Use context7 MCP tools for latest 3rd party library docs.
 
-## Document Map
+## Steering Context
 
-See @document-map.md to understand key files and how to navigate the codebase.
+Project context via Kiro steering files in `.kiro/steering/`.
 
-## Memory Bank
+- @.kiro/steering/product.md - Product vision and use cases
+- @.kiro/steering/tech.md - Tech stack, architecture, key commands
+- @.kiro/steering/structure.md - Codebase structure and conventions
 
-Persistent memory across sessions via markdown files.
+## Session Focus
 
-- @memory-bank/project-brief.md - High-level overview, tech stack, key decisions
 - @memory-bank/focus.md - Current work-in-progress and remaining tasks
 
 <!-- End of standard instructions -->

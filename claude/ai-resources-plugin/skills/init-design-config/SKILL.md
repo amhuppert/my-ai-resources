@@ -42,7 +42,7 @@ Gather information from the project to populate the configuration:
 
 1. Check for `tsconfig.json` → suggest TypeScript-related agents
 2. Check for `app.json` with expo → suggest mobile-related agents
-3. Check `memory-bank/project-brief.md` for domain hints
+3. Check `.kiro/steering/tech.md` for domain hints
 
 ### Step 3: Generate Configuration Content
 
@@ -67,7 +67,7 @@ These agents run in parallel to research specific aspects of the problem domain.
 
 Add entries as: `- agent-name: Brief description of expertise`
 
-[If domain hints found from project-brief.md, add suggestions as comments:]
+[If domain hints found from steering files, add suggestions as comments:]
 
 <!-- Suggested based on project context:
 - [domain]-expert-agent: Researches [domain] best practices and patterns

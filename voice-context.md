@@ -25,10 +25,8 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 
 - **CLAUDE.md** - Claude Code project instructions file; pronounced "Claude dot M-D" (not "cloud.md")
 - **MCP** - Model Context Protocol; standard for AI tool integration via stdio servers
-- **memory-bank** - Persistent context system for AI sessions using markdown files and SQLite
-- **focus.md** - Memory bank file tracking current work-in-progress
-- **project-brief.md** - Memory bank file with high-level project overview
-- **document-map.md** - Navigation aid file listing important files and their purposes
+- **focus.md** - Session file tracking current work-in-progress
+- **steering files** - Kiro SDD project context files in .kiro/steering/ (product.md, tech.md, structure.md)
 - **Ralph** - ralph-claude-code; autonomous agent loop for mechanical task execution
 - **CCSDD** - Claude Code SDD (Software Design Document); spec-driven design format
 - **SDD** - Software Design Document
@@ -43,7 +41,7 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **deep merge** - Settings installation strategy that preserves existing config values
 - **worktree** - Git worktree; isolated branch environment for parallel sessions
 - **YAGNI** - You Aren't Gonna Need It; design principle
-- **ai** - Main CLI binary for this project (`ai install`, `ai init-document-map`)
+- **ai** - Main CLI binary for this project (`ai install`, `ai worktree`)
 - **voice-to-text** - The transcription and cleanup tool built in this repository
 - **slash commands** - Custom Claude Code commands invoked with `/command-name` syntax
 
@@ -53,7 +51,7 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **camelCase** for TypeScript variables and functions (e.g., `installUser`, `deepMerge`)
 - **PascalCase** for TypeScript types and Zod schemas (e.g., `ClaudeSettings`, `McpServer`, `ConfigSchema`)
 - Hierarchical slugs use forward slashes: `feature-x/sub-feature-y`
-- Plugin skills use namespace prefixes: `ai-resources:skill-name`, `memory-bank:skill-name`
+- Plugin skills use namespace prefixes: `ai-resources:skill-name`
 
 ## Claude Commands & Skills
 
@@ -83,7 +81,6 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **/ai-resources:design** - Orchestrate a multi-agent collaborative software design workflow
 - **/ai-resources:fix-merge-conflicts** - Resolve git merge conflicts
 - **/ai-resources:init-design-config** - Initialize DESIGN-AGENTS.md configuration file
-- **/ai-resources:init-document-map** - Generate a document map for codebase navigation
 - **/ai-resources:init-voice-config** - Initialize voice-to-text configuration for a project
 - **/ai-resources:jog-users-memory** - Provide a quick summary of current progress after returning
 - **/ai-resources:latex** - Create or convert documents to LaTeX format
@@ -94,18 +91,7 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **/ai-resources:skill-creator** - Create or update a Claude Code skill
 - **/ai-resources:steer** - Create a navigation steering document from codebase exploration
 - **/ai-resources:understand-objective-anthropic** - Research and clarify a development objective
-- **/ai-resources:update-project-brief** - Update the memory-bank project brief
 - **/ai-resources:worktree** - Create a git worktree for parallel Claude Code sessions
-
-### memory-bank Plugin Skills
-
-- **/memory-bank:add-feature** - Add a feature to the memory bank database
-- **/memory-bank:complete-objective** - Complete an objective and capture learnings
-- **/memory-bank:mb-quick-add** - Quickly add a file path to the memory bank
-- **/memory-bank:mb-status** - Display a memory bank status dashboard
-- **/memory-bank:memory-context** - Build context from memory bank for current work
-- **/memory-bank:start-objective** - Start work on a new or existing objective
-- **/memory-bank:sync-memory-bank** - Audit memory bank against actual codebase
 
 ### Agents (ai-resources Plugin)
 

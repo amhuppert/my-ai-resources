@@ -10,7 +10,7 @@ Read these files to understand the current objective:
 
 1. `memory-bank/focus.md` — current work-in-progress and remaining tasks
 2. Any implementation plan in `memory-bank/` (files matching `*-implementation-plan.md`)
-3. `memory-bank/project-brief.md` — for tech stack and architectural context
+3. `.kiro/steering/tech.md` — for tech stack and architectural context
 
 If no implementation plan exists, note this — the task file should still be created from whatever context is available in focus.md.
 
@@ -83,7 +83,7 @@ Organize the body into these sections:
 1. **Task title** — `# Task: [Name]`
 2. **Overview** — 2-4 sentences describing what needs to be built. Reference the implementation plan if one exists.
 3. **Requirements** — Functional and non-functional requirements derived from the objective/plan. Be specific.
-4. **Constraints** — Technology constraints from project-brief.md, pattern constraints (e.g., "follow existing risk layers pattern"), and any other limitations.
+4. **Constraints** — Technology constraints from .kiro/steering/tech.md, pattern constraints (e.g., "follow existing risk layers pattern"), and any other limitations.
 5. **Success Criteria** — The core of the file. A numbered checklist using `[ ]` checkboxes. Each item is a single verifiable criterion. Add `<!-- group: N -->` annotations where appropriate.
 6. **Notes** — Links to relevant files, the implementation plan, or other context the agent should reference during work. Include file paths that the agent should read before starting.
 7. **Ralph Instructions** — Include this section VERBATIM at the bottom:

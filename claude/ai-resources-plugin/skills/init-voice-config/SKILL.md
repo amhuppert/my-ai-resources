@@ -30,7 +30,7 @@ Research the current project to collect:
 Sources to check (read what exists, skip what doesn't):
 
 - `README.md`, `package.json`, `Cargo.toml`, `pyproject.toml`, or equivalent
-- `CLAUDE.md`, `document-map.md`, `memory-bank/project-brief.md`
+- `CLAUDE.md`, `.kiro/steering/product.md`, `.kiro/steering/tech.md`
 - Source file headers and type definitions for domain terminology
 - Config files for tool names and conventions
 
