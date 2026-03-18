@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+show_help() {
+    cat << EOF
+Usage: file-watchers [--help]
+
+Description:
+    Report on inotify file watcher usage for the current user.
+    Shows system limits, utilization, and per-process watch counts
+    sorted from highest to lowest.
+
+    Only reports on processes owned by the current user (which matches
+    the per-user scope of inotify limits).
+
+Examples:
+    file-watchers
+
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help)
+            show_help
+            exit 0
+            ;;
+        -*)
+            echo "Error: Unknown option '$1'" >&2
+            echo "Use --help for usage information" >&2
+            exit 1
+            ;;
+        *)
+            echo "Error: Unexpected argument '$1'" >&2
+            echo "Use --help for usage information" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Read system limits
+max_watches=$(cat /proc/sys/fs/inotify/max_user_watches)
+max_instances=$(cat /proc/sys/fs/inotify/max_user_instances)
+max_queued=$(cat /proc/sys/fs/inotify/max_queued_events)
+
+# Scan all inotify fds and count watches per process.
+# Each line in fdinfo starting with "inotify" represents one active watch.
+declare -A proc_watches
+declare -A proc_instances
+total_watches=0
+total_instances=0
+
+while IFS= read -r fd_path; do
+    pid="${fd_path#/proc/}"
+    pid="${pid%%/*}"
+    fd="${fd_path##*/}"
+
+    watches=$(grep -c '^inotify' "/proc/$pid/fdinfo/$fd" 2>/dev/null) || watches=0
+
+    proc_watches[$pid]=$(( ${proc_watches[$pid]:-0} + watches ))
+    proc_instances[$pid]=$(( ${proc_instances[$pid]:-0} + 1 ))
+    total_watches=$(( total_watches + watches ))
+    total_instances=$(( total_instances + 1 ))
+done < <(find /proc/*/fd -lname 'anon_inode:inotify' 2>/dev/null)
+
+watch_pct=$(awk "BEGIN { printf \"%.1f\", ($total_watches / $max_watches) * 100 }")
+instance_pct=$(awk "BEGIN { printf \"%.1f\", ($total_instances / $max_instances) * 100 }")
+
+# Print system limits
+echo "=== System Limits ==="
+printf "  %-28s %'d\n" "max_user_watches:" "$max_watches"
+printf "  %-28s %'d\n" "max_user_instances:" "$max_instances"
+printf "  %-28s %'d\n" "max_queued_events:" "$max_queued"
+echo
+
+# Print utilization summary
+echo "=== Utilization ==="
+printf "  %-28s %'d / %'d (%s%%)\n" "Watches:" "$total_watches" "$max_watches" "$watch_pct"
+printf "  %-28s %'d / %'d (%s%%)\n" "Instances:" "$total_instances" "$max_instances" "$instance_pct"
+echo
+
+# Build sorted output: watches, instances, pid, name, cmdline
+# Sort by watch count descending
+echo "=== Per-Process (sorted by watches) ==="
+printf "  %-8s  %-10s  %-10s  %-20s  %s\n" "PID" "WATCHES" "INSTANCES" "NAME" "COMMAND"
+printf "  %-8s  %-10s  %-10s  %-20s  %s\n" "---" "-------" "---------" "----" "-------"
+
+{
+    for pid in "${!proc_watches[@]}"; do
+        name=$(cat "/proc/$pid/comm" 2>/dev/null || echo "<exited>")
+        # cmdline uses null bytes as separators; replace with spaces and truncate
+        cmdline=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || echo "")
+        if [[ ${#cmdline} -gt 80 ]]; then
+            cmdline="${cmdline:0:77}..."
+        fi
+        echo "${proc_watches[$pid]} ${proc_instances[$pid]} $pid $name $cmdline"
+    done
+} | sort -rn -k1,1 | while read -r watches instances pid name cmdline; do
+    printf "  %-8s  %-10s  %-10s  %-20s  %s\n" "$pid" "$watches" "$instances" "$name" "$cmdline"
+done
