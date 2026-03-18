@@ -4,7 +4,7 @@ set -euo pipefail
 
 show_help() {
     cat << EOF
-Usage: file-watchers [--help]
+Usage: file-watchers [--paths <PID>] [--help]
 
 Description:
     Report on inotify file watcher usage for the current user.
@@ -14,17 +14,178 @@ Description:
     Only reports on processes owned by the current user (which matches
     the per-user scope of inotify limits).
 
+Options:
+    --paths <PID>   Show watched paths for a specific process (requires sudo)
+    --help          Show this help message
+
 Examples:
     file-watchers
+    file-watchers --paths 12345
 
 EOF
 }
+
+# Resolve inotify file handles to paths using open_by_handle_at (requires root).
+# Reads fdinfo entries for the given PID and resolves each watch to a filesystem path.
+resolve_paths() {
+    local target_pid="$1"
+
+    if [[ ! -d "/proc/$target_pid" ]]; then
+        echo "Error: Process $target_pid does not exist" >&2
+        exit 1
+    fi
+
+    local name
+    name=$(cat "/proc/$target_pid/comm" 2>/dev/null || echo "<unknown>")
+    local inotify_fds
+    inotify_fds=$(find "/proc/$target_pid/fd" -lname 'anon_inode:inotify' 2>/dev/null)
+
+    if [[ -z "$inotify_fds" ]]; then
+        echo "Process $target_pid ($name) has no inotify instances."
+        exit 0
+    fi
+
+    local watch_count=0
+    while IFS= read -r fd_path; do
+        local fdnum="${fd_path##*/}"
+        local count
+        count=$(grep -c '^inotify' "/proc/$target_pid/fdinfo/$fdnum" 2>/dev/null) || count=0
+        watch_count=$(( watch_count + count ))
+    done <<< "$inotify_fds"
+
+    echo "Resolving $watch_count watches for PID $target_pid ($name)..."
+    echo "This requires elevated privileges to use open_by_handle_at()."
+    echo
+
+    # Collect all fdinfo entries into a single stream for the Python resolver
+    local fdinfo_data=""
+    while IFS= read -r fd_path; do
+        local fdnum="${fd_path##*/}"
+        fdinfo_data+=$(grep '^inotify' "/proc/$target_pid/fdinfo/$fdnum" 2>/dev/null || true)
+        fdinfo_data+=$'\n'
+    done <<< "$inotify_fds"
+
+    echo "$fdinfo_data" | sudo python3 -c '
+import ctypes, ctypes.util, os, re, sys
+from collections import defaultdict
+
+libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+
+class FileHandle(ctypes.Structure):
+    _fields_ = [
+        ("handle_bytes", ctypes.c_uint),
+        ("handle_type", ctypes.c_int),
+        ("f_handle", ctypes.c_ubyte * 128),
+    ]
+
+# Map sdev hex -> (major, minor) -> mount point
+_mount_fds = {}
+
+def get_mount_fd(sdev_hex):
+    """Get an open fd for the mount point corresponding to a device number."""
+    if sdev_hex in _mount_fds:
+        return _mount_fds[sdev_hex]
+
+    # sdev is the raw kernel dev_t: MKDEV(major, minor) = (major << 20) | minor
+    sdev_int = int(sdev_hex, 16)
+    major = sdev_int >> 20
+    minor = sdev_int & 0xfffff
+    dev_str = f"{major}:{minor}"
+
+    # Find mount point from /proc/self/mountinfo
+    with open("/proc/self/mountinfo") as f:
+        for line in f:
+            parts = line.split()
+            if parts[2] == dev_str:
+                mount_point = parts[4]
+                try:
+                    fd = os.open(mount_point, os.O_RDONLY)
+                    _mount_fds[sdev_hex] = fd
+                    return fd
+                except OSError:
+                    pass
+
+    _mount_fds[sdev_hex] = None
+    return None
+
+def resolve_handle(sdev, handle_type, handle_hex):
+    """Resolve a file handle to a path using open_by_handle_at."""
+    mount_fd = get_mount_fd(sdev)
+    if mount_fd is None:
+        return None
+
+    handle_bytes = bytes.fromhex(handle_hex)
+    fh = FileHandle()
+    fh.handle_bytes = len(handle_bytes)
+    fh.handle_type = int(handle_type)
+    ctypes.memmove(fh.f_handle, handle_bytes, len(handle_bytes))
+
+    result = libc.open_by_handle_at(mount_fd, ctypes.byref(fh), os.O_RDONLY | os.O_PATH)
+    if result < 0:
+        return None
+
+    try:
+        return os.readlink(f"/proc/self/fd/{result}")
+    finally:
+        os.close(result)
+
+# Parse fdinfo lines and resolve
+pattern = re.compile(
+    r"inotify wd:(\S+) ino:(\S+) sdev:(\S+) mask:(\S+) "
+    r"ignored_mask:\S+ fhandle-bytes:(\S+) fhandle-type:(\S+) f_handle:(\S+)"
+)
+
+path_counts = defaultdict(int)
+failed = 0
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    m = pattern.match(line)
+    if not m:
+        continue
+    wd, ino, sdev, mask, fh_bytes, fh_type, fh_handle = m.groups()
+    path = resolve_handle(sdev, fh_type, fh_handle)
+    if path:
+        path_counts[path] += 1
+    else:
+        failed += 1
+
+# Print results sorted by count descending
+total = sum(path_counts.values()) + failed
+print("  %-8s  %s" % ("COUNT", "PATH"))
+print("  %-8s  %s" % ("-----", "----"))
+for path, count in sorted(path_counts.items(), key=lambda x: -x[1]):
+    print(f"  {count:<8}  {path}")
+
+if failed:
+    print(f"\n  {failed:<8}  <unresolved>")
+print(f"\n  Total: {total} watches")
+'
+    # Clean up
+    for fd in "${!_mount_fds[@]}"; do
+        exec {fd}>&- 2>/dev/null || true
+    done
+}
+
+MODE="summary"
+TARGET_PID=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --help)
             show_help
             exit 0
+            ;;
+        --paths)
+            MODE="paths"
+            TARGET_PID="${2:-}"
+            if [[ -z "$TARGET_PID" ]]; then
+                echo "Error: --paths requires a PID" >&2
+                exit 1
+            fi
+            shift 2
             ;;
         -*)
             echo "Error: Unknown option '$1'" >&2
@@ -38,6 +199,11 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ "$MODE" == "paths" ]]; then
+    resolve_paths "$TARGET_PID"
+    exit 0
+fi
 
 # Read system limits
 max_watches=$(cat /proc/sys/fs/inotify/max_user_watches)
@@ -89,13 +255,9 @@ printf "  %-8s  %-10s  %-10s  %-20s  %s\n" "---" "-------" "---------" "----" "-
 {
     for pid in "${!proc_watches[@]}"; do
         name=$(cat "/proc/$pid/comm" 2>/dev/null || echo "<exited>")
-        # cmdline uses null bytes as separators; replace with spaces and truncate
         cmdline=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || echo "")
-        if [[ ${#cmdline} -gt 80 ]]; then
-            cmdline="${cmdline:0:77}..."
-        fi
-        echo "${proc_watches[$pid]} ${proc_instances[$pid]} $pid $name $cmdline"
+        printf '%s\t%s\t%s\t%s\t%s\n' "${proc_watches[$pid]}" "${proc_instances[$pid]}" "$pid" "$name" "$cmdline"
     done
-} | sort -rn -k1,1 | while read -r watches instances pid name cmdline; do
+} | sort -rn -k1,1 | while IFS=$'\t' read -r watches instances pid name cmdline; do
     printf "  %-8s  %-10s  %-10s  %-20s  %s\n" "$pid" "$watches" "$instances" "$name" "$cmdline"
 done
