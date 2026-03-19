@@ -5,7 +5,7 @@ import {
   statSync,
 } from "fs";
 import { join, basename } from "path";
-import matter from "gray-matter";
+import { parseFrontmatter } from "./frontmatter.ts";
 import { AgentFrontmatterSchema } from "./schemas.ts";
 import type { DiscoveredAgent } from "./types.ts";
 
@@ -88,9 +88,9 @@ function isAgentCandidate(filePath: string): boolean {
     return false;
   }
 
-  let parsed: matter.GrayMatterFile<string>;
+  let parsed: ReturnType<typeof parseFrontmatter>;
   try {
-    parsed = matter(raw);
+    parsed = parseFrontmatter(raw);
   } catch {
     return false;
   }

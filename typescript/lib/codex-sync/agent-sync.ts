@@ -1,7 +1,7 @@
-import matter from "gray-matter";
 import { stringify } from "smol-toml";
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
+import { parseFrontmatter } from "./frontmatter.ts";
 import { AgentFrontmatterSchema } from "./schemas.ts";
 import type {
   DiscoveredAgent,
@@ -13,7 +13,7 @@ export function convertAgentToToml(
   agentMdContent: string,
   modelMapping: Record<string, string>,
 ): { toml: string; warnings: string[] } {
-  const { data, content } = matter(agentMdContent);
+  const { data, content } = parseFrontmatter(agentMdContent);
   const parsed = AgentFrontmatterSchema.parse(data);
 
   const warnings: string[] = [];

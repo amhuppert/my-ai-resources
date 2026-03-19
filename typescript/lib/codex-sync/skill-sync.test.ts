@@ -81,6 +81,26 @@ describe("convertSkillFrontmatter", () => {
     expect(result).toContain("description: Code review skill");
     expect(result).toContain("Review body");
   });
+
+  test("strips fields from content with YAML-reserved characters via fallback", () => {
+    const input = [
+      "---",
+      "name: expo-ui",
+      "description: `@expo/ui/jetpack-compose` package",
+      "allowed-tools: Bash, Read",
+      "argument-hint: optional args",
+      "---",
+      "Body content here",
+    ].join("\n");
+
+    const result = convertSkillFrontmatter(input);
+
+    expect(result).toContain("name: expo-ui");
+    expect(result).toContain("`@expo/ui/jetpack-compose`");
+    expect(result).not.toContain("allowed-tools");
+    expect(result).not.toContain("argument-hint");
+    expect(result).toContain("Body content here");
+  });
 });
 
 describe("syncSkills", () => {
@@ -170,6 +190,39 @@ describe("syncSkills", () => {
     expect(results).toHaveLength(1);
     expect(results[0]!.status).toBe("failed");
     expect(results[0]!.reason).toContain(skillMdPath);
+  });
+
+  test("syncs skill with YAML-reserved characters in frontmatter and strips fields", () => {
+    const skillDir = join(sourceDir, "expo-ui");
+    mkdirSync(skillDir, { recursive: true });
+    const skillMdPath = join(skillDir, "SKILL.md");
+    writeFileSync(
+      skillMdPath,
+      [
+        "---",
+        "name: Expo UI",
+        "description: `@expo/ui/jetpack-compose` uses Jetpack Compose",
+        "allowed-tools: Bash, Read",
+        "---",
+        "Body",
+      ].join("\n"),
+    );
+
+    const skill: DiscoveredSkill = {
+      name: "expo-ui",
+      sourceDir: skillDir,
+      skillMdPath,
+    };
+
+    const results = syncSkills([skill], destDir);
+
+    expect(results).toHaveLength(1);
+    expect(results[0]!.status).toBe("synced");
+
+    const output = readFileSync(join(destDir, "expo-ui", "SKILL.md"), "utf-8");
+    expect(output).toContain("name: Expo UI");
+    expect(output).toContain("`@expo/ui/jetpack-compose`");
+    expect(output).not.toContain("allowed-tools");
   });
 
   test("overwrites existing skill with matching name, preserves non-conflicting skills", () => {
