@@ -21,8 +21,11 @@ Hybrid plugin + installation architecture. Slash commands distributed via Claude
 - **openai** - Responses API integration
 - **Commander.js** - CLI argument parsing
 - **Eta** - Template rendering
-- **proper-lockfile** - File concurrency control
-- **write-file-atomic** - Crash-safe file writes
+- **proper-lockfile** - File concurrency control (cursor-shortcuts-mcp)
+- **write-file-atomic** - Crash-safe file writes (cursor-shortcuts-mcp)
+- **glob** - File pattern matching
+- **prettier** - Code formatting
+- **zod-to-json-schema** / **json-to-zod** - Schema conversion utilities
 
 ## Development Standards
 
