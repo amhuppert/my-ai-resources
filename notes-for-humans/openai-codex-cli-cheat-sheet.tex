@@ -1,0 +1,326 @@
+\documentclass[a4paper, 9pt]{scrartcl}
+
+% --- Typography ---
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% --- Layout ---
+\usepackage[a4paper, margin=1.5cm]{geometry}
+\usepackage{multicol}
+\setlength{\columnsep}{1cm}
+
+% --- Tables ---
+\usepackage{booktabs}
+\usepackage{tabularx}
+
+% --- Lists ---
+\usepackage{enumitem}
+\setlist{nosep, leftmargin=*}
+
+% --- Spacing ---
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{1.2ex}{0.5ex}
+\titlespacing*{\subsection}{0pt}{0.75ex}{0.25ex}
+\titleformat{\section}{\normalfont\large\bfseries}{}{0pt}{}[\vspace{-0.5ex}\rule{\columnwidth}{0.4pt}]
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{}{0pt}{}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.3ex}
+
+% --- Colors ---
+\usepackage{xcolor}
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{codeframe}{HTML}{CCCCCC}
+\definecolor{accent}{HTML}{1A73E8}
+
+% --- Code Listings ---
+\usepackage{listings}
+\lstset{
+  basicstyle=\small\ttfamily,
+  breaklines=true,
+  frame=single,
+  framesep=2pt,
+  rulecolor=\color{codeframe},
+  backgroundcolor=\color{codebg},
+  aboveskip=0.5ex,
+  belowskip=0.5ex,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+}
+\lstdefinelanguage{toml}{
+  morecomment=[l]{\#},
+  morestring=[b]",
+  morekeywords={true,false},
+}
+
+% --- Links ---
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accent,
+  urlcolor=accent,
+}
+
+% --- Compact table helper ---
+\newcommand{\cmdtable}[1]{%
+  \smallskip
+  \begin{tabularx}{\columnwidth}{@{}lX@{}}
+  \toprule
+  #1
+  \bottomrule
+  \end{tabularx}
+  \smallskip
+}
+
+% --- Title ---
+\title{\vspace{-2cm}OpenAI Codex CLI Cheat Sheet}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2cm}
+
+\begin{center}
+\textit{Lightweight coding agent (built in Rust) that reads, edits, and runs code from your terminal.}
+\end{center}
+
+\vspace{0.5ex}
+
+\begin{multicols}{2}
+
+\section{Core Commands}
+
+\cmdtable{
+\texttt{codex} & Launch interactive TUI \\
+\midrule
+\texttt{codex "prompt"} & Start session with initial prompt \\
+\midrule
+\texttt{codex exec "prompt"} & Non-interactive, output to stdout \\
+\midrule
+\texttt{codex exec --json "..."} & Emit newline-delimited JSON events \\
+\midrule
+\texttt{codex resume --last} & Reopen most recent session \\
+\midrule
+\texttt{codex resume <ID>} & Resume a specific session \\
+\midrule
+\texttt{codex fork <ID>} & Fork session into a new thread \\
+\midrule
+\texttt{codex apply <TASK>} & Apply cloud task diffs to local repo \\
+}
+
+\section{Approval Modes \& Sandbox}
+
+\cmdtable{
+\texttt{--sandbox read-only} & Read but not write or execute \\
+\midrule
+\texttt{--sandbox workspace-write} & Edits within working dir (default) \\
+\midrule
+\texttt{--sandbox danger-full-access} & Unrestricted filesystem access \\
+\midrule
+\texttt{--ask-for-approval untrusted} & Approve every command \\
+\midrule
+\texttt{--ask-for-approval on-request} & Approve only when Codex asks \\
+\midrule
+\texttt{--ask-for-approval never} & No approval prompts \\
+\midrule
+\texttt{--full-auto} & Low-friction local work shortcut \\
+\midrule
+\texttt{--yolo} & Bypass all safety checks \\
+}
+
+Change mid-session with \texttt{/permissions}.
+
+\section{Customization: AGENTS.md}
+
+Persistent instructions loaded once per session, concatenated root-to-cwd.
+
+\cmdtable{
+\textbf{Scope} & \textbf{Path} \\
+\midrule
+Global & \texttt{\textasciitilde/.codex/AGENTS.md} \\
+\midrule
+Global override & \texttt{\textasciitilde/.codex/AGENTS.override.md} \\
+\midrule
+Project & \texttt{<repo-root>/AGENTS.md} \\
+\midrule
+Subdirectory & \texttt{<subdir>/AGENTS.md} \\
+}
+
+\begin{itemize}
+\item Override files at any level take precedence over base files
+\item Max combined size: 32\,KiB (\texttt{project\_doc\_max\_bytes})
+\item Scaffold: \texttt{/init} \quad Verify: \texttt{codex status}
+\end{itemize}
+
+\section{Customization: config.toml}
+
+Located at \texttt{\textasciitilde/.codex/config.toml} (user) or \texttt{.codex/config.toml} (project). CLI \texttt{-c key=value} overrides both.
+
+\begin{lstlisting}[language=toml]
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+# minimal | low | medium | high | xhigh
+personality = "pragmatic"
+# none | friendly | pragmatic
+sandbox_mode = "workspace-write"
+web_search = "live"
+# disabled | cached | live
+file_opener = "vscode"
+# vscode | cursor | windsurf | none
+
+[history]
+persistence = "save-all"
+
+[agents]
+max_threads = 6
+max_depth = 3
+\end{lstlisting}
+
+\subsection{Profiles}
+
+\begin{lstlisting}[language=toml]
+profile = "default"
+
+[profiles.careful]
+sandbox_mode = "read-only"
+model_reasoning_effort = "xhigh"
+\end{lstlisting}
+
+Load with \texttt{codex -p careful} or \texttt{--profile careful}.
+
+\section{Skills}
+
+Reusable instruction bundles. Detected automatically or invoked explicitly with \texttt{\$skill-name}.
+
+\cmdtable{
+\textbf{Action} & \textbf{How} \\
+\midrule
+Invoke & \texttt{\$skill-name} in prompt \\
+\midrule
+Create & \texttt{\$skill-creator} or manual \texttt{SKILL.md} \\
+\midrule
+Install & \texttt{\$skill-installer linear} \\
+\midrule
+Disable & \texttt{enabled = false} in config.toml \\
+}
+
+\subsection{Skill Locations (searched in order)}
+
+\cmdtable{
+\textbf{Scope} & \textbf{Path} \\
+\midrule
+Repo (local) & \texttt{./.agents/skills/} \\
+\midrule
+Repo (root) & \texttt{\$REPO\_ROOT/.agents/skills/} \\
+\midrule
+User & \texttt{\textasciitilde/.agents/skills/} \\
+\midrule
+Admin & \texttt{/etc/codex/skills/} \\
+\midrule
+System & Bundled with Codex \\
+}
+
+\subsection{SKILL.md Structure}
+
+\begin{lstlisting}
+---
+name: my-skill
+description: When to trigger this skill
+---
+Step-by-step instructions for Codex
+\end{lstlisting}
+
+Optional dirs: \texttt{scripts/}, \texttt{references/}, \texttt{assets/}, \texttt{agents/openai.yaml}.
+
+\section{Key Slash Commands}
+
+\cmdtable{
+\texttt{/review} & Review working tree changes \\
+\midrule
+\texttt{/plan} & Switch to plan mode \\
+\midrule
+\texttt{/model} & Change model and reasoning effort \\
+\midrule
+\texttt{/fast} & Toggle fast mode (GPT-5.4) \\
+\midrule
+\texttt{/diff} & Git diff including untracked files \\
+\midrule
+\texttt{/mention} & Attach a file to conversation \\
+\midrule
+\texttt{/compact} & Summarize conversation to save tokens \\
+\midrule
+\texttt{/mcp} & List configured MCP tools \\
+\midrule
+\texttt{/apps} & Browse and insert connectors \\
+\midrule
+\texttt{/fork} & Fork conversation into new thread \\
+\midrule
+\texttt{/clear} & Clear terminal, fresh chat \\
+\midrule
+\texttt{/status} & Session config and token usage \\
+\midrule
+\texttt{/init} & Generate AGENTS.md scaffold \\
+}
+
+\section{MCP Integration}
+
+Add external tools via Model Context Protocol servers in config.toml.
+
+\begin{lstlisting}[language=toml]
+[mcp_servers.my-server]
+command = "npx my-mcp-server"
+# url = "https://..."  # HTTP server
+enabled_tools = ["tool_a", "tool_b"]
+startup_timeout_sec = 15
+required = true
+\end{lstlisting}
+
+Manage with \texttt{codex mcp} subcommand.
+
+\section{Automation with exec}
+
+\begin{lstlisting}[language=bash]
+# Write result to file
+codex exec -o result.md "summarize changes"
+
+# Validate JSON output against schema
+codex exec --output-schema schema.json \
+  "generate config"
+
+# Ephemeral run (no session saved)
+codex exec --ephemeral "lint and fix src/"
+
+# Skip git repo check
+codex exec --skip-git-repo-check \
+  "analyze logs in /tmp/data"
+
+# Cloud execution with best-of-N
+codex cloud exec --env ENV_ID \
+  --attempts 4 "refactor auth module"
+\end{lstlisting}
+
+\section{Tips \& Shortcuts}
+
+\cmdtable{
+\texttt{@} in composer & Fuzzy file search \\
+\midrule
+\texttt{!command} & Run shell command inline \\
+\midrule
+\texttt{Enter} while running & Inject instructions mid-turn \\
+\midrule
+\texttt{Ctrl+G} & Open \texttt{\$EDITOR} for long prompts \\
+\midrule
+\texttt{Esc Esc} & Edit previous message / fork \\
+\midrule
+\texttt{-i img.png} & Attach image for visual context \\
+\midrule
+\texttt{--add-dir ../other} & Add extra dirs to workspace \\
+\midrule
+\texttt{codex completion zsh} & Install shell tab completions \\
+}
+
+\end{multicols}
+\end{document}
