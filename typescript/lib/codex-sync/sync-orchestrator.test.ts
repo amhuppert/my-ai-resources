@@ -19,6 +19,7 @@ function setupTestPaths(tempDir: string): SyncPaths {
   mkdirSync(destDir, { recursive: true });
 
   return {
+    scope: "project",
     claudeMdSource: join(sourceDir, "CLAUDE.md"),
     pluginScanRoot: join(sourceDir, "plugins"),
     standaloneAgentsDir: join(sourceDir, "agents"),

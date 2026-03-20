@@ -1,5 +1,5 @@
 import type { SyncPaths, SyncConfig, SyncResult, SyncItemResult } from "./types.ts";
-import { scanPlugins, extractSkills, discoverMcpServers } from "./artifact-discovery.ts";
+import { scanPlugins, readInstalledPluginDirs, extractSkills, discoverMcpServers } from "./artifact-discovery.ts";
 import { discoverAgents } from "./agent-discovery.ts";
 import { syncInstructions } from "./instructions-sync.ts";
 import { syncSkills } from "./skill-sync.ts";
@@ -13,8 +13,12 @@ export function runSync(paths: SyncPaths, config: SyncConfig): SyncResult {
   const instrResult = syncInstructions(paths.claudeMdSource, paths.agentsOverrideDest);
   items.push(instrResult);
 
-  // Discover plugins, skills, agents
-  const pluginDirs = scanPlugins(paths.pluginScanRoot);
+  // Discover plugins — user scope reads installed_plugins.json for exact paths,
+  // project scope scans the directory tree for .claude-plugin/plugin.json
+  const pluginDirs =
+    paths.scope === "user"
+      ? readInstalledPluginDirs(paths.pluginScanRoot, "user")
+      : scanPlugins(paths.pluginScanRoot);
   const skills = pluginDirs.flatMap(extractSkills);
   const agents = discoverAgents(pluginDirs, paths.standaloneAgentsDir);
 

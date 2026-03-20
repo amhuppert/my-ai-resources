@@ -30,7 +30,7 @@ export const AgentFrontmatterSchema = z
   })
   .passthrough();
 
-export const McpServerSchema = z
+export const StdioMcpServerSchema = z
   .object({
     command: z.string(),
     args: z.array(z.string()).optional(),
@@ -38,8 +38,16 @@ export const McpServerSchema = z
   })
   .passthrough();
 
+export const HttpMcpServerSchema = z
+  .object({
+    url: z.string(),
+    type: z.string().optional(),
+    headers: z.record(z.string()).optional(),
+  })
+  .passthrough();
+
 export const McpConfigSchema = z
   .object({
-    mcpServers: z.record(McpServerSchema).optional(),
+    mcpServers: z.record(z.record(z.unknown())).optional(),
   })
   .passthrough();

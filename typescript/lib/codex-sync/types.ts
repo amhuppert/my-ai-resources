@@ -3,6 +3,7 @@ export interface SyncConfig {
 }
 
 export interface SyncPaths {
+  scope: "user" | "project";
   claudeMdSource: string;
   pluginScanRoot: string;
   standaloneAgentsDir: string;
@@ -25,12 +26,22 @@ export interface DiscoveredAgent {
   source: "plugin" | "standalone";
 }
 
-export interface DiscoveredMcpServer {
+export interface StdioMcpServer {
+  transport: "stdio";
   id: string;
   command: string;
   args: string[];
   env: Record<string, string>;
 }
+
+export interface HttpMcpServer {
+  transport: "http";
+  id: string;
+  url: string;
+  headers: Record<string, string>;
+}
+
+export type DiscoveredMcpServer = StdioMcpServer | HttpMcpServer;
 
 export interface DiscoveredArtifacts {
   skills: DiscoveredSkill[];

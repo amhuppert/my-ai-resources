@@ -66,6 +66,25 @@ describe("convertAgentToToml", () => {
     expect(parsed.developer_instructions).toBe("Do helpful things.");
   });
 
+  test("silently omits model 'inherit' without warning", () => {
+    const content = agentMd(
+      {
+        name: "sub-agent",
+        description: "A sub-agent",
+        model: "inherit",
+      },
+      "Sub-agent instructions.",
+    );
+    const mapping = { opus: "gpt-5.4" };
+
+    const result = convertAgentToToml(content, mapping);
+
+    expect(result.warnings).toHaveLength(0);
+    const parsed = parseToml(result.toml);
+    expect(parsed.name).toBe("sub-agent");
+    expect(parsed.model).toBeUndefined();
+  });
+
   test("no model field produces no model in output and no warning", () => {
     const content = agentMd(
       { name: "simple-agent", description: "A simple agent" },

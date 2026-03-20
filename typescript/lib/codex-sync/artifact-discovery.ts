@@ -5,7 +5,7 @@ import {
   statSync,
 } from "fs";
 import { join, basename } from "path";
-import { McpConfigSchema } from "./schemas.ts";
+import { McpConfigSchema, StdioMcpServerSchema, HttpMcpServerSchema } from "./schemas.ts";
 import type { DiscoveredSkill, DiscoveredMcpServer } from "./types.ts";
 
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
@@ -47,6 +47,75 @@ function walkForPlugins(dir: string, results: string[]): void {
       // Skip unreadable entries
     }
   }
+}
+
+export function readInstalledPluginDirs(
+  pluginsDir: string,
+  scope: "user" | "project",
+  projectPath?: string,
+): string[] {
+  const manifestPath = join(pluginsDir, "installed_plugins.json");
+  if (!existsSync(manifestPath)) return [];
+
+  let raw: string;
+  try {
+    raw = readFileSync(manifestPath, "utf-8");
+  } catch {
+    return [];
+  }
+
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+
+  if (
+    typeof manifest !== "object" ||
+    manifest === null ||
+    !("plugins" in manifest)
+  ) {
+    return [];
+  }
+
+  const plugins = (manifest as Record<string, unknown>)["plugins"];
+  if (typeof plugins !== "object" || plugins === null) return [];
+
+  const seen = new Set<string>();
+  const results: string[] = [];
+
+  for (const installations of Object.values(
+    plugins as Record<string, unknown>,
+  )) {
+    if (!Array.isArray(installations)) continue;
+    for (const inst of installations) {
+      if (typeof inst !== "object" || inst === null) continue;
+      const entry = inst as Record<string, unknown>;
+      const entryScope = entry["scope"];
+      const installPath = entry["installPath"];
+      if (typeof installPath !== "string") continue;
+
+      if (scope === "user" && entryScope === "user") {
+        if (!seen.has(installPath)) {
+          seen.add(installPath);
+          results.push(installPath);
+        }
+      } else if (
+        scope === "project" &&
+        entryScope === "project" &&
+        projectPath &&
+        entry["projectPath"] === projectPath
+      ) {
+        if (!seen.has(installPath)) {
+          seen.add(installPath);
+          results.push(installPath);
+        }
+      }
+    }
+  }
+
+  return results;
 }
 
 export function extractSkills(pluginDir: string): DiscoveredSkill[] {
@@ -102,12 +171,28 @@ export function discoverMcpServers(configPath: string): DiscoveredMcpServer[] {
 
   const servers: DiscoveredMcpServer[] = [];
   for (const [id, entry] of Object.entries(result.data.mcpServers)) {
-    servers.push({
-      id,
-      command: entry.command,
-      args: entry.args ?? [],
-      env: entry.env ?? {},
-    });
+    const stdioResult = StdioMcpServerSchema.safeParse(entry);
+    if (stdioResult.success) {
+      servers.push({
+        transport: "stdio",
+        id,
+        command: stdioResult.data.command,
+        args: stdioResult.data.args ?? [],
+        env: stdioResult.data.env ?? {},
+      });
+      continue;
+    }
+
+    const httpResult = HttpMcpServerSchema.safeParse(entry);
+    if (httpResult.success) {
+      servers.push({
+        transport: "http",
+        id,
+        url: httpResult.data.url,
+        headers: httpResult.data.headers ?? {},
+      });
+      continue;
+    }
   }
 
   return servers;

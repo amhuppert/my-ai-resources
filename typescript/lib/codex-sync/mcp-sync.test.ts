@@ -264,4 +264,138 @@ describe("syncMcpServers", () => {
     expect(toml).toInclude('[mcp_servers.no-env-server]');
     expect(toml).not.toInclude("[mcp_servers.no-env-server.env]");
   });
+
+  test("syncs valid stdio servers and skips invalid ones individually", () => {
+    const mcpSourcePath = join(tempDir, "mcp.json");
+    const codexConfigDir = join(tempDir, "codex-config");
+    writeFileSync(
+      mcpSourcePath,
+      JSON.stringify({
+        mcpServers: {
+          "good-server": { command: "node", args: ["server.js"] },
+          "bad-server": { notCommand: true, notUrl: true },
+          "also-good": { command: "python", args: ["serve.py"] },
+        },
+      }),
+    );
+
+    const results = syncMcpServers(mcpSourcePath, codexConfigDir);
+
+    const synced = results.filter((r) => r.status === "synced");
+    const skipped = results.filter((r) => r.status === "skipped");
+    expect(synced).toHaveLength(2);
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0].artifact).toBe("mcp:bad-server");
+
+    const toml = readFileSync(join(codexConfigDir, "config.toml"), "utf-8");
+    expect(toml).toInclude('[mcp_servers.good-server]');
+    expect(toml).toInclude('[mcp_servers.also-good]');
+    expect(toml).not.toInclude("bad-server");
+  });
+
+  test("syncs HTTP/url-based server to Codex TOML with url field", () => {
+    const mcpSourcePath = join(tempDir, "mcp.json");
+    const codexConfigDir = join(tempDir, "codex-config");
+    writeFileSync(
+      mcpSourcePath,
+      JSON.stringify({
+        mcpServers: {
+          "remote-server": {
+            type: "http",
+            url: "https://mcp.example.com/mcp",
+          },
+        },
+      }),
+    );
+
+    const results = syncMcpServers(mcpSourcePath, codexConfigDir);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].status).toBe("synced");
+    expect(results[0].artifact).toBe("mcp:remote-server");
+
+    const toml = readFileSync(join(codexConfigDir, "config.toml"), "utf-8");
+    expect(toml).toInclude('[mcp_servers.remote-server]');
+    expect(toml).toInclude('url = "https://mcp.example.com/mcp"');
+    expect(toml).not.toInclude("command");
+  });
+
+  test("syncs HTTP server with headers as http_headers in TOML", () => {
+    const mcpSourcePath = join(tempDir, "mcp.json");
+    const codexConfigDir = join(tempDir, "codex-config");
+    writeFileSync(
+      mcpSourcePath,
+      JSON.stringify({
+        mcpServers: {
+          "auth-server": {
+            url: "https://mcp.example.com/mcp",
+            headers: {
+              "X-Api-Key": "key123",
+              "X-Custom": "value",
+            },
+          },
+        },
+      }),
+    );
+
+    const results = syncMcpServers(mcpSourcePath, codexConfigDir);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].status).toBe("synced");
+
+    const toml = readFileSync(join(codexConfigDir, "config.toml"), "utf-8");
+    expect(toml).toInclude('[mcp_servers.auth-server]');
+    expect(toml).toInclude('url = "https://mcp.example.com/mcp"');
+    expect(toml).toInclude("X-Api-Key");
+    expect(toml).toInclude("key123");
+  });
+
+  test("syncs mixed stdio and HTTP servers together", () => {
+    const mcpSourcePath = join(tempDir, "mcp.json");
+    const codexConfigDir = join(tempDir, "codex-config");
+    writeFileSync(
+      mcpSourcePath,
+      JSON.stringify({
+        mcpServers: {
+          "local-server": { command: "node", args: ["server.js"] },
+          "remote-server": { url: "https://mcp.example.com/mcp" },
+        },
+      }),
+    );
+
+    const results = syncMcpServers(mcpSourcePath, codexConfigDir);
+
+    expect(results).toHaveLength(2);
+    expect(results.every((r) => r.status === "synced")).toBe(true);
+
+    const toml = readFileSync(join(codexConfigDir, "config.toml"), "utf-8");
+    expect(toml).toInclude('[mcp_servers.local-server]');
+    expect(toml).toInclude('command = "node"');
+    expect(toml).toInclude('[mcp_servers.remote-server]');
+    expect(toml).toInclude('url = "https://mcp.example.com/mcp"');
+  });
+
+  test("skips SSE servers with a warning since Codex does not support SSE", () => {
+    const mcpSourcePath = join(tempDir, "mcp.json");
+    const codexConfigDir = join(tempDir, "codex-config");
+    writeFileSync(
+      mcpSourcePath,
+      JSON.stringify({
+        mcpServers: {
+          "sse-server": { type: "sse", url: "https://example.com/sse" },
+          "good-server": { command: "node" },
+        },
+      }),
+    );
+
+    const results = syncMcpServers(mcpSourcePath, codexConfigDir);
+
+    const synced = results.filter((r) => r.status === "synced");
+    const skipped = results.filter((r) => r.status === "skipped");
+    expect(synced).toHaveLength(1);
+    expect(synced[0].artifact).toBe("mcp:good-server");
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0].artifact).toBe("mcp:sse-server");
+    expect(skipped[0].reason).toInclude("SSE");
+  });
 });

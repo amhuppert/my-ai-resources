@@ -3,7 +3,8 @@ import {
   SyncConfigSchema,
   SkillFrontmatterSchema,
   AgentFrontmatterSchema,
-  McpServerSchema,
+  StdioMcpServerSchema,
+  HttpMcpServerSchema,
   McpConfigSchema,
   DEFAULT_SYNC_CONFIG,
 } from "./schemas.ts";
@@ -158,10 +159,10 @@ describe("AgentFrontmatterSchema", () => {
   });
 });
 
-describe("McpServerSchema", () => {
+describe("StdioMcpServerSchema", () => {
   test("validates minimal entry with command only", () => {
     const input = { command: "npx" };
-    const result = McpServerSchema.safeParse(input);
+    const result = StdioMcpServerSchema.safeParse(input);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.command).toBe("npx");
@@ -176,7 +177,7 @@ describe("McpServerSchema", () => {
       args: ["server.js", "--port", "3000"],
       env: { API_KEY: "secret" },
     };
-    const result = McpServerSchema.safeParse(input);
+    const result = StdioMcpServerSchema.safeParse(input);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.args).toEqual(["server.js", "--port", "3000"]);
@@ -185,13 +186,13 @@ describe("McpServerSchema", () => {
   });
 
   test("rejects missing command", () => {
-    const result = McpServerSchema.safeParse({ args: ["--help"] });
+    const result = StdioMcpServerSchema.safeParse({ args: ["--help"] });
     expect(result.success).toBe(false);
   });
 
   test("passes through unknown properties", () => {
     const input = { command: "npx", timeout: 5000 };
-    const result = McpServerSchema.safeParse(input);
+    const result = StdioMcpServerSchema.safeParse(input);
     expect(result.success).toBe(true);
     if (result.success) {
       expect((result.data as Record<string, unknown>)["timeout"]).toBe(5000);
@@ -199,8 +200,51 @@ describe("McpServerSchema", () => {
   });
 });
 
+describe("HttpMcpServerSchema", () => {
+  test("validates entry with url only", () => {
+    const input = { url: "https://mcp.example.com/mcp" };
+    const result = HttpMcpServerSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.url).toBe("https://mcp.example.com/mcp");
+    }
+  });
+
+  test("validates entry with url and type", () => {
+    const input = { type: "http", url: "https://mcp.example.com/mcp" };
+    const result = HttpMcpServerSchema.safeParse(input);
+    expect(result.success).toBe(true);
+  });
+
+  test("validates entry with url and headers", () => {
+    const input = {
+      url: "https://mcp.example.com/mcp",
+      headers: { Authorization: "Bearer token123" },
+    };
+    const result = HttpMcpServerSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.headers).toEqual({ Authorization: "Bearer token123" });
+    }
+  });
+
+  test("rejects entry without url", () => {
+    const result = HttpMcpServerSchema.safeParse({ type: "http" });
+    expect(result.success).toBe(false);
+  });
+
+  test("passes through unknown properties", () => {
+    const input = { url: "https://example.com", oauth: { clientId: "abc" } };
+    const result = HttpMcpServerSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect((result.data as Record<string, unknown>)["oauth"]).toEqual({ clientId: "abc" });
+    }
+  });
+});
+
 describe("McpConfigSchema", () => {
-  test("validates with mcpServers", () => {
+  test("validates with stdio mcpServers", () => {
     const input = {
       mcpServers: {
         "my-server": { command: "npx", args: ["-y", "my-server"] },
@@ -208,9 +252,27 @@ describe("McpConfigSchema", () => {
     };
     const result = McpConfigSchema.safeParse(input);
     expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.mcpServers?.["my-server"]?.command).toBe("npx");
-    }
+  });
+
+  test("validates with http mcpServers", () => {
+    const input = {
+      mcpServers: {
+        "remote-server": { type: "http", url: "https://example.com/mcp" },
+      },
+    };
+    const result = McpConfigSchema.safeParse(input);
+    expect(result.success).toBe(true);
+  });
+
+  test("validates with mixed stdio and http mcpServers", () => {
+    const input = {
+      mcpServers: {
+        "local-server": { command: "npx", args: ["-y", "my-server"] },
+        "remote-server": { url: "https://example.com/mcp" },
+      },
+    };
+    const result = McpConfigSchema.safeParse(input);
+    expect(result.success).toBe(true);
   });
 
   test("validates without mcpServers (empty config)", () => {

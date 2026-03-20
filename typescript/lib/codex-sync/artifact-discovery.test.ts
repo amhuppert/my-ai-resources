@@ -7,7 +7,7 @@ import {
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { scanPlugins, extractSkills, discoverMcpServers } from "./artifact-discovery.ts";
+import { scanPlugins, extractSkills, discoverMcpServers, readInstalledPluginDirs } from "./artifact-discovery.ts";
 
 function setupPluginDir(
   baseDir: string,
@@ -98,6 +98,142 @@ describe("scanPlugins", () => {
   test("returns empty array when scan root doesn't exist", () => {
     const plugins = scanPlugins(join(tempDir, "nonexistent"));
     expect(plugins).toHaveLength(0);
+  });
+});
+
+describe("readInstalledPluginDirs", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "installed-plugins-test-"));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns install paths for user-scope plugins", () => {
+    const pluginsDir = join(tempDir, "plugins");
+    mkdirSync(pluginsDir, { recursive: true });
+    writeFileSync(
+      join(pluginsDir, "installed_plugins.json"),
+      JSON.stringify({
+        version: 2,
+        plugins: {
+          "my-plugin@marketplace": [
+            {
+              scope: "user",
+              installPath: "/path/to/plugin-a",
+            },
+          ],
+          "another-plugin@marketplace": [
+            {
+              scope: "user",
+              installPath: "/path/to/plugin-b",
+            },
+          ],
+        },
+      }),
+    );
+
+    const dirs = readInstalledPluginDirs(pluginsDir, "user");
+    expect(dirs).toHaveLength(2);
+    expect(dirs).toContain("/path/to/plugin-a");
+    expect(dirs).toContain("/path/to/plugin-b");
+  });
+
+  test("filters out project-scope plugins for user scope", () => {
+    const pluginsDir = join(tempDir, "plugins");
+    mkdirSync(pluginsDir, { recursive: true });
+    writeFileSync(
+      join(pluginsDir, "installed_plugins.json"),
+      JSON.stringify({
+        version: 2,
+        plugins: {
+          "user-plugin@marketplace": [
+            { scope: "user", installPath: "/path/to/user-plugin" },
+          ],
+          "project-plugin@marketplace": [
+            {
+              scope: "project",
+              projectPath: "/some/project",
+              installPath: "/path/to/project-plugin",
+            },
+          ],
+        },
+      }),
+    );
+
+    const dirs = readInstalledPluginDirs(pluginsDir, "user");
+    expect(dirs).toHaveLength(1);
+    expect(dirs[0]).toBe("/path/to/user-plugin");
+  });
+
+  test("returns project-scope plugins matching project path", () => {
+    const pluginsDir = join(tempDir, "plugins");
+    mkdirSync(pluginsDir, { recursive: true });
+    writeFileSync(
+      join(pluginsDir, "installed_plugins.json"),
+      JSON.stringify({
+        version: 2,
+        plugins: {
+          "project-plugin@marketplace": [
+            {
+              scope: "project",
+              projectPath: "/my/project",
+              installPath: "/path/to/project-plugin",
+            },
+          ],
+          "other-project@marketplace": [
+            {
+              scope: "project",
+              projectPath: "/other/project",
+              installPath: "/path/to/other-plugin",
+            },
+          ],
+        },
+      }),
+    );
+
+    const dirs = readInstalledPluginDirs(pluginsDir, "project", "/my/project");
+    expect(dirs).toHaveLength(1);
+    expect(dirs[0]).toBe("/path/to/project-plugin");
+  });
+
+  test("returns empty array when installed_plugins.json does not exist", () => {
+    const dirs = readInstalledPluginDirs(join(tempDir, "nonexistent"), "user");
+    expect(dirs).toHaveLength(0);
+  });
+
+  test("returns empty array when JSON is malformed", () => {
+    const pluginsDir = join(tempDir, "plugins");
+    mkdirSync(pluginsDir, { recursive: true });
+    writeFileSync(join(pluginsDir, "installed_plugins.json"), "not valid json");
+
+    const dirs = readInstalledPluginDirs(pluginsDir, "user");
+    expect(dirs).toHaveLength(0);
+  });
+
+  test("deduplicates install paths", () => {
+    const pluginsDir = join(tempDir, "plugins");
+    mkdirSync(pluginsDir, { recursive: true });
+    writeFileSync(
+      join(pluginsDir, "installed_plugins.json"),
+      JSON.stringify({
+        version: 2,
+        plugins: {
+          "plugin-a@m1": [
+            { scope: "user", installPath: "/same/path" },
+          ],
+          "plugin-b@m2": [
+            { scope: "user", installPath: "/same/path" },
+          ],
+        },
+      }),
+    );
+
+    const dirs = readInstalledPluginDirs(pluginsDir, "user");
+    expect(dirs).toHaveLength(1);
   });
 });
 
@@ -228,5 +364,65 @@ describe("discoverMcpServers", () => {
 
     const servers = discoverMcpServers(configPath);
     expect(servers).toHaveLength(0);
+  });
+
+  test("discovers HTTP/url-based MCP servers", () => {
+    const configPath = join(tempDir, "config.json");
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        mcpServers: {
+          "remote-server": {
+            type: "http",
+            url: "https://mcp.example.com/mcp",
+          },
+        },
+      }),
+    );
+
+    const servers = discoverMcpServers(configPath);
+    expect(servers).toHaveLength(1);
+    expect(servers[0]!.id).toBe("remote-server");
+    expect(servers[0]!.transport).toBe("http");
+    if (servers[0]!.transport === "http") {
+      expect(servers[0]!.url).toBe("https://mcp.example.com/mcp");
+    }
+  });
+
+  test("discovers mixed stdio and HTTP servers", () => {
+    const configPath = join(tempDir, "config.json");
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        mcpServers: {
+          "local": { command: "node", args: ["server.js"] },
+          "remote": { url: "https://example.com/mcp" },
+        },
+      }),
+    );
+
+    const servers = discoverMcpServers(configPath);
+    expect(servers).toHaveLength(2);
+    const local = servers.find((s) => s.id === "local");
+    const remote = servers.find((s) => s.id === "remote");
+    expect(local!.transport).toBe("stdio");
+    expect(remote!.transport).toBe("http");
+  });
+
+  test("skips servers with unrecognized format", () => {
+    const configPath = join(tempDir, "config.json");
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        mcpServers: {
+          "valid": { command: "node" },
+          "invalid": { notCommand: true, notUrl: true },
+        },
+      }),
+    );
+
+    const servers = discoverMcpServers(configPath);
+    expect(servers).toHaveLength(1);
+    expect(servers[0]!.id).toBe("valid");
   });
 });

@@ -21,6 +21,7 @@ describe("types", () => {
 
   test("SyncPaths shape", () => {
     const paths: SyncPaths = {
+      scope: "user",
       claudeMdSource: "/home/user/.claude/CLAUDE.md",
       pluginScanRoot: "/home/user/.claude/plugins/",
       standaloneAgentsDir: "/home/user/.claude/agents/",
@@ -31,6 +32,7 @@ describe("types", () => {
       codexConfigDir: "/home/user/.codex/",
     };
     expect(paths.claudeMdSource).toContain("CLAUDE.md");
+    expect(paths.scope).toBe("user");
   });
 
   test("DiscoveredSkill shape", () => {
@@ -59,13 +61,24 @@ describe("types", () => {
   });
 
   test("DiscoveredMcpServer shape", () => {
-    const server: DiscoveredMcpServer = {
+    const stdioServer: DiscoveredMcpServer = {
+      transport: "stdio",
       id: "my-server",
       command: "npx",
       args: ["-y", "my-server"],
       env: { API_KEY: "secret" },
     };
-    expect(server.id).toBe("my-server");
+    expect(stdioServer.id).toBe("my-server");
+    expect(stdioServer.transport).toBe("stdio");
+
+    const httpServer: DiscoveredMcpServer = {
+      transport: "http",
+      id: "remote-server",
+      url: "https://example.com/mcp",
+      headers: {},
+    };
+    expect(httpServer.id).toBe("remote-server");
+    expect(httpServer.transport).toBe("http");
   });
 
   test("DiscoveredArtifacts shape", () => {

@@ -23,7 +23,8 @@ export function convertAgentToToml(
     developer_instructions: content.trim(),
   };
 
-  if (parsed.model !== undefined) {
+  // "inherit" means "use parent model" in Claude Code — no Codex equivalent
+  if (parsed.model !== undefined && parsed.model !== "inherit") {
     const mapped = modelMapping[parsed.model];
     if (mapped) {
       agent.model = mapped;

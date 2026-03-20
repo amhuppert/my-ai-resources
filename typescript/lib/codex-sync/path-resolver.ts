@@ -20,6 +20,7 @@ export function resolveSyncPaths(
 function resolveUserPaths(): SyncPaths {
   const home = homedir();
   return {
+    scope: "user",
     claudeMdSource: join(home, ".claude", "CLAUDE.md"),
     pluginScanRoot: join(home, ".claude", "plugins"),
     standaloneAgentsDir: join(home, ".claude", "agents"),
@@ -33,6 +34,7 @@ function resolveUserPaths(): SyncPaths {
 
 function resolveProjectPaths(cwd: string): SyncPaths {
   return {
+    scope: "project",
     claudeMdSource: join(cwd, "CLAUDE.md"),
     pluginScanRoot: cwd,
     standaloneAgentsDir: join(cwd, ".claude", "agents"),
