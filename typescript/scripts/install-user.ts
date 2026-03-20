@@ -8,7 +8,6 @@ import {
   printInstallationHeader,
   installDirectory,
   installDirectoryFiles,
-  execCommand,
   commandExists,
 } from "@/lib/installer-utils.js";
 import { installSettingsFromFile } from "@/scripts/install-settings.js";
@@ -87,38 +86,7 @@ async function main(
     console.log("Install bun to enable settings installation: https://bun.sh");
   }
 
-  // 4. Install ai-workflow-resources plugin
-  console.log("Installing ai-workflow-resources plugin...");
-
-  const marketplacePath = join(SCRIPT_DIR, "claude");
-
-  // Add this repository as a plugin marketplace
-  const marketplaceResult = await execCommand(
-    "claude",
-    ["plugin", "marketplace", "add", marketplacePath],
-    executor,
-  );
-
-  if (!marketplaceResult.success) {
-    console.log("Warning: Failed to add plugin marketplace");
-    console.error(marketplaceResult.stderr);
-  } else {
-    // Install the plugin from the local marketplace
-    const pluginInstallResult = await execCommand(
-      "claude",
-      ["plugin", "install", "ai-resources@ai-resources"],
-      executor,
-    );
-
-    if (!pluginInstallResult.success) {
-      console.log("Warning: Failed to install ai-resources plugin");
-      console.error(pluginInstallResult.stderr);
-    } else {
-      console.log("ai-resources plugin installed successfully");
-    }
-  }
-
-  // 5. Install worktree-files JSON schema and register with Cursor
+  // 4. Install worktree-files JSON schema and register with Cursor
   console.log("Installing worktree-files JSON schema...");
   try {
     const schemasDir = join(config.paths.userClaudeDir, "schemas");
