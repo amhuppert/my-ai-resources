@@ -4,6 +4,7 @@ import type {
   SyncPaths,
   DiscoveredSkill,
   DiscoveredAgent,
+  DiscoveredCommand,
   DiscoveredMcpServer,
   DiscoveredArtifacts,
   SyncItemResult,
@@ -24,6 +25,8 @@ describe("types", () => {
       scope: "user",
       claudeMdSource: "/home/user/.claude/CLAUDE.md",
       pluginScanRoot: "/home/user/.claude/plugins/",
+      standaloneSkillsDir: "/home/user/.claude/skills/",
+      commandsDir: "/home/user/.claude/commands/",
       standaloneAgentsDir: "/home/user/.claude/agents/",
       mcpConfigSource: "/home/user/.claude.json",
       agentsOverrideDest: "/home/user/.codex/AGENTS.override.md",
@@ -81,9 +84,18 @@ describe("types", () => {
     expect(httpServer.transport).toBe("http");
   });
 
+  test("DiscoveredCommand shape", () => {
+    const command: DiscoveredCommand = {
+      name: "kiro--spec-init",
+      sourcePath: "/path/to/kiro/spec-init.md",
+    };
+    expect(command.name).toBe("kiro--spec-init");
+  });
+
   test("DiscoveredArtifacts shape", () => {
     const artifacts: DiscoveredArtifacts = {
       skills: [],
+      commands: [],
       agents: [],
       mcpServers: [],
       claudeMdExists: false,

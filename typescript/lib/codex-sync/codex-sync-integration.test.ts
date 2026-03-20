@@ -73,6 +73,40 @@ function setupMockClaudeCodeStructure(rootDir: string) {
     }),
   );
 
+  // Standalone skill (not in any plugin)
+  const standaloneSkillDir = join(rootDir, ".claude", "skills", "cursor-rules-sync");
+  mkdirSync(standaloneSkillDir, { recursive: true });
+  writeFileSync(
+    join(standaloneSkillDir, "SKILL.md"),
+    matter.stringify("Synchronizes cursor rules.", {
+      name: "cursor-rules-sync",
+      description: "Sync cursor rules to CLAUDE.md",
+    }),
+  );
+
+  // Commands
+  const commandsDir = join(rootDir, ".claude", "commands");
+  mkdirSync(commandsDir, { recursive: true });
+  writeFileSync(
+    join(commandsDir, "audit-standards.md"),
+    matter.stringify("# Audit Standards\n\nPerform audit.", {
+      name: "audit-standards",
+      description: "Audit code standards",
+      "allowed-tools": ["Read", "Grep"],
+      "required-context": "Project code standards",
+    }),
+  );
+  const kiroDir = join(commandsDir, "kiro");
+  mkdirSync(kiroDir, { recursive: true });
+  writeFileSync(
+    join(kiroDir, "spec-init.md"),
+    matter.stringify("# Spec Init\n\nInitialize a spec.", {
+      description: "Initialize a new specification",
+      "allowed-tools": "Bash, Read, Write",
+      "argument-hint": "<project-description>",
+    }),
+  );
+
   // MCP config
   writeFileSync(
     join(rootDir, ".mcp.json"),
@@ -156,6 +190,34 @@ describe("codex-sync end-to-end integration", () => {
     const architectTomlContent = tomlParse(readFileSync(architectToml, "utf-8"));
     expect(architectTomlContent["name"]).toBe("architect");
     expect(architectTomlContent["model"]).toBe("gpt-5.4");
+
+    // Verify standalone skill was synced
+    const standaloneSkillDest = join(projectDir, ".agents", "skills", "cursor-rules-sync");
+    expect(existsSync(standaloneSkillDest)).toBe(true);
+    const standaloneSkillContent = readFileSync(join(standaloneSkillDest, "SKILL.md"), "utf-8");
+    const { data: standaloneSkillData } = matter(standaloneSkillContent);
+    expect(standaloneSkillData["name"]).toBe("cursor-rules-sync");
+    expect(standaloneSkillData["description"]).toBe("Sync cursor rules to CLAUDE.md");
+
+    // Verify top-level command was converted to skill
+    const auditSkillDest = join(projectDir, ".agents", "skills", "audit-standards");
+    expect(existsSync(auditSkillDest)).toBe(true);
+    const auditSkillContent = readFileSync(join(auditSkillDest, "SKILL.md"), "utf-8");
+    const { data: auditData } = matter(auditSkillContent);
+    expect(auditData["name"]).toBe("audit-standards");
+    expect(auditData["description"]).toBe("Audit code standards");
+    expect(auditData["allowed-tools"]).toBeUndefined();
+    expect(auditData["required-context"]).toBeUndefined();
+
+    // Verify namespaced command was converted to skill with -- separator
+    const specInitSkillDest = join(projectDir, ".agents", "skills", "kiro--spec-init");
+    expect(existsSync(specInitSkillDest)).toBe(true);
+    const specInitContent = readFileSync(join(specInitSkillDest, "SKILL.md"), "utf-8");
+    const { data: specInitData } = matter(specInitContent);
+    expect(specInitData["name"]).toBe("kiro--spec-init");
+    expect(specInitData["description"]).toBe("Initialize a new specification");
+    expect(specInitData["allowed-tools"]).toBeUndefined();
+    expect(specInitData["argument-hint"]).toBeUndefined();
 
     // Verify MCP config.toml
     const configTomlPath = join(projectDir, ".codex", "config.toml");

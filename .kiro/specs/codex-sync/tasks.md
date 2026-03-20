@@ -76,10 +76,31 @@
   - Test: JSON-to-TOML conversion, merge preserves non-MCP sections, conflicting servers overwritten, non-conflicting servers preserved, missing source handled gracefully
   - _Requirements: 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10, 7.1_
 
-- [x] 5. Pipeline orchestration and CLI integration
+- [ ] 4.5 Build command discovery and sync
+  - Discover command `.md` files from `.claude/commands/` recursively, supporting namespace subdirectories (e.g., `kiro/spec-init.md`)
+  - Derive skill name from path: top-level `foo.md` → `foo`, nested `ns/bar.md` → `ns--bar`
+  - Convert each command to a Codex skill directory containing `SKILL.md`
+  - Strip `allowed-tools`, `argument-hint`, and `required-context` frontmatter properties
+  - Inject `name` field into frontmatter if missing, using derived name
+  - Validate command frontmatter for required `description` field; log error with path and continue on failure
+  - Write to same destination as regular skills (`codexSkillsDir`)
+  - Test: command discovery with flat and nested structure, name derivation, frontmatter stripping and name injection, missing description validation
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.9, 9.10, 9.11, 9.12_
 
-- [x] 5.1 Build the sync orchestrator and result reporter
-  - Run the full sync pipeline in sequence: instructions, skills, agents, MCP
+- [ ] 4.6 Add standalone skill discovery and updated paths
+  - Discover skill directories from `.claude/skills/` (same format as plugin skills — subdirectories containing `SKILL.md`)
+  - Merge standalone skills with plugin skills in the orchestrator, feeding both into the existing `syncSkills()` function
+  - Update `SyncPaths` to include `standaloneSkillsDir` and `commandsDir`
+  - Update path resolver for both user and project scopes
+  - Test: standalone skill discovery, merged with plugin skills, path resolution for both scopes
+  - _Requirements: 4.1, 4.2, 8.1–8.9_
+
+- [ ] 5. Pipeline orchestration update and integration
+
+- [ ] 5.1 Update the sync orchestrator for standalone skills and commands
+  - Add standalone skill discovery and merge with plugin skills
+  - Add command discovery and command sync stage
+  - Run the full sync pipeline in sequence: instructions, skills (plugin + standalone), commands, agents, MCP
   - If any individual item fails, log the error and continue processing remaining items
   - Aggregate all results into a summary: total items synced, items skipped (with reasons), items failed (with file paths and error messages)
   - Set overall failure status when any items fail

@@ -1,8 +1,9 @@
 import type { SyncPaths, SyncConfig, SyncResult, SyncItemResult } from "./types.ts";
-import { scanPlugins, readInstalledPluginDirs, readPluginName, extractSkills, discoverMcpServers } from "./artifact-discovery.ts";
+import { scanPlugins, readInstalledPluginDirs, readPluginName, extractSkills, discoverStandaloneSkills, discoverCommands } from "./artifact-discovery.ts";
 import { discoverAgents } from "./agent-discovery.ts";
 import { syncInstructions } from "./instructions-sync.ts";
 import { syncSkills } from "./skill-sync.ts";
+import { syncCommands } from "./command-sync.ts";
 import { syncAgents } from "./agent-sync.ts";
 import { syncMcpServers } from "./mcp-sync.ts";
 
@@ -46,12 +47,19 @@ export function runSync(paths: SyncPaths, config: SyncConfig): SyncResult {
     });
   }
 
-  const skills = pluginDirs.flatMap(extractSkills);
+  const pluginSkills = pluginDirs.flatMap(extractSkills);
+  const standaloneSkills = discoverStandaloneSkills(paths.standaloneSkillsDir);
+  const allSkills = [...pluginSkills, ...standaloneSkills];
+  const commands = discoverCommands(paths.commandsDir);
   const { agents, skipped: skippedAgents } = discoverAgents(pluginDirs, paths.standaloneAgentsDir);
 
-  // Skills
-  const skillResults = syncSkills(skills, paths.codexSkillsDir);
+  // Skills (plugin + standalone)
+  const skillResults = syncSkills(allSkills, paths.codexSkillsDir);
   items.push(...skillResults);
+
+  // Commands (converted to skills)
+  const commandResults = syncCommands(commands, paths.codexSkillsDir);
+  items.push(...commandResults);
 
   // Agents
   const agentResults = syncAgents(agents, paths.codexAgentsDir, config.modelMapping);

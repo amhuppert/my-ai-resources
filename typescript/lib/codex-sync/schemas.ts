@@ -23,6 +23,13 @@ export const SkillFrontmatterSchema = z
   })
   .passthrough();
 
+export const CommandFrontmatterSchema = z
+  .object({
+    description: z.string(),
+    name: z.string().optional(),
+  })
+  .passthrough();
+
 export const AgentFrontmatterSchema = z
   .object({
     name: z.string(),

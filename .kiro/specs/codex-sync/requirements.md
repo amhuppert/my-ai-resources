@@ -38,11 +38,11 @@ The Codex Sync feature adds an `ai codex-sync` subcommand that synchronizes Clau
 4. When an `AGENTS.override.md` file already exists at the destination, the Codex Sync tool shall overwrite it with the source content.
 
 ### Requirement 4: Skills Sync
-**Objective:** As a developer, I want my Claude Code plugin skills synced to Codex skill directories, so that I can use the same skills in both tools.
+**Objective:** As a developer, I want my Claude Code skills synced to Codex skill directories, so that I can use the same skills in both tools.
 
 #### Acceptance Criteria
-1. When `--scope user` is specified, the Codex Sync tool shall discover Claude Code plugin skills from installed plugins under `~/.claude/plugins/`.
-2. When `--scope project` is specified, the Codex Sync tool shall discover Claude Code plugin skills from plugin directories in the current project (directories containing `.claude-plugin/plugin.json`).
+1. When `--scope user` is specified, the Codex Sync tool shall discover Claude Code plugin skills from installed plugins under `~/.claude/plugins/` AND standalone skills from `~/.claude/skills/`.
+2. When `--scope project` is specified, the Codex Sync tool shall discover Claude Code plugin skills from plugin directories in the current project (directories containing `.claude-plugin/plugin.json`) AND standalone skills from `./.claude/skills/`.
 3. The Codex Sync tool shall copy each discovered skill directory to the Codex skill location (`~/.agents/skills/` for user scope, `./.agents/skills/` for project scope).
 4. When copying a SKILL.md file, the Codex Sync tool shall strip the `allowed-tools` frontmatter property if present.
 5. When copying a SKILL.md file, the Codex Sync tool shall strip the `argument-hint` frontmatter property if present.
@@ -110,3 +110,20 @@ The Codex Sync feature adds an `ai codex-sync` subcommand that synchronizes Clau
 7. When `--scope project` is specified, the Codex Sync tool shall resolve the Codex skills directory to `./.agents/skills/`.
 8. When `--scope project` is specified, the Codex Sync tool shall resolve the Codex agents directory to `./.codex/agents/`.
 9. The Codex Sync tool shall create destination directories if they do not already exist.
+
+### Requirement 9: Commands Sync
+**Objective:** As a developer, I want my Claude Code commands converted to Codex skills, so that I can use equivalent slash commands in both tools.
+
+#### Acceptance Criteria
+1. When `--scope user` is specified, the Codex Sync tool shall discover Claude Code commands from `~/.claude/commands/`.
+2. When `--scope project` is specified, the Codex Sync tool shall discover Claude Code commands from `./.claude/commands/`.
+3. The Codex Sync tool shall discover command `.md` files recursively, supporting namespace subdirectories (e.g., `kiro/spec-init.md`).
+4. The Codex Sync tool shall convert each command `.md` file to a Codex skill directory containing a `SKILL.md` file.
+5. For namespaced commands in subdirectories, the Codex Sync tool shall derive the skill name using `--` as the namespace separator (e.g., `kiro/spec-init.md` → `kiro--spec-init`).
+6. For top-level commands, the Codex Sync tool shall derive the skill name from the filename without extension (e.g., `audit-standards.md` → `audit-standards`).
+7. When converting a command to a skill, the Codex Sync tool shall strip the `allowed-tools`, `argument-hint`, and `required-context` frontmatter properties if present.
+8. When the command frontmatter contains a `name` field, the Codex Sync tool shall preserve it in the output SKILL.md.
+9. When the command frontmatter does not contain a `name` field, the Codex Sync tool shall inject a `name` field using the derived skill name.
+10. The Codex Sync tool shall validate command frontmatter for a required `description` field before conversion.
+11. When a command with the same derived name already exists in the Codex skill directory, the Codex Sync tool shall overwrite it.
+12. The Codex Sync tool shall write converted command skills to `~/.agents/skills/` for user scope or `./.agents/skills/` for project scope (same destination as regular skills).

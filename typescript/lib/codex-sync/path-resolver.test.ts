@@ -12,6 +12,8 @@ describe("resolveSyncPaths", () => {
 
       expect(paths.claudeMdSource).toBe(join(home, ".claude", "CLAUDE.md"));
       expect(paths.pluginScanRoot).toBe(join(home, ".claude", "plugins"));
+      expect(paths.standaloneSkillsDir).toBe(join(home, ".claude", "skills"));
+      expect(paths.commandsDir).toBe(join(home, ".claude", "commands"));
       expect(paths.standaloneAgentsDir).toBe(join(home, ".claude", "agents"));
       expect(paths.mcpConfigSource).toBe(join(home, ".claude.json"));
     });
@@ -45,6 +47,12 @@ describe("resolveSyncPaths", () => {
 
       expect(paths.claudeMdSource).toBe(join(tempDir, "CLAUDE.md"));
       expect(paths.pluginScanRoot).toBe(tempDir);
+      expect(paths.standaloneSkillsDir).toBe(
+        join(tempDir, ".claude", "skills"),
+      );
+      expect(paths.commandsDir).toBe(
+        join(tempDir, ".claude", "commands"),
+      );
       expect(paths.standaloneAgentsDir).toBe(
         join(tempDir, ".claude", "agents"),
       );

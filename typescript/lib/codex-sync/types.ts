@@ -7,6 +7,8 @@ export interface SyncPaths {
   scope: "user" | "project";
   claudeMdSource: string;
   pluginScanRoot: string;
+  standaloneSkillsDir: string;
+  commandsDir: string;
   standaloneAgentsDir: string;
   mcpConfigSource: string;
   agentsOverrideDest: string;
@@ -52,8 +54,14 @@ export interface SkippedAgent {
   reason: string;
 }
 
+export interface DiscoveredCommand {
+  name: string;
+  sourcePath: string;
+}
+
 export interface DiscoveredArtifacts {
   skills: DiscoveredSkill[];
+  commands: DiscoveredCommand[];
   agents: DiscoveredAgent[];
   mcpServers: DiscoveredMcpServer[];
   claudeMdExists: boolean;

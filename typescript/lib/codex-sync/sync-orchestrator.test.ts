@@ -22,6 +22,8 @@ function setupTestPaths(tempDir: string): SyncPaths {
     scope: "project",
     claudeMdSource: join(sourceDir, "CLAUDE.md"),
     pluginScanRoot: join(sourceDir, "plugins"),
+    standaloneSkillsDir: join(sourceDir, "skills"),
+    commandsDir: join(sourceDir, "commands"),
     standaloneAgentsDir: join(sourceDir, "agents"),
     mcpConfigSource: join(sourceDir, ".claude.json"),
     agentsOverrideDest: join(destDir, "AGENTS.override.md"),
@@ -483,5 +485,132 @@ describe("runSync", () => {
     expect(instrIdx).toBeLessThan(skillIdx);
     expect(skillIdx).toBeLessThan(agentIdx);
     expect(agentIdx).toBeLessThan(mcpIdx);
+  });
+
+  test("includes standalone skills alongside plugin skills", () => {
+    const paths = setupTestPaths(tempDir);
+    writeFileSync(paths.claudeMdSource, "# Instructions");
+
+    // Plugin skill
+    const pluginDir = join(paths.pluginScanRoot, "my-plugin");
+    mkdirSync(join(pluginDir, ".claude-plugin"), { recursive: true });
+    writeFileSync(
+      join(pluginDir, ".claude-plugin", "plugin.json"),
+      JSON.stringify({ name: "my-plugin" }),
+    );
+    const pluginSkillDir = join(pluginDir, "skills", "plugin-skill");
+    mkdirSync(pluginSkillDir, { recursive: true });
+    writeFileSync(
+      join(pluginSkillDir, "SKILL.md"),
+      matter.stringify("Plugin skill body", { name: "plugin-skill", description: "From plugin" }),
+    );
+
+    // Standalone skill
+    mkdirSync(paths.standaloneSkillsDir, { recursive: true });
+    const standaloneSkillDir = join(paths.standaloneSkillsDir, "standalone-skill");
+    mkdirSync(standaloneSkillDir, { recursive: true });
+    writeFileSync(
+      join(standaloneSkillDir, "SKILL.md"),
+      matter.stringify("Standalone skill body", { name: "standalone-skill", description: "Standalone" }),
+    );
+
+    const result = runSync(paths, defaultConfig);
+
+    const skillResults = result.items.filter((i) => i.artifact.startsWith("skill:"));
+    expect(skillResults).toHaveLength(2);
+    expect(skillResults.every((r) => r.status === "synced")).toBe(true);
+
+    expect(existsSync(join(paths.codexSkillsDir, "plugin-skill", "SKILL.md"))).toBe(true);
+    expect(existsSync(join(paths.codexSkillsDir, "standalone-skill", "SKILL.md"))).toBe(true);
+  });
+
+  test("syncs commands as skills", () => {
+    const paths = setupTestPaths(tempDir);
+    writeFileSync(paths.claudeMdSource, "# Instructions");
+
+    // Top-level command
+    mkdirSync(paths.commandsDir, { recursive: true });
+    writeFileSync(
+      join(paths.commandsDir, "audit.md"),
+      matter.stringify("Audit body", {
+        name: "audit",
+        description: "Audit standards",
+        "allowed-tools": ["Read"],
+      }),
+    );
+
+    // Namespaced command
+    const nsDir = join(paths.commandsDir, "kiro");
+    mkdirSync(nsDir, { recursive: true });
+    writeFileSync(
+      join(nsDir, "spec-init.md"),
+      matter.stringify("Spec init body", {
+        description: "Initialize spec",
+        "argument-hint": "<desc>",
+      }),
+    );
+
+    const result = runSync(paths, defaultConfig);
+
+    const cmdResults = result.items.filter((i) => i.artifact.startsWith("command:"));
+    expect(cmdResults).toHaveLength(2);
+    expect(cmdResults.every((r) => r.status === "synced")).toBe(true);
+
+    // Verify command converted to skill directory
+    expect(existsSync(join(paths.codexSkillsDir, "audit", "SKILL.md"))).toBe(true);
+    expect(existsSync(join(paths.codexSkillsDir, "kiro--spec-init", "SKILL.md"))).toBe(true);
+
+    // Verify frontmatter stripping
+    const auditContent = readFileSync(join(paths.codexSkillsDir, "audit", "SKILL.md"), "utf-8");
+    const { data: auditData } = matter(auditContent);
+    expect(auditData["allowed-tools"]).toBeUndefined();
+
+    // Verify name injection for namespaced command
+    const specInitContent = readFileSync(join(paths.codexSkillsDir, "kiro--spec-init", "SKILL.md"), "utf-8");
+    const { data: specInitData } = matter(specInitContent);
+    expect(specInitData["name"]).toBe("kiro--spec-init");
+    expect(specInitData["argument-hint"]).toBeUndefined();
+  });
+
+  test("pipeline includes commands between skills and agents", () => {
+    const paths = setupTestPaths(tempDir);
+    writeFileSync(paths.claudeMdSource, "# Instructions");
+
+    // Plugin with skill
+    const pluginDir = join(paths.pluginScanRoot, "p");
+    mkdirSync(join(pluginDir, ".claude-plugin"), { recursive: true });
+    writeFileSync(
+      join(pluginDir, ".claude-plugin", "plugin.json"),
+      JSON.stringify({ name: "p" }),
+    );
+    const skillDir = join(pluginDir, "skills", "s");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      matter.stringify("Body", { name: "s", description: "Skill" }),
+    );
+    const agentsDir = join(pluginDir, "agents");
+    mkdirSync(agentsDir, { recursive: true });
+    writeFileSync(
+      join(agentsDir, "a.md"),
+      matter.stringify("Agent body", { name: "a", description: "Agent" }),
+    );
+
+    // Command
+    mkdirSync(paths.commandsDir, { recursive: true });
+    writeFileSync(
+      join(paths.commandsDir, "cmd.md"),
+      matter.stringify("Cmd body", { name: "cmd", description: "Command" }),
+    );
+
+    const result = runSync(paths, defaultConfig);
+
+    const artifacts = result.items.map((i) => i.artifact);
+    const skillIdx = artifacts.findIndex((a) => a.startsWith("skill:"));
+    const cmdIdx = artifacts.findIndex((a) => a.startsWith("command:"));
+    const agentIdx = artifacts.findIndex((a) => a.startsWith("agent:"));
+
+    expect(skillIdx).toBeLessThan(cmdIdx);
+    expect(cmdIdx).toBeLessThan(agentIdx);
   });
 });

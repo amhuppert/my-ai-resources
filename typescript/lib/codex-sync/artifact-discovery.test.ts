@@ -7,7 +7,7 @@ import {
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { scanPlugins, extractSkills, discoverMcpServers, readInstalledPluginDirs, readPluginName } from "./artifact-discovery.ts";
+import { scanPlugins, extractSkills, discoverMcpServers, readInstalledPluginDirs, readPluginName, discoverStandaloneSkills, discoverCommands } from "./artifact-discovery.ts";
 
 function setupPluginDir(
   baseDir: string,
@@ -476,5 +476,151 @@ describe("discoverMcpServers", () => {
     const servers = discoverMcpServers(configPath);
     expect(servers).toHaveLength(1);
     expect(servers[0]!.id).toBe("valid");
+  });
+});
+
+describe("discoverStandaloneSkills", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "standalone-skills-test-"));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  test("discovers skill directories containing SKILL.md", () => {
+    const skillDir = join(tempDir, "my-skill");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      "---\nname: my-skill\ndescription: A skill\n---\nBody",
+    );
+
+    const skills = discoverStandaloneSkills(tempDir);
+    expect(skills).toHaveLength(1);
+    expect(skills[0]!.name).toBe("my-skill");
+    expect(skills[0]!.sourceDir).toBe(skillDir);
+    expect(skills[0]!.skillMdPath).toBe(join(skillDir, "SKILL.md"));
+  });
+
+  test("discovers multiple skills", () => {
+    for (const name of ["skill-a", "skill-b"]) {
+      const dir = join(tempDir, name);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "SKILL.md"),
+        `---\nname: ${name}\ndescription: ${name}\n---\nBody`,
+      );
+    }
+
+    const skills = discoverStandaloneSkills(tempDir);
+    expect(skills).toHaveLength(2);
+  });
+
+  test("ignores directories without SKILL.md", () => {
+    const emptyDir = join(tempDir, "empty");
+    mkdirSync(emptyDir, { recursive: true });
+    writeFileSync(join(emptyDir, "README.md"), "Not a skill");
+
+    const skills = discoverStandaloneSkills(tempDir);
+    expect(skills).toHaveLength(0);
+  });
+
+  test("returns empty array when directory does not exist", () => {
+    const skills = discoverStandaloneSkills(join(tempDir, "nonexistent"));
+    expect(skills).toHaveLength(0);
+  });
+
+  test("ignores files that are not directories", () => {
+    writeFileSync(join(tempDir, "not-a-dir.md"), "Just a file");
+
+    const skills = discoverStandaloneSkills(tempDir);
+    expect(skills).toHaveLength(0);
+  });
+});
+
+describe("discoverCommands", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "commands-test-"));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  test("discovers top-level command files", () => {
+    writeFileSync(
+      join(tempDir, "audit-standards.md"),
+      "---\ndescription: Audit standards\n---\nBody",
+    );
+
+    const commands = discoverCommands(tempDir);
+    expect(commands).toHaveLength(1);
+    expect(commands[0]!.name).toBe("audit-standards");
+    expect(commands[0]!.sourcePath).toBe(join(tempDir, "audit-standards.md"));
+  });
+
+  test("discovers namespaced commands in subdirectories", () => {
+    const nsDir = join(tempDir, "kiro");
+    mkdirSync(nsDir, { recursive: true });
+    writeFileSync(
+      join(nsDir, "spec-init.md"),
+      "---\ndescription: Init spec\n---\nBody",
+    );
+
+    const commands = discoverCommands(tempDir);
+    expect(commands).toHaveLength(1);
+    expect(commands[0]!.name).toBe("kiro--spec-init");
+  });
+
+  test("discovers mixed top-level and namespaced commands", () => {
+    writeFileSync(
+      join(tempDir, "top-level.md"),
+      "---\ndescription: Top level\n---\nBody",
+    );
+    const nsDir = join(tempDir, "ns");
+    mkdirSync(nsDir, { recursive: true });
+    writeFileSync(
+      join(nsDir, "nested.md"),
+      "---\ndescription: Nested\n---\nBody",
+    );
+
+    const commands = discoverCommands(tempDir);
+    expect(commands).toHaveLength(2);
+    const names = commands.map((c) => c.name);
+    expect(names).toContain("top-level");
+    expect(names).toContain("ns--nested");
+  });
+
+  test("ignores non-.md files", () => {
+    writeFileSync(join(tempDir, "not-a-command.txt"), "Not a command");
+    writeFileSync(join(tempDir, "also-not.json"), "{}");
+
+    const commands = discoverCommands(tempDir);
+    expect(commands).toHaveLength(0);
+  });
+
+  test("returns empty array when directory does not exist", () => {
+    const commands = discoverCommands(join(tempDir, "nonexistent"));
+    expect(commands).toHaveLength(0);
+  });
+
+  test("discovers multiple commands in a namespace subdirectory", () => {
+    const nsDir = join(tempDir, "kiro");
+    mkdirSync(nsDir, { recursive: true });
+    writeFileSync(join(nsDir, "spec-init.md"), "---\ndescription: Init\n---\n");
+    writeFileSync(join(nsDir, "spec-design.md"), "---\ndescription: Design\n---\n");
+    writeFileSync(join(nsDir, "steering.md"), "---\ndescription: Steer\n---\n");
+
+    const commands = discoverCommands(tempDir);
+    expect(commands).toHaveLength(3);
+    const names = commands.map((c) => c.name);
+    expect(names).toContain("kiro--spec-init");
+    expect(names).toContain("kiro--spec-design");
+    expect(names).toContain("kiro--steering");
   });
 });

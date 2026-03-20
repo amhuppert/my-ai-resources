@@ -6,7 +6,7 @@ import {
 } from "fs";
 import { join, basename } from "path";
 import { McpConfigSchema, StdioMcpServerSchema, HttpMcpServerSchema } from "./schemas.ts";
-import type { DiscoveredSkill, DiscoveredMcpServer } from "./types.ts";
+import type { DiscoveredSkill, DiscoveredCommand, DiscoveredMcpServer } from "./types.ts";
 
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
 
@@ -161,6 +161,95 @@ export function extractSkills(pluginDir: string): DiscoveredSkill[] {
   }
 
   return skills;
+}
+
+export function discoverStandaloneSkills(skillsDir: string): DiscoveredSkill[] {
+  if (!existsSync(skillsDir)) return [];
+
+  const skills: DiscoveredSkill[] = [];
+  let entries: string[];
+  try {
+    entries = readdirSync(skillsDir);
+  } catch {
+    return [];
+  }
+
+  for (const entry of entries) {
+    const skillDir = join(skillsDir, entry);
+    const skillMdPath = join(skillDir, "SKILL.md");
+    try {
+      if (statSync(skillDir).isDirectory() && existsSync(skillMdPath)) {
+        skills.push({
+          name: entry,
+          sourceDir: skillDir,
+          skillMdPath,
+        });
+      }
+    } catch {
+      // Skip unreadable
+    }
+  }
+
+  return skills;
+}
+
+export function discoverCommands(commandsDir: string): DiscoveredCommand[] {
+  if (!existsSync(commandsDir)) return [];
+
+  const commands: DiscoveredCommand[] = [];
+  let entries: string[];
+  try {
+    entries = readdirSync(commandsDir);
+  } catch {
+    return [];
+  }
+
+  for (const entry of entries) {
+    const fullPath = join(commandsDir, entry);
+    try {
+      const stat = statSync(fullPath);
+      if (stat.isFile() && entry.endsWith(".md")) {
+        commands.push({
+          name: basename(entry, ".md"),
+          sourcePath: fullPath,
+        });
+      } else if (stat.isDirectory()) {
+        collectNamespacedCommands(fullPath, entry, commands);
+      }
+    } catch {
+      // Skip unreadable
+    }
+  }
+
+  return commands;
+}
+
+function collectNamespacedCommands(
+  nsDir: string,
+  namespace: string,
+  commands: DiscoveredCommand[],
+): void {
+  let entries: string[];
+  try {
+    entries = readdirSync(nsDir);
+  } catch {
+    return;
+  }
+
+  for (const entry of entries) {
+    if (!entry.endsWith(".md")) continue;
+    const fullPath = join(nsDir, entry);
+    try {
+      if (statSync(fullPath).isFile()) {
+        commands.push({
+          name: `${namespace}--${basename(entry, ".md")}`,
+          sourcePath: fullPath,
+        });
+      }
+    } catch {
+      // Skip unreadable
+    }
+  }
 }
 
 export function discoverMcpServers(configPath: string): DiscoveredMcpServer[] {

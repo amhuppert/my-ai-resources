@@ -9,7 +9,8 @@
 
 ### Goals
 - Sync custom instructions (CLAUDE.md → AGENTS.override.md)
-- Sync skills with frontmatter adaptation
+- Sync skills (from plugins AND standalone `.claude/skills/`) with frontmatter adaptation
+- Convert commands (`.claude/commands/`) to Codex skills with frontmatter adaptation
 - Convert agents from .md to .toml format with configurable model mapping
 - Sync MCP server config from JSON to TOML with merge
 - Support user-level and project-level scopes independently
@@ -35,6 +36,7 @@ graph TB
     Disc[ArtifactDiscovery]
     InstrSync[InstructionsSync]
     SkillSync[SkillSync]
+    CmdSync[CommandSync]
     AgentSync[AgentSync]
     McpSync[McpSync]
     Reporter[SyncReporter]
@@ -45,10 +47,12 @@ graph TB
     Orch --> Disc
     Orch --> InstrSync
     Orch --> SkillSync
+    Orch --> CmdSync
     Orch --> AgentSync
     Orch --> McpSync
     Orch --> Reporter
     SkillSync --> Disc
+    CmdSync --> Disc
     AgentSync --> Disc
     McpSync --> Disc
 ```
@@ -57,7 +61,7 @@ graph TB
 - Selected pattern: Pipeline (Discover → Convert → Write) coordinated by an orchestrator
 - Domain boundaries: Discovery reads Claude Code files; converters transform data; writers output Codex files
 - Existing patterns preserved: Commander.js CLI registration, Zod schema validation with `.passthrough()`, dependency injection
-- New components rationale: Each sync artifact type (instructions, skills, agents, MCP) has distinct conversion logic warranting separate modules
+- New components rationale: Each sync artifact type (instructions, skills, commands, agents, MCP) has distinct conversion logic warranting separate modules
 - Steering compliance: TypeScript strict mode, plain functions, early returns, YAGNI
 
 ### Technology Stack
@@ -104,11 +108,12 @@ sequenceDiagram
 | 1.1–1.7 | CLI subcommand with scope and summary | CLI registration, SyncReporter | `runCodexSync()` |
 | 2.1–2.6 | Config file with model mapping | SyncConfigLoader | `loadOrCreateSyncConfig()` |
 | 3.1–3.4 | CLAUDE.md → AGENTS.override.md | InstructionsSync | `syncInstructions()` |
-| 4.1–4.10 | Skills sync with frontmatter strip | SkillSync, ArtifactDiscovery | `syncSkills()`, `convertSkillFrontmatter()` |
+| 4.1–4.10 | Skills sync with frontmatter strip (plugins + standalone) | SkillSync, ArtifactDiscovery | `syncSkills()`, `convertSkillFrontmatter()`, `discoverStandaloneSkills()` |
 | 5.1–5.13 | Agent .md → .toml conversion | AgentSync, ArtifactDiscovery | `syncAgents()`, `convertAgentToToml()` |
 | 6.1–6.10 | MCP JSON → config.toml merge | McpSync | `syncMcpServers()`, `mergeTomlMcpServers()` |
 | 7.1–7.7 | Validation and error reporting | All converters, SyncReporter | Zod schemas, `SyncResult` |
 | 8.1–8.9 | Path resolution per scope | PathResolver | `resolveSyncPaths()` |
+| 9.1–9.12 | Commands → Codex skills conversion | CommandSync, ArtifactDiscovery | `syncCommands()`, `discoverCommands()` |
 
 ## Components and Interfaces
 
@@ -117,9 +122,10 @@ sequenceDiagram
 | CLI Registration | CLI | Register codex-sync subcommand | 1.1–1.7 | Commander.js (P0) | — |
 | SyncConfigLoader | Config | Load, create, validate sync config | 2.1–2.6 | Zod (P0), fs (P0) | Service |
 | PathResolver | Config | Resolve source/dest paths per scope | 8.1–8.9 | — | Service |
-| ArtifactDiscovery | Discovery | Find plugins, skills, agents, MCP | 4.1–4.2, 5.1–5.2, 6.1–6.2 | fs (P0), gray-matter (P1) | Service |
+| ArtifactDiscovery | Discovery | Find plugins, standalone skills, commands, agents, MCP | 4.1–4.2, 5.1–5.2, 6.1–6.2, 9.1–9.3 | fs (P0), gray-matter (P1) | Service |
 | InstructionsSync | Sync | Copy CLAUDE.md to AGENTS.override.md | 3.1–3.4 | fs (P0) | Service |
 | SkillSync | Sync | Copy skills, strip frontmatter | 4.3–4.10 | gray-matter (P0) | Service |
+| CommandSync | Sync | Convert commands to Codex skills | 9.4–9.12 | gray-matter (P0) | Service |
 | AgentSync | Sync | Convert agent .md to .toml | 5.3–5.13 | gray-matter (P0), smol-toml (P0) | Service |
 | McpSync | Sync | Convert MCP JSON to config.toml | 6.3–6.10 | smol-toml (P0) | Service |
 | SyncOrchestrator | Orchestration | Run full sync pipeline | 1.6–1.7, 7.5–7.7 | All sync components (P0) | Service |
@@ -184,6 +190,8 @@ interface SyncPaths {
   // Source paths (Claude Code)
   claudeMdSource: string;
   pluginScanRoot: string;   // root dir to recursively scan for */.claude-plugin/plugin.json
+  standaloneSkillsDir: string;  // .claude/skills/ — standalone skills not in any plugin
+  commandsDir: string;          // .claude/commands/ — command .md files
   standaloneAgentsDir: string;
   mcpConfigSource: string;
 
@@ -195,8 +203,8 @@ interface SyncPaths {
 }
 
 function resolveSyncPaths(scope: "user" | "project"): SyncPaths;
-// "user" → pluginScanRoot = ~/.claude/plugins/
-// "project" → pluginScanRoot = CWD (recursive scan)
+// "user" → pluginScanRoot = ~/.claude/plugins/, standaloneSkillsDir = ~/.claude/skills/, commandsDir = ~/.claude/commands/
+// "project" → pluginScanRoot = CWD (recursive scan), standaloneSkillsDir = ./.claude/skills/, commandsDir = ./.claude/commands/
 ```
 
 **Path mapping:**
@@ -204,7 +212,9 @@ function resolveSyncPaths(scope: "user" | "project"): SyncPaths;
 | Artifact | User Source | User Dest | Project Source | Project Dest |
 |----------|-----------|----------|---------------|-------------|
 | Instructions | `~/.claude/CLAUDE.md` | `~/.codex/AGENTS.override.md` | `./CLAUDE.md` | `./AGENTS.override.md` |
-| Skills | `~/.claude/plugins/` (scan) | `~/.agents/skills/` | CWD recursive `**/.claude-plugin/plugin.json` | `./.agents/skills/` |
+| Plugin Skills | `~/.claude/plugins/` (scan) | `~/.agents/skills/` | CWD recursive `**/.claude-plugin/plugin.json` | `./.agents/skills/` |
+| Standalone Skills | `~/.claude/skills/` | `~/.agents/skills/` | `./.claude/skills/` | `./.agents/skills/` |
+| Commands | `~/.claude/commands/` | `~/.agents/skills/` | `./.claude/commands/` | `./.agents/skills/` |
 | Plugin Agents | `~/.claude/plugins/` (scan) | `~/.codex/agents/` | CWD recursive `**/.claude-plugin/plugin.json` | `./.codex/agents/` |
 | Standalone Agents | `~/.claude/agents/` | `~/.codex/agents/` | `./.claude/agents/` | `./.codex/agents/` |
 | MCP Servers | `~/.claude.json` | `~/.codex/config.toml` | `./.mcp.json` | `./.codex/config.toml` |
@@ -215,12 +225,14 @@ function resolveSyncPaths(scope: "user" | "project"): SyncPaths;
 
 | Field | Detail |
 |-------|--------|
-| Intent | Discover all Claude Code artifacts (plugins, skills, agents, MCP config) from source paths |
-| Requirements | 4.1, 4.2, 5.1, 5.2, 6.1, 6.2 |
+| Intent | Discover all Claude Code artifacts (plugins, standalone skills, commands, agents, MCP config) from source paths |
+| Requirements | 4.1, 4.2, 5.1, 5.2, 6.1, 6.2, 9.1, 9.2, 9.3 |
 
 **Responsibilities & Constraints**
 - Scan for plugin directories by recursively locating `*/.claude-plugin/plugin.json` files under `pluginScanRoot`, skipping `node_modules`, `dist`, `.git`, and dotfile directories (except `.claude-plugin`)
 - Extract skill directories from discovered plugins (each subdirectory of `skills/` containing a `SKILL.md`)
+- Discover standalone skill directories from `.claude/skills/` (same format as plugin skills — subdirectories containing `SKILL.md`)
+- Discover command `.md` files from `.claude/commands/` recursively, supporting namespace subdirectories
 - Extract agent `.md` files from discovered plugins AND standalone agent directories, applying agent candidate filtering (see below)
 - Parse MCP server entries from the appropriate JSON file
 
@@ -254,12 +266,25 @@ interface DiscoveredMcpServer {
   env: Record<string, string>;
 }
 
+interface DiscoveredCommand {
+  name: string;           // derived from path or frontmatter
+  sourcePath: string;     // full path to command .md file
+}
+
 interface DiscoveredArtifacts {
   skills: DiscoveredSkill[];
+  commands: DiscoveredCommand[];
   agents: DiscoveredAgent[];
   mcpServers: DiscoveredMcpServer[];
   claudeMdExists: boolean;
 }
+
+function discoverStandaloneSkills(skillsDir: string): DiscoveredSkill[];
+// Scans .claude/skills/ for skill directories containing SKILL.md
+
+function discoverCommands(commandsDir: string): DiscoveredCommand[];
+// Recursively scans .claude/commands/ for .md files
+// Derives name from path: "audit.md" → "audit", "kiro/spec-init.md" → "kiro--spec-init"
 
 function discoverArtifacts(paths: SyncPaths): DiscoveredArtifacts;
 ```
@@ -315,6 +340,40 @@ function convertSkillFrontmatter(content: string): string;
 
 function syncSkills(
   skills: DiscoveredSkill[],
+  destDir: string,
+): SyncItemResult[];
+```
+
+#### CommandSync
+
+| Field | Detail |
+|-------|--------|
+| Intent | Convert Claude Code command .md files to Codex skill directories |
+| Requirements | 9.4, 9.5, 9.6, 9.7, 9.8, 9.9, 9.10, 9.11, 9.12 |
+
+**Responsibilities & Constraints**
+- Convert each command `.md` file to a skill directory with `SKILL.md`
+- Derive skill name from file path: top-level `foo.md` → `foo`, nested `ns/bar.md` → `ns--bar`
+- Strip `allowed-tools`, `argument-hint`, and `required-context` from frontmatter
+- Inject `name` field into frontmatter if not present, using derived name
+- Validate command frontmatter for required `description` field
+- Write to same destination as regular skills (`codexSkillsDir`)
+
+**Dependencies**
+- External: gray-matter — frontmatter parse/stringify (P0)
+
+##### Service Interface
+```typescript
+const CommandFrontmatterSchema = z.object({
+  description: z.string(),
+  name: z.string().optional(),
+}).passthrough();
+
+function convertCommandToSkill(content: string, derivedName: string): { content: string; warnings: string[] };
+// Strips unsupported frontmatter, injects name if missing
+
+function syncCommands(
+  commands: DiscoveredCommand[],
   destDir: string,
 ): SyncItemResult[];
 ```
@@ -416,7 +475,7 @@ function syncMcpServers(
 | Requirements | 1.6, 1.7, 7.5, 7.6, 7.7 |
 
 **Responsibilities & Constraints**
-- Call each sync function in sequence: instructions → skills → agents → MCP
+- Call each sync function in sequence: instructions → skills → commands → agents → MCP
 - Aggregate all results into a final summary
 - Continue processing when individual items fail (7.5)
 - Return non-zero exit indicator when any items fail (7.7)
@@ -560,6 +619,7 @@ typescript/
       artifact-discovery.ts   # ArtifactDiscovery, DiscoveredArtifacts
       instructions-sync.ts    # InstructionsSync
       skill-sync.ts           # SkillSync, convertSkillFrontmatter
+      command-sync.ts         # CommandSync, convertCommandToSkill
       agent-sync.ts           # AgentSync, convertAgentToToml
       mcp-sync.ts             # McpSync, mergeTomlMcpServers
       sync-orchestrator.ts    # SyncOrchestrator, runSync
