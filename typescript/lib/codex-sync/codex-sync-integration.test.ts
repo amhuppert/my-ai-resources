@@ -144,7 +144,7 @@ describe("codex-sync end-to-end integration", () => {
     const reviewerTomlContent = tomlParse(readFileSync(codeReviewerToml, "utf-8"));
     expect(reviewerTomlContent["name"]).toBe("code-reviewer");
     expect(reviewerTomlContent["description"]).toBe("Reviews code changes");
-    expect(reviewerTomlContent["model"]).toBe("gpt-5.3-codex-spark");
+    expect(reviewerTomlContent["model"]).toBe("gpt-5.4");
     expect(typeof reviewerTomlContent["developer_instructions"]).toBe("string");
     expect((reviewerTomlContent["developer_instructions"] as string)).toContain("code reviewer");
     // color and tools should NOT appear in TOML

@@ -57,13 +57,14 @@ describe("convertSkillFrontmatter", () => {
       "Body content here",
     ].join("\n");
 
-    const result = convertSkillFrontmatter(input);
+    const { content, warnings } = convertSkillFrontmatter(input);
 
-    expect(result).toContain("name: commit");
-    expect(result).toContain("description: AI-aware git commit");
-    expect(result).not.toContain("allowed-tools");
-    expect(result).not.toContain("argument-hint");
-    expect(result).toContain("Body content here");
+    expect(warnings).toHaveLength(0);
+    expect(content).toContain("name: commit");
+    expect(content).toContain("description: AI-aware git commit");
+    expect(content).not.toContain("allowed-tools");
+    expect(content).not.toContain("argument-hint");
+    expect(content).toContain("Body content here");
   });
 
   test("preserves frontmatter when no unsupported fields present", () => {
@@ -75,11 +76,34 @@ describe("convertSkillFrontmatter", () => {
       "Review body",
     ].join("\n");
 
-    const result = convertSkillFrontmatter(input);
+    const { content } = convertSkillFrontmatter(input);
 
-    expect(result).toContain("name: review");
-    expect(result).toContain("description: Code review skill");
-    expect(result).toContain("Review body");
+    expect(content).toContain("name: review");
+    expect(content).toContain("description: Code review skill");
+    expect(content).toContain("Review body");
+  });
+
+  test("truncates description exceeding 1024 characters and returns warning", () => {
+    const longDesc = "X".repeat(1100);
+    const input = `---\nname: verbose-skill\ndescription: ${longDesc}\n---\nBody content`;
+
+    const { content, warnings } = convertSkillFrontmatter(input);
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toInclude("1100");
+    expect(warnings[0]).toInclude("1024");
+    expect(content).toContain("name: verbose-skill");
+    expect(content).toContain("Body content");
+  });
+
+  test("does not truncate description at exactly 1024 characters", () => {
+    const exactDesc = "Y".repeat(1024);
+    const input = `---\nname: exact-skill\ndescription: ${exactDesc}\n---\nBody content`;
+
+    const { content, warnings } = convertSkillFrontmatter(input);
+
+    expect(warnings).toHaveLength(0);
+    expect(content).toContain("name: exact-skill");
   });
 
   test("strips fields from content with YAML-reserved characters via fallback", () => {
@@ -93,13 +117,13 @@ describe("convertSkillFrontmatter", () => {
       "Body content here",
     ].join("\n");
 
-    const result = convertSkillFrontmatter(input);
+    const { content } = convertSkillFrontmatter(input);
 
-    expect(result).toContain("name: expo-ui");
-    expect(result).toContain("`@expo/ui/jetpack-compose`");
-    expect(result).not.toContain("allowed-tools");
-    expect(result).not.toContain("argument-hint");
-    expect(result).toContain("Body content here");
+    expect(content).toContain("name: expo-ui");
+    expect(content).toContain("`@expo/ui/jetpack-compose`");
+    expect(content).not.toContain("allowed-tools");
+    expect(content).not.toContain("argument-hint");
+    expect(content).toContain("Body content here");
   });
 });
 

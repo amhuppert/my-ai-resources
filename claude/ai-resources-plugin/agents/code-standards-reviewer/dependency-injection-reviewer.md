@@ -1,34 +1,6 @@
 ---
 name: dependency-injection-reviewer
-description: Use this agent when auditing any TypeScript project for service layer and dependency injection best practices. This agent is the prescriptive pattern reviewer for DI. It reviews existing implementations for violations AND identifies areas where the DI pattern should be introduced as the preferred approach. Checks for proper service abstraction, Zod validation, context-based injection, and opportunities to replace direct imports with DI. Examples:
-
-<example>
-Context: User has a TypeScript project with API calls and services
-user: "Review my codebase for code standards"
-assistant: "I'll launch the dependency-injection-reviewer agent to check both existing implementations and identify where DI patterns should be introduced."
-<commentary>
-Runs on all TypeScript projects to identify DI best practices, whether properly implemented or not.
-</commentary>
-</example>
-
-<example>
-Context: User has components making direct API calls
-user: "My components directly fetch from APIs. Should I refactor?"
-assistant: "I'll use the dependency-injection-reviewer agent to identify where services and DI should be introduced."
-<commentary>
-Identifies opportunities to introduce service layers and DI pattern where missing.
-</commentary>
-</example>
-
-<example>
-Context: User has services but they're imported directly
-user: "My services work, but are they following best practices?"
-assistant: "I'll launch the dependency-injection-reviewer agent to audit your implementation and identify improvements."
-<commentary>
-Validates existing implementations against DI best practices.
-</commentary>
-</example>
-
+description: Use this agent when auditing any TypeScript project for service layer and dependency injection best practices. Reviews existing implementations for violations and identifies areas where the DI pattern should be introduced. Checks for proper service abstraction, Zod validation, context-based injection, and opportunities to replace direct imports with DI.
 model: inherit
 color: green
 tools: ["Read", "Glob", "Grep"]

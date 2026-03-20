@@ -7,7 +7,7 @@ import {
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { scanPlugins, extractSkills, discoverMcpServers, readInstalledPluginDirs } from "./artifact-discovery.ts";
+import { scanPlugins, extractSkills, discoverMcpServers, readInstalledPluginDirs, readPluginName } from "./artifact-discovery.ts";
 
 function setupPluginDir(
   baseDir: string,
@@ -286,6 +286,58 @@ describe("extractSkills", () => {
     );
     const skills = extractSkills(pluginDir);
     expect(skills).toHaveLength(0);
+  });
+});
+
+describe("readPluginName", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "plugin-name-test-"));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns name from valid plugin.json", () => {
+    const pluginDir = join(tempDir, "my-plugin");
+    mkdirSync(join(pluginDir, ".claude-plugin"), { recursive: true });
+    writeFileSync(
+      join(pluginDir, ".claude-plugin", "plugin.json"),
+      JSON.stringify({ name: "my-plugin", version: "1.0.0" }),
+    );
+
+    expect(readPluginName(pluginDir)).toBe("my-plugin");
+  });
+
+  test("returns undefined when .claude-plugin directory is missing", () => {
+    const pluginDir = join(tempDir, "no-plugin");
+    mkdirSync(pluginDir, { recursive: true });
+
+    expect(readPluginName(pluginDir)).toBeUndefined();
+  });
+
+  test("returns undefined when plugin.json has malformed JSON", () => {
+    const pluginDir = join(tempDir, "bad-json");
+    mkdirSync(join(pluginDir, ".claude-plugin"), { recursive: true });
+    writeFileSync(
+      join(pluginDir, ".claude-plugin", "plugin.json"),
+      "not valid json",
+    );
+
+    expect(readPluginName(pluginDir)).toBeUndefined();
+  });
+
+  test("returns undefined when plugin.json has no name field", () => {
+    const pluginDir = join(tempDir, "no-name");
+    mkdirSync(join(pluginDir, ".claude-plugin"), { recursive: true });
+    writeFileSync(
+      join(pluginDir, ".claude-plugin", "plugin.json"),
+      JSON.stringify({ version: "1.0.0" }),
+    );
+
+    expect(readPluginName(pluginDir)).toBeUndefined();
   });
 });
 

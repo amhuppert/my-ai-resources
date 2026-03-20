@@ -118,6 +118,20 @@ export function readInstalledPluginDirs(
   return results;
 }
 
+export function readPluginName(pluginDir: string): string | undefined {
+  const pluginJsonPath = join(pluginDir, ".claude-plugin", "plugin.json");
+  try {
+    const raw = readFileSync(pluginJsonPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null && typeof (parsed as Record<string, unknown>).name === "string") {
+      return (parsed as Record<string, unknown>).name as string;
+    }
+  } catch {
+    // Missing or malformed plugin.json
+  }
+  return undefined;
+}
+
 export function extractSkills(pluginDir: string): DiscoveredSkill[] {
   const skillsDir = join(pluginDir, "skills");
   if (!existsSync(skillsDir)) return [];

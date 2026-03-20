@@ -4,12 +4,13 @@ import type { SyncConfig } from "./types.ts";
 export const SyncConfigSchema = z
   .object({
     modelMapping: z.record(z.string()),
+    exclude: z.array(z.string()).optional(),
   })
   .passthrough();
 
 export const DEFAULT_SYNC_CONFIG: SyncConfig = {
   modelMapping: {
-    sonnet: "gpt-5.3-codex-spark",
+    sonnet: "gpt-5.4",
     opus: "gpt-5.4",
     haiku: "gpt-5.3-codex-spark",
   },

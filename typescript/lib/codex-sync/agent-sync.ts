@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { parseFrontmatter } from "./frontmatter.ts";
 import { AgentFrontmatterSchema } from "./schemas.ts";
+import { CODEX_MAX_DESCRIPTION_LENGTH, truncateDescription } from "./description-limits.ts";
 import type {
   DiscoveredAgent,
   SyncItemResult,
@@ -17,9 +18,17 @@ export function convertAgentToToml(
   const parsed = AgentFrontmatterSchema.parse(data);
 
   const warnings: string[] = [];
+  let description = parsed.description;
+  if (description.length > CODEX_MAX_DESCRIPTION_LENGTH) {
+    warnings.push(
+      `Description truncated from ${description.length} to ${CODEX_MAX_DESCRIPTION_LENGTH} characters`,
+    );
+    description = truncateDescription(description);
+  }
+
   const agent: CodexAgentToml = {
     name: parsed.name,
-    description: parsed.description,
+    description,
     developer_instructions: content.trim(),
   };
 

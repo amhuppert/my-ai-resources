@@ -136,6 +136,36 @@ describe("convertAgentToToml", () => {
 
     expect(() => convertAgentToToml(content, {})).toThrow();
   });
+
+  test("truncates description exceeding 1024 characters and warns", () => {
+    const longDesc = "A".repeat(1100);
+    const content = agentMd(
+      { name: "verbose-agent", description: longDesc },
+      "Agent body.",
+    );
+
+    const result = convertAgentToToml(content, {});
+
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toInclude("1100");
+    expect(result.warnings[0]).toInclude("1024");
+    const parsed = parseToml(result.toml);
+    expect((parsed.description as string).length).toBe(1024);
+  });
+
+  test("does not truncate description at exactly 1024 characters", () => {
+    const exactDesc = "B".repeat(1024);
+    const content = agentMd(
+      { name: "exact-agent", description: exactDesc },
+      "Agent body.",
+    );
+
+    const result = convertAgentToToml(content, {});
+
+    expect(result.warnings).toHaveLength(0);
+    const parsed = parseToml(result.toml);
+    expect((parsed.description as string).length).toBe(1024);
+  });
 });
 
 describe("syncAgents", () => {

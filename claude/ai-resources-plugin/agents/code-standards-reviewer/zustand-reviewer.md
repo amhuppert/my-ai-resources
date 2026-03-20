@@ -1,34 +1,6 @@
 ---
 name: zustand-reviewer
-description: Use this agent when auditing any TypeScript project for state management best practices. This agent is the prescriptive pattern reviewer for Zustand. It reviews existing Zustand implementations for violations AND identifies areas where Zustand should be introduced as the preferred state management pattern. Checks custom hooks, action naming, Immer middleware, selector stability, and opportunities to replace useState/Context with Zustand. Examples:
-
-<example>
-Context: User has a TypeScript React app with state management (any approach)
-user: "Review my codebase for code standards"
-assistant: "I'll launch the zustand-reviewer agent to check both existing Zustand implementations and identify where Zustand should be used."
-<commentary>
-Runs on all TypeScript projects to identify state management best practices, whether Zustand is currently used or not.
-</commentary>
-</example>
-
-<example>
-Context: User has useState scattered throughout components for shared state
-user: "My components use useState for shared state. Is there a better way?"
-assistant: "I'll use the zustand-reviewer agent to identify where Zustand would be the preferred pattern."
-<commentary>
-Identifies opportunities to replace useState/Context with preferred Zustand pattern.
-</commentary>
-</example>
-
-<example>
-Context: User has existing Zustand stores
-user: "Are my Zustand stores following best practices?"
-assistant: "I'll launch the zustand-reviewer agent to audit your implementations and identify any violations."
-<commentary>
-Also validates existing implementations against best practices.
-</commentary>
-</example>
-
+description: Use this agent when auditing any TypeScript project for state management best practices. Reviews existing Zustand implementations for violations and identifies areas where Zustand should be introduced. Checks custom hooks, action naming, Immer middleware, selector stability, and opportunities to replace useState/Context with Zustand.
 model: inherit
 color: cyan
 tools: ["Read", "Glob", "Grep"]

@@ -62,7 +62,7 @@ describe("discoverAgents", () => {
       ]),
     ];
 
-    const agents = discoverAgents(pluginDirs, join(tempDir, "standalone"));
+    const { agents } = discoverAgents(pluginDirs, join(tempDir, "standalone"));
     expect(agents).toHaveLength(2);
 
     const names = agents.map((a) => a.name);
@@ -78,7 +78,7 @@ describe("discoverAgents", () => {
       ]),
     ];
 
-    const agents = discoverAgents(pluginDirs, join(tempDir, "standalone"));
+    const { agents } = discoverAgents(pluginDirs, join(tempDir, "standalone"));
     expect(agents).toHaveLength(1);
     expect(agents[0]!.name).toBe("design-agent");
   });
@@ -96,7 +96,7 @@ describe("discoverAgents", () => {
       makeAgentMd("some-ref", "reference doc"),
     );
 
-    const agents = discoverAgents(pluginDirs, join(tempDir, "standalone"));
+    const { agents } = discoverAgents(pluginDirs, join(tempDir, "standalone"));
     expect(agents).toHaveLength(1);
     expect(agents[0]!.name).toBe("valid-agent");
   });
@@ -114,7 +114,7 @@ describe("discoverAgents", () => {
       makeAgentMd("asset", "asset file"),
     );
 
-    const agents = discoverAgents(pluginDirs, join(tempDir, "standalone"));
+    const { agents } = discoverAgents(pluginDirs, join(tempDir, "standalone"));
     expect(agents).toHaveLength(1);
   });
 
@@ -131,7 +131,7 @@ describe("discoverAgents", () => {
       makeAgentMd("helper", "script helper"),
     );
 
-    const agents = discoverAgents(pluginDirs, join(tempDir, "standalone"));
+    const { agents } = discoverAgents(pluginDirs, join(tempDir, "standalone"));
     expect(agents).toHaveLength(1);
   });
 
@@ -145,9 +145,12 @@ describe("discoverAgents", () => {
     writeFileSync(join(agentsDir, "no-frontmatter.md"), "# Just a heading\nNo frontmatter here.");
     writeFileSync(join(agentsDir, "missing-name.md"), "---\ndescription: has desc but no name\n---\nBody");
 
-    const agents = discoverAgents(pluginDirs, join(tempDir, "standalone"));
+    const { agents, skipped } = discoverAgents(pluginDirs, join(tempDir, "standalone"));
     expect(agents).toHaveLength(1);
     expect(agents[0]!.name).toBe("valid-agent");
+    // missing-name.md has frontmatter but fails schema — should be reported as skipped
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0]!.name).toBe("missing-name");
   });
 
   test("discovers standalone agents alongside plugin agents", () => {
@@ -163,7 +166,7 @@ describe("discoverAgents", () => {
       makeAgentMd("standalone-agent", "A standalone agent"),
     );
 
-    const agents = discoverAgents(pluginDirs, standaloneDir);
+    const { agents } = discoverAgents(pluginDirs, standaloneDir);
     expect(agents).toHaveLength(2);
 
     const pluginAgent = agents.find((a) => a.name === "plugin-agent");
@@ -179,7 +182,7 @@ describe("discoverAgents", () => {
       ]),
     ];
 
-    const agents = discoverAgents(pluginDirs, join(tempDir, "nonexistent"));
+    const { agents } = discoverAgents(pluginDirs, join(tempDir, "nonexistent"));
     expect(agents).toHaveLength(1);
   });
 
@@ -192,7 +195,7 @@ describe("discoverAgents", () => {
       JSON.stringify({ name: "test-plugin" }),
     );
 
-    const agents = discoverAgents([pluginDir], join(tempDir, "standalone"));
+    const { agents } = discoverAgents([pluginDir], join(tempDir, "standalone"));
     expect(agents).toHaveLength(0);
   });
 
@@ -205,9 +208,29 @@ describe("discoverAgents", () => {
       makeAgentMd("design-agent", "A design agent"),
     );
 
-    const agents = discoverAgents([], standaloneDir);
+    const { agents } = discoverAgents([], standaloneDir);
     expect(agents).toHaveLength(1);
     expect(agents[0]!.name).toBe("design-agent");
     expect(agents[0]!.source).toBe("standalone");
+  });
+
+  test("reports agents with frontmatter that fails schema validation as skipped", () => {
+    const pluginDirs = [
+      setupPluginWithAgents(tempDir, "my-plugin", [
+        { name: "valid-agent" },
+      ]),
+    ];
+    const agentsDir = join(pluginDirs[0]!, "agents");
+    writeFileSync(
+      join(agentsDir, "bad-desc.md"),
+      "---\nname: bad-desc\ndescription: some text\n  nested: value\n---\nBody",
+    );
+
+    const { agents, skipped } = discoverAgents(pluginDirs, join(tempDir, "standalone"));
+    expect(agents).toHaveLength(1);
+    expect(agents[0]!.name).toBe("valid-agent");
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0]!.name).toBe("bad-desc");
+    expect(skipped[0]!.reason).toBeDefined();
   });
 });

@@ -1,34 +1,6 @@
 ---
 name: testing-reviewer
-description: Use this agent when auditing test suites for testing quality, mocking strategy, and test value. Reviews test files for over-mocking, tests that exercise mocks instead of production code, low-value tests with high maintenance cost, and improper use of jest.mock on internal modules. Works in conjunction with the dependency injection reviewer to ensure testable architecture. Examples:
-
-<example>
-Context: User has a TypeScript project with test files
-user: "Review my codebase for code standards"
-assistant: "I'll launch the testing-reviewer agent to audit test quality, mocking practices, and test value across the test suite."
-<commentary>
-Runs on projects with test files to identify testing anti-patterns.
-</commentary>
-</example>
-
-<example>
-Context: User has tests with extensive mock setup
-user: "My tests have a lot of mocking. Is that a problem?"
-assistant: "I'll use the testing-reviewer agent to evaluate your mocking strategy and identify tests that may be testing mocks rather than production code."
-<commentary>
-Mocking concerns indicate this agent is appropriate.
-</commentary>
-</example>
-
-<example>
-Context: User wants to know if their tests are valuable
-user: "Are my tests actually catching real bugs or just creating maintenance burden?"
-assistant: "I'll launch the testing-reviewer agent to assess test value vs. maintenance cost across your test suite."
-<commentary>
-Test value assessment is a core responsibility of this agent.
-</commentary>
-</example>
-
+description: Use this agent when auditing test suites for testing quality, mocking strategy, and test value. Reviews test files for over-mocking, tests that exercise mocks instead of production code, low-value tests with high maintenance cost, and improper use of jest.mock on internal modules. Works in conjunction with the dependency injection reviewer to ensure testable architecture.
 model: inherit
 color: bright-cyan
 tools: ["Read", "Glob", "Grep"]

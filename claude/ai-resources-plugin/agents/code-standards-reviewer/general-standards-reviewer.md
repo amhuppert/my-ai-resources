@@ -1,25 +1,6 @@
 ---
 name: general-standards-reviewer
-description: Use this agent when reviewing code for general best practices like control flow, comments, error handling, and software design principles. This agent identifies over-commenting, missing business logic comments, improper error handling, premature abstractions, and YAGNI violations. Examples:
-
-<example>
-Context: User has a codebase with various code quality concerns
-user: "Review my code for general standards violations"
-assistant: "I'll use the general-standards-reviewer agent to check for control flow, commenting, error handling, and design issues."
-<commentary>
-General standards review is explicitly requested.
-</commentary>
-</example>
-
-<example>
-Context: User has code with comments documenting the obvious
-user: "My code has a lot of comments but I'm not sure if they're necessary"
-assistant: "I'll launch the general-standards-reviewer agent to evaluate your commenting practices."
-<commentary>
-Concerns about comment quality and necessity indicate this agent is appropriate.
-</commentary>
-</example>
-
+description: Use this agent when reviewing code for general best practices like control flow, comments, error handling, and software design principles. Identifies over-commenting, missing business logic comments, improper error handling, premature abstractions, and YAGNI violations.
 model: inherit
 color: magenta
 tools: ["Read", "Glob", "Grep"]

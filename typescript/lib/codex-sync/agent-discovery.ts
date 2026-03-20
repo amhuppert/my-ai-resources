@@ -7,30 +7,41 @@ import {
 import { join, basename } from "path";
 import { parseFrontmatter } from "./frontmatter.ts";
 import { AgentFrontmatterSchema } from "./schemas.ts";
-import type { DiscoveredAgent } from "./types.ts";
+import type { DiscoveredAgent, SkippedAgent } from "./types.ts";
 
 const EXCLUDED_SUBDIRS = new Set(["references", "assets", "scripts"]);
+
+export interface AgentDiscoveryResult {
+  agents: DiscoveredAgent[];
+  skipped: SkippedAgent[];
+}
+
+type CandidateResult =
+  | { valid: true }
+  | { valid: false; hasFrontmatter: boolean; reason?: string };
 
 export function discoverAgents(
   pluginDirs: string[],
   standaloneAgentsDir: string,
-): DiscoveredAgent[] {
+): AgentDiscoveryResult {
   const agents: DiscoveredAgent[] = [];
+  const skipped: SkippedAgent[] = [];
 
   for (const pluginDir of pluginDirs) {
     const agentsDir = join(pluginDir, "agents");
-    collectAgentsFromDir(agentsDir, "plugin", agents);
+    collectAgentsFromDir(agentsDir, "plugin", agents, skipped);
   }
 
-  collectAgentsFromDir(standaloneAgentsDir, "standalone", agents);
+  collectAgentsFromDir(standaloneAgentsDir, "standalone", agents, skipped);
 
-  return agents;
+  return { agents, skipped };
 }
 
 function collectAgentsFromDir(
   agentsDir: string,
   source: "plugin" | "standalone",
   results: DiscoveredAgent[],
+  skipped: SkippedAgent[],
 ): void {
   if (!existsSync(agentsDir)) return;
 
@@ -44,8 +55,13 @@ function collectAgentsFromDir(
   for (const entry of entries) {
     const fullPath = join(agentsDir, entry);
 
-    if (entry.endsWith(".md") && isAgentCandidate(fullPath)) {
-      results.push({ name: basename(entry, ".md"), sourcePath: fullPath, source });
+    if (entry.endsWith(".md")) {
+      const check = checkAgentCandidate(fullPath);
+      if (check.valid) {
+        results.push({ name: basename(entry, ".md"), sourcePath: fullPath, source });
+      } else if (check.hasFrontmatter && check.reason) {
+        skipped.push({ name: basename(entry, ".md"), sourcePath: fullPath, reason: check.reason });
+      }
       continue;
     }
 
@@ -67,36 +83,46 @@ function collectAgentsFromDir(
     for (const subEntry of subEntries) {
       if (!subEntry.endsWith(".md")) continue;
       const subPath = join(fullPath, subEntry);
-      if (isAgentCandidate(subPath)) {
+      const check = checkAgentCandidate(subPath);
+      if (check.valid) {
         results.push({ name: basename(subEntry, ".md"), sourcePath: subPath, source });
+      } else if (check.hasFrontmatter && check.reason) {
+        skipped.push({ name: basename(subEntry, ".md"), sourcePath: subPath, reason: check.reason });
       }
     }
   }
 }
 
-function isAgentCandidate(filePath: string): boolean {
+function checkAgentCandidate(filePath: string): CandidateResult {
   try {
-    if (!statSync(filePath).isFile()) return false;
+    if (!statSync(filePath).isFile()) return { valid: false, hasFrontmatter: false };
   } catch {
-    return false;
+    return { valid: false, hasFrontmatter: false };
   }
 
   let raw: string;
   try {
     raw = readFileSync(filePath, "utf-8");
   } catch {
-    return false;
+    return { valid: false, hasFrontmatter: false };
   }
 
   let parsed: ReturnType<typeof parseFrontmatter>;
   try {
     parsed = parseFrontmatter(raw);
   } catch {
-    return false;
+    return { valid: false, hasFrontmatter: false };
   }
 
-  if (!parsed.data || typeof parsed.data !== "object") return false;
+  if (!parsed.data || typeof parsed.data !== "object" || Object.keys(parsed.data).length === 0) {
+    return { valid: false, hasFrontmatter: false };
+  }
 
   const result = AgentFrontmatterSchema.safeParse(parsed.data);
-  return result.success;
+  if (result.success) {
+    return { valid: true };
+  }
+
+  const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+  return { valid: false, hasFrontmatter: true, reason: `Schema validation failed: ${issues}` };
 }

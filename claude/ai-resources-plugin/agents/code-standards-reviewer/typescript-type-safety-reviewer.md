@@ -1,25 +1,6 @@
 ---
 name: typescript-type-safety-reviewer
-description: Use this agent when auditing TypeScript code for type safety standards. This agent identifies unsafe patterns like `any` usage, missing type annotations, unhandled type assertions, improper `unknown` handling, and validation gaps. Examples:
-
-<example>
-Context: User has TypeScript code with various type issues
-user: "Check my TypeScript code for type safety violations"
-assistant: "I'll launch the typescript-type-safety-reviewer agent to audit your codebase for type issues."
-<commentary>
-Direct request for type safety review makes this agent appropriate.
-</commentary>
-</example>
-
-<example>
-Context: User notices type-checking is loose in their project
-user: "My TypeScript errors keep slipping through. What am I doing wrong?"
-assistant: "I'll use the typescript-type-safety-reviewer agent to identify type safety violations."
-<commentary>
-Type safety concerns indicate this reviewer is appropriate for analysis.
-</commentary>
-</example>
-
+description: Use this agent when auditing TypeScript code for type safety standards. Identifies unsafe patterns like any usage, missing type annotations, unhandled type assertions, improper unknown handling, and validation gaps.
 model: inherit
 color: yellow
 tools: ["Read", "Glob", "Grep"]

@@ -1,5 +1,6 @@
 export interface SyncConfig {
   modelMapping: Record<string, string>;
+  exclude?: string[];
 }
 
 export interface SyncPaths {
@@ -12,6 +13,8 @@ export interface SyncPaths {
   codexSkillsDir: string;
   codexAgentsDir: string;
   codexConfigDir: string;
+  /** Directory containing installed_plugins.json — used by project scope to exclude user-installed plugins */
+  installedPluginsDir?: string;
 }
 
 export interface DiscoveredSkill {
@@ -42,6 +45,12 @@ export interface HttpMcpServer {
 }
 
 export type DiscoveredMcpServer = StdioMcpServer | HttpMcpServer;
+
+export interface SkippedAgent {
+  name: string;
+  sourcePath: string;
+  reason: string;
+}
 
 export interface DiscoveredArtifacts {
   skills: DiscoveredSkill[];

@@ -1,34 +1,6 @@
 ---
 name: tanstack-query-reviewer
-description: Use this agent when auditing any React project for data fetching best practices. This agent is the prescriptive pattern reviewer for TanStack Query. It reviews existing implementations for violations AND identifies areas where TanStack Query should be introduced as the preferred approach for data fetching. Checks query key factories, hook structures, caching strategies, and opportunities to replace useState+fetch or other patterns with TanStack Query. Examples:
-
-<example>
-Context: User has a React project with data fetching (any approach)
-user: "Review my codebase for code standards"
-assistant: "I'll launch the tanstack-query-reviewer agent to check both existing implementations and identify where TanStack Query should be introduced."
-<commentary>
-Runs on all React projects to identify data fetching best practices, whether TanStack Query is used or not.
-</commentary>
-</example>
-
-<example>
-Context: User has useState+useEffect for data fetching
-user: "I fetch data with useState and useEffect. Should I use something else?"
-assistant: "I'll use the tanstack-query-reviewer agent to identify where TanStack Query should be introduced."
-<commentary>
-Identifies opportunities to replace useState+fetch with TanStack Query pattern.
-</commentary>
-</example>
-
-<example>
-Context: User has existing TanStack Query implementation
-user: "Are my TanStack Query queries following best practices?"
-assistant: "I'll launch the tanstack-query-reviewer agent to audit your implementation and identify improvements."
-<commentary>
-Validates existing implementations for key factories, cache invalidation, and other patterns.
-</commentary>
-</example>
-
+description: Use this agent when auditing any React project for data fetching best practices. Reviews existing TanStack Query implementations for violations and identifies areas where TanStack Query should be introduced. Checks query key factories, hook structures, caching strategies, and opportunities to replace useState+fetch with TanStack Query.
 model: inherit
 color: red
 tools: ["Read", "Glob", "Grep"]

@@ -1,34 +1,6 @@
 ---
 name: colocation-reviewer
-description: Use this agent when reviewing any codebase (frontend, backend, full-stack) for colocation principle adherence. This agent detects organizational anti-patterns like mirrored test directories, central utility dumps, separated configuration files, and code organized far from usage. Applies to React, Vue, Node.js/Express, Next.js, and other architectures. Examples:
-
-<example>
-Context: User is auditing any type of codebase for code standards
-user: "Review my codebase for colocation violations"
-assistant: "I'll launch the colocation-reviewer agent to analyze your directory structure and identify any violations of the colocation principle."
-<commentary>
-Direct request for colocation review applies regardless of tech stack.
-</commentary>
-</example>
-
-<example>
-Context: User notices tests are separated from source code
-user: "I have tests in a /tests directory mirrored from /src. Is that a problem?"
-assistant: "I'll use the colocation-reviewer agent to evaluate your test organization against colocation standards."
-<commentary>
-Test organization patterns are universal - applies to any project type.
-</commentary>
-</example>
-
-<example>
-Context: User has a Node.js backend with centralized utilities
-user: "My Express app has a /utils directory with 50 functions scattered throughout the app. Should they be organized differently?"
-assistant: "I'll launch the colocation-reviewer agent to check if your utilities are properly collocated with their usage."
-<commentary>
-Utility organization is a colocation principle concern across all project types.
-</commentary>
-</example>
-
+description: Use this agent when reviewing any codebase (frontend, backend, full-stack) for colocation principle adherence. Detects organizational anti-patterns like mirrored test directories, central utility dumps, separated configuration files, and code organized far from usage. Applies to React, Vue, Node.js/Express, Next.js, and other architectures.
 model: inherit
 color: blue
 tools: ["Read", "Glob", "Grep"]

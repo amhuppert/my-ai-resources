@@ -293,6 +293,151 @@ describe("runSync", () => {
     expect(result.items.some((i) => i.artifact === "mcp" && i.status === "failed")).toBe(true);
   });
 
+  test("project scope excludes plugins already installed at user scope", () => {
+    const paths = setupTestPaths(tempDir);
+    writeFileSync(paths.claudeMdSource, "# Instructions");
+
+    // Plugin in the project tree (would be found by scanPlugins)
+    const pluginDir = join(paths.pluginScanRoot, "shared-plugin");
+    mkdirSync(join(pluginDir, ".claude-plugin"), { recursive: true });
+    writeFileSync(
+      join(pluginDir, ".claude-plugin", "plugin.json"),
+      JSON.stringify({ name: "shared-plugin" }),
+    );
+    const skillDir = join(pluginDir, "skills", "shared-skill");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      matter.stringify("Shared body", { name: "shared-skill", description: "Shared skill" }),
+    );
+    const agentsDir = join(pluginDir, "agents");
+    mkdirSync(agentsDir, { recursive: true });
+    writeFileSync(
+      join(agentsDir, "shared-agent.md"),
+      matter.stringify("Shared agent body", {
+        name: "shared-agent",
+        description: "Shared agent",
+      }),
+    );
+
+    // Simulate user-installed plugins manifest at a separate location
+    // with the same plugin name installed at user scope
+    const userPluginsDir = join(tempDir, "user-plugins");
+    mkdirSync(userPluginsDir, { recursive: true });
+    const userPluginCacheDir = join(tempDir, "cache", "shared-plugin", "1.0.0");
+    mkdirSync(join(userPluginCacheDir, ".claude-plugin"), { recursive: true });
+    writeFileSync(
+      join(userPluginCacheDir, ".claude-plugin", "plugin.json"),
+      JSON.stringify({ name: "shared-plugin" }),
+    );
+    writeFileSync(
+      join(userPluginsDir, "installed_plugins.json"),
+      JSON.stringify({
+        version: 2,
+        plugins: {
+          "shared-plugin@registry": [
+            { scope: "user", installPath: userPluginCacheDir },
+          ],
+        },
+      }),
+    );
+
+    paths.installedPluginsDir = userPluginsDir;
+
+    const result = runSync(paths, defaultConfig);
+
+    // The shared plugin's skill and agent should be excluded
+    const skillResults = result.items.filter((i) => i.artifact.startsWith("skill:"));
+    const agentResults = result.items.filter((i) => i.artifact.startsWith("agent:"));
+    expect(skillResults).toHaveLength(0);
+    expect(agentResults).toHaveLength(0);
+
+    // Instructions should still sync
+    expect(result.items.some((i) => i.artifact === "instructions" && i.status === "synced")).toBe(true);
+  });
+
+  test("project scope keeps plugins NOT installed at user scope", () => {
+    const paths = setupTestPaths(tempDir);
+    writeFileSync(paths.claudeMdSource, "# Instructions");
+
+    // Plugin unique to this project
+    const pluginDir = join(paths.pluginScanRoot, "project-only-plugin");
+    mkdirSync(join(pluginDir, ".claude-plugin"), { recursive: true });
+    writeFileSync(
+      join(pluginDir, ".claude-plugin", "plugin.json"),
+      JSON.stringify({ name: "project-only" }),
+    );
+    const skillDir = join(pluginDir, "skills", "project-skill");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      matter.stringify("Body", { name: "project-skill", description: "Project skill" }),
+    );
+
+    // User plugins manifest with a DIFFERENT plugin installed
+    const userPluginsDir = join(tempDir, "user-plugins");
+    mkdirSync(userPluginsDir, { recursive: true });
+    const userPluginCacheDir = join(tempDir, "cache", "other-plugin", "1.0.0");
+    mkdirSync(join(userPluginCacheDir, ".claude-plugin"), { recursive: true });
+    writeFileSync(
+      join(userPluginCacheDir, ".claude-plugin", "plugin.json"),
+      JSON.stringify({ name: "other-plugin" }),
+    );
+    writeFileSync(
+      join(userPluginsDir, "installed_plugins.json"),
+      JSON.stringify({
+        version: 2,
+        plugins: {
+          "other-plugin@registry": [
+            { scope: "user", installPath: userPluginCacheDir },
+          ],
+        },
+      }),
+    );
+
+    paths.installedPluginsDir = userPluginsDir;
+
+    const result = runSync(paths, defaultConfig);
+
+    // Project-only plugin's skill should still be synced
+    const skillResults = result.items.filter((i) => i.artifact.startsWith("skill:"));
+    expect(skillResults).toHaveLength(1);
+    expect(skillResults[0].artifact).toBe("skill:project-skill");
+    expect(skillResults[0].status).toBe("synced");
+  });
+
+  test("excludes plugins listed in config.exclude by name", () => {
+    const paths = setupTestPaths(tempDir);
+    writeFileSync(paths.claudeMdSource, "# Instructions");
+
+    // Two plugins in the project tree
+    for (const pluginName of ["keep-plugin", "skip-plugin"]) {
+      const pluginDir = join(paths.pluginScanRoot, pluginName);
+      mkdirSync(join(pluginDir, ".claude-plugin"), { recursive: true });
+      writeFileSync(
+        join(pluginDir, ".claude-plugin", "plugin.json"),
+        JSON.stringify({ name: pluginName }),
+      );
+      const skillDir = join(pluginDir, "skills", `${pluginName}-skill`);
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(
+        join(skillDir, "SKILL.md"),
+        matter.stringify("Body", { name: `${pluginName}-skill`, description: `${pluginName} skill` }),
+      );
+    }
+
+    const config: SyncConfig = {
+      modelMapping: defaultConfig.modelMapping,
+      exclude: ["skip-plugin"],
+    };
+
+    const result = runSync(paths, config);
+
+    const skillResults = result.items.filter((i) => i.artifact.startsWith("skill:"));
+    expect(skillResults).toHaveLength(1);
+    expect(skillResults[0].artifact).toBe("skill:keep-plugin-skill");
+  });
+
   test("pipeline executes stages in order: instructions, skills, agents, MCP", () => {
     const paths = setupTestPaths(tempDir);
     writeFileSync(paths.claudeMdSource, "# Instructions");

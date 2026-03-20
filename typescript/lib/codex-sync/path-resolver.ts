@@ -43,6 +43,7 @@ function resolveProjectPaths(cwd: string): SyncPaths {
     codexSkillsDir: join(cwd, ".agents", "skills"),
     codexAgentsDir: join(cwd, ".codex", "agents"),
     codexConfigDir: join(cwd, ".codex"),
+    installedPluginsDir: join(homedir(), ".claude", "plugins"),
   };
 }
 
