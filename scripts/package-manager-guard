@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+show_help() {
+    cat << 'EOF'
+Usage: package-manager-guard <npm|bun> [args...]
+
+Prevents accidentally using the wrong package manager by checking for lock files.
+Intended to be called via shell aliases:
+  alias npm='package-manager-guard npm'
+  alias bun='package-manager-guard bun'
+
+Lock file detection walks up the directory tree from CWD.
+
+Decision matrix:
+  No lock file found        → pass through (new project)
+  bun.lock + calling bun    → pass through
+  package-lock.json + npm   → pass through
+  bun.lock + calling npm    → block, suggest bun
+  package-lock.json + bun   → block, suggest npm
+  Both lock files exist     → block, warn about conflict
+
+Environment variables:
+  PKG_GUARD_SKIP=1    Skip all checks and pass through directly
+
+EOF
+}
+
+if [[ $# -eq 0 ]]; then
+    echo "Error: expected 'npm' or 'bun' as first argument" >&2
+    echo "Use --help for usage information" >&2
+    exit 1
+fi
+
+if [[ "$1" == "--help" ]]; then
+    show_help
+    exit 0
+fi
+
+MANAGER="$1"
+shift
+
+if [[ "$MANAGER" != "npm" && "$MANAGER" != "bun" ]]; then
+    echo "Error: expected 'npm' or 'bun', got '$MANAGER'" >&2
+    exit 1
+fi
+
+if [[ "${PKG_GUARD_SKIP:-}" == "1" ]]; then
+    exec "$(command -v "$MANAGER")" "$@"
+fi
+
+find_lock_files() {
+    local dir="$1"
+    HAS_BUN_LOCK=false
+    HAS_NPM_LOCK=false
+
+    while true; do
+        [[ -f "$dir/bun.lock" ]] && HAS_BUN_LOCK=true
+        [[ -f "$dir/package-lock.json" ]] && HAS_NPM_LOCK=true
+
+        if $HAS_BUN_LOCK || $HAS_NPM_LOCK; then
+            return
+        fi
+
+        if [[ "$dir" == "/" ]]; then
+            return
+        fi
+
+        dir="$(cd "$dir/.." && pwd)"
+    done
+}
+
+find_lock_files "$(pwd)"
+
+if $HAS_BUN_LOCK && $HAS_NPM_LOCK; then
+    echo "Error: found both bun.lock and package-lock.json — conflicting lock files." >&2
+    echo "Remove one lock file before proceeding." >&2
+    exit 1
+fi
+
+if $HAS_BUN_LOCK && [[ "$MANAGER" == "npm" ]]; then
+    echo "Error: this is a Bun project (found bun.lock). Use 'bun' instead of 'npm'." >&2
+    echo "To bypass: PKG_GUARD_SKIP=1 npm $*" >&2
+    exit 1
+fi
+
+if $HAS_NPM_LOCK && [[ "$MANAGER" == "bun" ]]; then
+    echo "Error: this is an npm project (found package-lock.json). Use 'npm' instead of 'bun'." >&2
+    echo "To bypass: PKG_GUARD_SKIP=1 bun $*" >&2
+    exit 1
+fi
+
+exec "$(command -v "$MANAGER")" "$@"
