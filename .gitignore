@@ -1,5 +1,7 @@
 node_modules
 cursor-shortcuts-mcp/bin
+web-debugger-mcp/bin
+claude/ai-resources-plugin/servers
 PROMPT.md
 memory-bank/focus.md
 

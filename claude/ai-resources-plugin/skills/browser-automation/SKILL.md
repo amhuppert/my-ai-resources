@@ -164,6 +164,17 @@ During browser automation, watch for signs of inefficiency or struggle:
 
 When any of these occur, after completing the immediate task, proactively suggest concrete improvements to this skill. Frame suggestions as specific edits — new patterns to add, existing guidance to revise, or missing reference material to create. Direct suggestions to Alex, who maintains this skill.
 
+## Runtime Debugging
+
+When browser automation reveals unexpected behavior — errors in the console, wrong UI state, or failed interactions — combine Playwright with the **web-debugger** for runtime inspection:
+
+1. Reproduce the issue with Playwright
+2. Use `get_logs` to check structured application logs (both browser and server)
+3. Use `get_snapshot` to inspect application state at the point of failure
+4. Fix the issue and verify with Playwright
+
+See `/web-debugger` for full tool reference, log format, and snapshot serialization details.
+
 ## Additional Resources
 
 ### Reference Files

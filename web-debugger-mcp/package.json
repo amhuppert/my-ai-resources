@@ -1,0 +1,26 @@
+{
+  "name": "web-debugger-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "bin": {
+    "web-debugger-mcp": "./bin/web-debugger-mcp"
+  },
+  "exports": {
+    "./client": "./client/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bun build src/index.ts --compile --outfile=bin/web-debugger-mcp && mkdir -p ../claude/ai-resources-plugin/servers && cp bin/web-debugger-mcp ../claude/ai-resources-plugin/servers/",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.5",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "typescript": "^5.0.0"
+  }
+}
