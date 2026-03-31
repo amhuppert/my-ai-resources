@@ -52,7 +52,7 @@ Every flag has a corresponding env var prefixed with `PLAYWRIGHT_MCP_`.
 |------|-------------|-----------|
 | `browser_navigate` | Navigate to a URL | No |
 | `browser_navigate_back` | Go back in history | No |
-| `browser_snapshot` | Capture accessibility tree snapshot (preferred over screenshot) | Yes |
+| `browser_snapshot` | Capture accessibility tree snapshot (preferred over screenshot). Accepts `selector` (scope to subtree), `depth` (limit tree depth), `filename` (save to disk) | Yes |
 | `browser_take_screenshot` | Take screenshot (use snapshot for actions, screenshot for visual verification) | Yes |
 | `browser_click` | Click element (single/double, with modifiers) | No |
 | `browser_hover` | Hover over element | No |
@@ -63,12 +63,12 @@ Every flag has a corresponding env var prefixed with `PLAYWRIGHT_MCP_`.
 | `browser_drag` | Drag and drop between two elements | No |
 | `browser_file_upload` | Upload files | No |
 | `browser_handle_dialog` | Accept/dismiss browser dialogs | No |
-| `browser_evaluate` | Evaluate JavaScript on page or element | No |
+| `browser_evaluate` | Evaluate JavaScript on page or element. Accepts `filename` (save results to disk) | No |
 | `browser_run_code` | Run arbitrary Playwright code snippet | No |
 | `browser_wait_for` | Wait for text appear/disappear or time | No |
 | `browser_resize` | Resize browser window | No |
-| `browser_console_messages` | Return console messages (filterable by level) | Yes |
-| `browser_network_requests` | List network requests since page load | Yes |
+| `browser_console_messages` | Return console messages (filterable by level). Accepts `filename` (save to disk) | Yes |
+| `browser_network_requests` | List network requests since page load. Accepts `filename` (save to disk), `filter` (regex) | Yes |
 | `browser_close` | Close the page | No |
 
 ### Tab Management (always enabled)
@@ -165,6 +165,33 @@ Sends the complete accessibility tree every time. Use when incremental diffs are
 ### `none`
 
 Disables automatic snapshots. Manually call `browser_snapshot` when needed. Useful when combining with vision mode.
+
+## Scoping Snapshots to Reduce Token Usage
+
+On complex pages, `browser_snapshot` can return 50K-540K tokens. Use these parameters to scope it down:
+
+```
+# Snapshot only a specific section (e.g., a modal dialog)
+browser_snapshot → selector: "[role=dialog]"
+browser_snapshot → selector: "#main-content"
+
+# Limit tree depth (useful for deeply nested UIs)
+browser_snapshot → depth: 3
+
+# Save to disk instead of returning inline (keeps data out of context)
+browser_snapshot → filename: "page-state.yml"
+
+# Combine: scope + depth
+browser_snapshot → selector: "[role=dialog]", depth: 4
+```
+
+Similarly, save large outputs from other tools to disk:
+
+```
+browser_evaluate → expression: "...", filename: "eval-result.json"
+browser_console_messages → filename: "console.log"
+browser_network_requests → filename: "network.log", filter: "api/"
+```
 
 ## Snapshot vs Vision Mode
 

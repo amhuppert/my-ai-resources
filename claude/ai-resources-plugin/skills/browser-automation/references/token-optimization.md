@@ -6,37 +6,53 @@
 |--------|-----------------|
 | MCP tool definitions (core 22 tools) | ~3,400 tokens per message |
 | Accessibility snapshot (typical page) | ~3,800 tokens |
+| Accessibility snapshot (complex enterprise app) | 50,000-540,000 tokens |
 | Screenshot (typical page) | ~10,000+ tokens |
 | Full MCP automation session | ~114,000 tokens |
 | Equivalent CLI session | ~27,000 tokens |
 
-The primary cost driver is **context accumulation**: MCP streams snapshots inline after every action, and all previous snapshots remain in the conversation history.
+The primary cost driver is **context accumulation**: MCP streams snapshots inline after every action, and all previous snapshots remain in the conversation history. CLI avoids this by saving snapshots to disk.
 
-## Configuration-Level Optimizations
+## Tool Choice: CLI vs MCP
 
-### 1. Snapshot Mode: Incremental (Default)
+**Default to Playwright CLI.** Microsoft benchmarked a 4x token reduction (114K → 27K) for equivalent tasks.
 
-`--snapshot-mode incremental` sends only diffs after the first snapshot. This is the default and should not be changed unless debugging snapshot issues.
+| Factor | CLI | MCP |
+|--------|-----|-----|
+| Snapshot delivery | Saved to disk as YAML | Streamed inline into context |
+| Token accumulation at 20 steps | ~0 stale tokens (snapshots on disk) | ~60,000-80,000 stale tokens in context |
+| Tool definition overhead | None | ~3,400 tokens per message (even when unused) |
+| Parallel sessions | Named sessions (`-s=name`) | Not supported |
 
-### 2. Omit Image Responses
+Use MCP only when CLI is unavailable or for quick 1-3 step interactions.
+
+## Configuration-Level Optimizations (MCP)
+
+The user-level MCP config already includes these flags. If reconfiguring:
+
+### 1. Disable Codegen
+
+`--codegen none` prevents Playwright from generating test code alongside actions. Every action response otherwise includes generated TypeScript code that is rarely needed during interactive automation.
+
+### 2. Restrict Console Level
+
+`--console-level error` eliminates console message noise. Users reported a **6x token increase** between MCP versions due to console message inclusion at the default `info` level. Error-heavy SPAs can produce enormous console output.
+
+### 3. Omit Image Responses
 
 `--image-responses omit` prevents screenshots from being included in responses. Use when snapshots (accessibility tree) are sufficient and visual verification is not needed.
 
-### 3. Disable Codegen
+### 4. Incremental Snapshots
 
-`--codegen none` prevents Playwright from generating test code alongside actions. Use when test code generation is not needed.
+`--snapshot-mode incremental` (default) sends only diffs after the first snapshot. Do not change unless debugging snapshot issues.
 
-### 4. Headless Mode
+### 5. Headless Mode
 
 `--headless` reduces resource consumption on Linux/CI. No direct token savings but improves performance.
 
-### 5. Disconnect When Idle
-
-MCP tool definitions load on every message (~3,400 tokens) whether tools are used or not. Toggle the Playwright MCP off with `/mcp` in Claude Code when browser automation is not actively needed.
-
 ### 6. Limit Capability Groups
 
-Only enable `--caps` flags needed for the task:
+Only enable `--caps` flags needed for the task. Each capability group adds tool definitions that consume tokens on every message:
 
 ```bash
 # Minimal: core tools only (default)
@@ -49,7 +65,79 @@ npx @playwright/mcp@latest --headless --caps=testing
 # BAD: --caps=vision,pdf,devtools,testing,network,storage,config
 ```
 
-Each capability group adds tool definitions that consume tokens on every message.
+### 7. Disconnect When Idle
+
+MCP tool definitions load on every message (~3,400 tokens) whether tools are used or not. Toggle the Playwright MCP off with `/mcp` in Claude Code when browser automation is not actively needed.
+
+### Recommended MCP Config
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "bunx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless",
+        "--snapshot-mode", "incremental",
+        "--codegen", "none",
+        "--console-level", "error",
+        "--image-responses", "omit"
+      ]
+    }
+  }
+}
+```
+
+## Tool-Call-Level Optimizations (MCP)
+
+### Scope Down Large Snapshots
+
+On complex pages, a single `browser_snapshot` can return 50K-540K tokens. Use parameters to scope it down:
+
+```
+# Snapshot only a dialog or section
+browser_snapshot → selector: "[role=dialog]"
+
+# Limit tree depth
+browser_snapshot → depth: 3
+
+# Save to disk instead of returning inline
+browser_snapshot → filename: "page-state.yml"
+```
+
+### Batch Form Fills
+
+Use `browser_fill_form` for multiple fields in one call. Each separate `browser_type` call triggers a snapshot response:
+
+```
+# Bad: 3 tool calls, 3 snapshots returned
+browser_type → ref: "e8", text: "user@example.com"
+browser_type → ref: "e12", text: "password123"
+browser_type → ref: "e15", text: "John"
+
+# Good: 1 tool call, 1 snapshot returned
+browser_fill_form → fields: [
+  { ref: "e8", value: "user@example.com" },
+  { ref: "e12", value: "password123" },
+  { ref: "e15", value: "John" }
+]
+```
+
+### Save Large Outputs to Disk
+
+Several MCP tools accept a `filename` parameter to redirect output to disk instead of returning inline:
+
+- `browser_snapshot` → `filename`
+- `browser_evaluate` → `filename`
+- `browser_console_messages` → `filename`
+- `browser_network_requests` → `filename` (also accepts `filter` regex)
+
+Use `filename` whenever the output might be large or when you don't need the data immediately in context.
+
+### Avoid Redundant Screenshots
+
+Snapshots are returned automatically after every action. Only call `browser_take_screenshot` for visual verification (CSS, layout, canvas/WebGL content). Never take screenshots "just to see what happened" — the snapshot already tells you.
 
 ## Prompt-Level Optimizations
 
@@ -87,30 +175,37 @@ Navigate to /users → snapshot → navigate to /users/1 → snapshot → naviga
 Navigate to /users/1/edit → snapshot → interact
 ```
 
-### Batch Form Interactions
+## Architecture-Level Optimizations
 
-Use `browser_fill_form` (MCP) to fill multiple fields in one call instead of separate `browser_type` calls. Each tool call incurs snapshot overhead.
+### Use Subagents for Browser Work
 
-## Workflow-Level Optimizations
+The Playwright maintainer explicitly recommends using subagents. Each subagent gets its own context loop — browser snapshots accumulate there instead of in the main conversation:
+
+```
+# Delegate browser work to a subagent
+"Navigate to /dashboard, verify all 5 widget cards are visible,
+ click the Settings gear icon, toggle dark mode, verify the
+ page background changes. Report pass/fail with any issues."
+```
 
 ### Manual Auth + Automation
 
-For headed browsers, authenticate manually before starting automation. Auth flows consume 5-10 tool calls (navigate to login, fill email, fill password, click submit, wait for redirect) that are pure overhead.
+For headed browsers, authenticate manually before starting automation. Auth flows consume 5-10 tool calls that are pure overhead.
 
 ### Save and Restore Auth State
 
 After authenticating once, save the state:
 
-**MCP:**
-```
-browser_storage_state → path: "auth.json"    # save
-browser_set_storage_state → path: "auth.json" # restore in future session
-```
-
 **CLI:**
 ```bash
 playwright-cli state-save auth.json           # save
 playwright-cli state-load auth.json           # restore
+```
+
+**MCP:**
+```
+browser_storage_state → path: "auth.json"     # save
+browser_set_storage_state → path: "auth.json" # restore
 ```
 
 **MCP config flag:**
@@ -120,44 +215,15 @@ npx @playwright/mcp@latest --storage-state auth.json   # auto-restore on startup
 
 ### Use JavaScript Evaluation for Data Extraction
 
-Instead of navigating and snapshotting multiple pages to gather data, use `browser_evaluate` (MCP) or `eval` (CLI) to extract data directly:
+Instead of navigating and snapshotting multiple pages to gather data, use `eval` (CLI) or `browser_evaluate` (MCP):
 
-```
-# Instead of navigating to 5 pages to count items:
+```bash
+# CLI
+playwright-cli eval "document.querySelectorAll('.item').length"
+
+# MCP
 browser_evaluate → expression: "document.querySelectorAll('.item').length"
 ```
-
-### Use CLI for Long Sessions
-
-For sessions exceeding ~20 interactions, switch to `playwright-cli`. Snapshots save to disk as YAML files instead of accumulating in the conversation window.
-
-Token accumulation comparison at 20 steps:
-- **MCP**: ~60,000-80,000 tokens of stale snapshot data in context
-- **CLI**: ~0 tokens of stale data (snapshots on disk, read only when needed)
-
-## Architecture-Level Decision: MCP vs CLI
-
-### When MCP is Cost-Effective
-
-- Short sessions (<20 steps)
-- Exploratory work where inspecting page state inline is valuable
-- When the user needs to see snapshots in the conversation
-- Quick visual verification (navigate + screenshot)
-
-### When CLI is Cost-Effective
-
-- Long automation sessions (20+ steps)
-- Token budget is constrained
-- Parallel browser sessions needed
-- Combining browser automation with large codebase context
-
-### Hybrid Approach
-
-Start with MCP for exploration and understanding, switch to CLI for repetitive execution:
-
-1. Use MCP to explore the app and understand page structures
-2. Use CLI for the actual multi-step automation workflow
-3. Use MCP for final verification screenshots
 
 ## Secrets Management
 
@@ -171,4 +237,16 @@ LOGIN_PASSWORD=secret123
 npx @playwright/mcp@latest --secrets .env.playwright
 ```
 
-The MCP server masks secret values in snapshots and responses, reducing the risk of credentials appearing in conversation history.
+The MCP server masks secret values in snapshots and responses.
+
+## Common Mistakes That Waste Tokens
+
+1. **Using MCP when CLI is available** — 4x more expensive for equivalent work
+2. **Taking screenshots after every action** — snapshots are returned automatically; screenshots are only for visual verification
+3. **Leaving `--console-level` at default `info`** — can cause 6x token increase on error-heavy SPAs
+4. **Leaving `--codegen` at default `typescript`** — every response includes generated test code you don't need
+5. **Full-page snapshots on complex apps** — a single snapshot can be 50K-540K tokens; use `selector` and `depth`
+6. **Not using `filename` for large outputs** — `browser_evaluate` results plus page state returned inline can be massive
+7. **Separate `browser_type` calls for each form field** — use `browser_fill_form` to batch them
+8. **Not disconnecting MCP when idle** — ~3,400 tokens of tool definitions on every message
+9. **Enabling all `--caps` flags** — each adds tool definitions that cost tokens on every message
