@@ -1,0 +1,17 @@
+{
+  "description": "Hooks for the ai-resources plugin",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/remind-write-tests.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
