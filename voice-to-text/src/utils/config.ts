@@ -117,6 +117,9 @@ export function resolveConfig(options: {
     "vocabularyFile",
     "instructionsFile",
     "outputFile",
+    "shellContextFile",
+    "shellVocabularyFile",
+    "shellInstructionsFile",
   ] as const;
 
   const specifiedConfigDir = options.configPath
@@ -124,7 +127,13 @@ export function resolveConfig(options: {
     : process.cwd();
 
   function collectFiles(
-    field: "contextFile" | "vocabularyFile" | "instructionsFile",
+    field:
+      | "contextFile"
+      | "vocabularyFile"
+      | "instructionsFile"
+      | "shellContextFile"
+      | "shellVocabularyFile"
+      | "shellInstructionsFile",
   ): ResolvedFileRef[] {
     // CLI overrides all layers
     if (options.cliOpts[field] !== undefined) {
@@ -169,6 +178,9 @@ export function resolveConfig(options: {
   const contextFiles = collectFiles("contextFile");
   const vocabularyFiles = collectFiles("vocabularyFile");
   const instructionsFiles = collectFiles("instructionsFile");
+  const shellContextFiles = collectFiles("shellContextFile");
+  const shellVocabularyFiles = collectFiles("shellVocabularyFile");
+  const shellInstructionsFiles = collectFiles("shellInstructionsFile");
 
   // --- Resolve outputFile path (last-defined wins, with per-layer path resolution) ---
 
@@ -224,6 +236,9 @@ export function resolveConfig(options: {
       contextFiles,
       vocabularyFiles,
       instructionsFiles,
+      shellContextFiles,
+      shellVocabularyFiles,
+      shellInstructionsFiles,
       resolvedOutputFile,
     },
     loadedFrom,

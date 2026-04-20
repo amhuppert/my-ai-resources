@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { join } from "node:path";
+import { platform } from "node:os";
 import { resolveConfig } from "./utils/config.js";
 import { buildTranscriptionPrompt } from "./utils/context.js";
 import { createHotkeyListener } from "./utils/hotkey.js";
@@ -10,12 +11,26 @@ import {
 } from "./services/audio-recorder.js";
 import { createTranscriber } from "./services/transcriber.js";
 import { createCleanupService } from "./services/cleanup.js";
+import {
+  createShellCommandService,
+  type ShellOS,
+} from "./services/shell-command.js";
 import { copyToClipboard } from "./services/clipboard.js";
 import { createCursorInsertService } from "./services/cursor-insert.js";
 import { createFileOutputService } from "./services/file-output.js";
 import { createLastTranscriptionService } from "./services/last-transcription.js";
 import { startServer } from "./server.js";
 import type { AppState, Config, OutputMode } from "./types.js";
+
+function detectShellOS(): ShellOS {
+  const p = platform();
+  if (p === "linux") return "linux";
+  if (p === "darwin") return "macos";
+  console.error(
+    `Error: shell-command mode only supports Linux and macOS (detected: "${p}")`,
+  );
+  process.exit(1);
+}
 
 const program = new Command();
 
@@ -42,6 +57,23 @@ program
   .option("--claude-model <model>", "Claude model for cleanup step")
   .option("--file-hotkey <key>", "Hotkey to start file-mode recording")
   .option("--output-file <path>", "Path to file for file-mode output")
+  .option("--shell-hotkey <key>", "Hotkey to trigger shell-command mode")
+  .option(
+    "--shell-context-file <path>",
+    "Path to context file for shell-command generation",
+  )
+  .option(
+    "--shell-vocabulary-file <path>",
+    "Path to vocabulary file for shell-mode transcription hints",
+  )
+  .option(
+    "--shell-instructions-file <path>",
+    "Path to instructions file for shell-command generation",
+  )
+  .option(
+    "--shell-claude-model <model>",
+    "Claude model for shell-command generation",
+  )
   .option("--clear-output", "Clear the output file on startup")
   .option("--no-auto-insert", "Disable auto-insert at cursor")
   .option("--no-beep", "Disable audio feedback")
@@ -99,6 +131,16 @@ async function listenAction(opts: Record<string, unknown>) {
     cliOpts.terminalOutputEnabled = opts.terminalOutput as boolean;
   if (opts.maxDuration !== undefined)
     cliOpts.maxRecordingDuration = opts.maxDuration as number;
+  if (opts.shellHotkey !== undefined)
+    cliOpts.shellHotkey = opts.shellHotkey as string;
+  if (opts.shellContextFile !== undefined)
+    cliOpts.shellContextFile = opts.shellContextFile as string;
+  if (opts.shellVocabularyFile !== undefined)
+    cliOpts.shellVocabularyFile = opts.shellVocabularyFile as string;
+  if (opts.shellInstructionsFile !== undefined)
+    cliOpts.shellInstructionsFile = opts.shellInstructionsFile as string;
+  if (opts.shellClaudeModel !== undefined)
+    cliOpts.shellClaudeModel = opts.shellClaudeModel as string;
 
   const { config, loadedFrom } = resolveConfig({
     configPath: opts.config as string | undefined,
@@ -109,10 +151,25 @@ async function listenAction(opts: Record<string, unknown>) {
     config.terminalOutputEnabled = true;
   }
 
-  // Validate hotkeys are different
-  if (config.hotkey.toLowerCase() === config.fileHotkey.toLowerCase()) {
-    console.error("Error: hotkey and fileHotkey must be different");
-    process.exit(1);
+  // Validate hotkeys are distinct
+  {
+    const keys = [
+      { label: "hotkey", value: config.hotkey },
+      { label: "fileHotkey", value: config.fileHotkey },
+      { label: "shellHotkey", value: config.shellHotkey },
+    ];
+    const seen = new Map<string, { label: string; value: string }>();
+    for (const entry of keys) {
+      const norm = entry.value.toLowerCase();
+      const prior = seen.get(norm);
+      if (prior) {
+        console.error(
+          `Error: ${entry.label} (${entry.value}) conflicts with ${prior.label} (${prior.value}) — all hotkeys must be distinct`,
+        );
+        process.exit(1);
+      }
+      seen.set(norm, entry);
+    }
   }
 
   // Determine output file path (config value or default)
@@ -149,6 +206,9 @@ async function listenAction(opts: Record<string, unknown>) {
     contextFiles,
     vocabularyFiles,
     instructionsFiles,
+    shellContextFiles,
+    shellVocabularyFiles,
+    shellInstructionsFiles,
     resolvedOutputFile,
     ...configValues
   } = config;
@@ -181,9 +241,46 @@ async function listenAction(opts: Record<string, unknown>) {
   } else {
     feedback.verboseLog("Instructions files", "none");
   }
+  if (shellContextFiles.length > 0) {
+    const lines = shellContextFiles
+      .map((f) => `  [${f.source}] ${f.path}`)
+      .join("\n");
+    feedback.verboseLog(
+      `Shell context files (${shellContextFiles.length})`,
+      lines,
+    );
+  } else {
+    feedback.verboseLog("Shell context files", "none");
+  }
+  if (shellVocabularyFiles.length > 0) {
+    const lines = shellVocabularyFiles
+      .map((f) => `  [${f.source}] ${f.path}`)
+      .join("\n");
+    feedback.verboseLog(
+      `Shell vocabulary files (${shellVocabularyFiles.length})`,
+      lines,
+    );
+  } else {
+    feedback.verboseLog("Shell vocabulary files", "none");
+  }
+  if (shellInstructionsFiles.length > 0) {
+    const lines = shellInstructionsFiles
+      .map((f) => `  [${f.source}] ${f.path}`)
+      .join("\n");
+    feedback.verboseLog(
+      `Shell instructions files (${shellInstructionsFiles.length})`,
+      lines,
+    );
+  } else {
+    feedback.verboseLog("Shell instructions files", "none");
+  }
   const recorder = createAudioRecorder();
   const transcriber = createTranscriber(apiKey);
   const cleanupService = createCleanupService(config.claudeModel, verbose);
+  const shellCommandService = createShellCommandService(
+    config.shellClaudeModel,
+    verbose,
+  );
   const cursorInsert = config.autoInsert ? createCursorInsertService() : null;
 
   // Max recording duration timer
@@ -192,10 +289,13 @@ async function listenAction(opts: Record<string, unknown>) {
   async function handleHotkey(triggeredKey: string) {
     if (state.status === "idle") {
       // Determine output mode from which hotkey was pressed
+      const triggered = triggeredKey.toLowerCase();
       const mode: OutputMode =
-        triggeredKey.toLowerCase() === config.fileHotkey.toLowerCase()
-          ? "file"
-          : "clipboard";
+        triggered === config.shellHotkey.toLowerCase()
+          ? "shell"
+          : triggered === config.fileHotkey.toLowerCase()
+            ? "file"
+            : "clipboard";
       state.outputMode = mode;
 
       // Start recording
@@ -243,7 +343,9 @@ async function listenAction(opts: Record<string, unknown>) {
 
         // Transcribe
         const transcriptionPrompt = buildTranscriptionPrompt(
-          config.vocabularyFiles,
+          state.outputMode === "shell"
+            ? config.shellVocabularyFiles
+            : config.vocabularyFiles,
         );
         feedback.verboseLog("Transcription prompt", transcriptionPrompt);
         const transcription = await transcriber.transcribe(
@@ -259,63 +361,89 @@ async function listenAction(opts: Record<string, unknown>) {
           );
         }
 
-        // Cleanup — file mode injects prior output as context
-        let priorOutput: string | undefined;
-        if (state.outputMode === "file") {
-          const content = fileOutput.readTailContent(8000);
-          if (content) {
-            priorOutput = content;
-            feedback.verboseLog(
-              "Prior output",
-              `${content.length} chars from ${fileOutput.filePath}`,
+        if (state.outputMode === "shell") {
+          const os = detectShellOS();
+          const { text: generatedText, prompt: shellPrompt } =
+            await shellCommandService.generate(
+              transcription,
+              config.shellContextFiles,
+              config.shellVocabularyFiles,
+              config.shellInstructionsFiles,
+              os,
+            );
+          feedback.verboseLog("Shell prompt", shellPrompt);
+          if (verbose) {
+            feedback.verboseLog("Shell result", generatedText);
+          } else {
+            const preview = generatedText.slice(0, 50);
+            feedback.log(
+              `Generated: ${preview}${generatedText.length > 50 ? "..." : ""}`,
             );
           }
-        }
 
-        const { text: cleanedText, prompt: cleanupPrompt } =
-          await cleanupService.cleanup(
-            transcription,
-            config.contextFiles,
-            config.vocabularyFiles,
-            config.instructionsFiles,
-            priorOutput,
-          );
-        feedback.verboseLog("Cleanup prompt", cleanupPrompt);
-        if (verbose) {
-          feedback.verboseLog("Cleanup result", cleanedText);
+          await copyToClipboard(generatedText);
+          feedback.log("Command copied to clipboard.");
+          feedback.showNotification("Voice to Text", "Done!");
+
+          lastTranscription.save(generatedText, "shell");
+          feedback.verboseLog("Last transcription saved", "shell");
         } else {
-          const cleanPreview = cleanedText.slice(0, 50);
-          feedback.log(
-            `Cleaned: ${cleanPreview}${cleanedText.length > 50 ? "..." : ""}`,
-          );
-        }
-
-        // Route output based on mode
-        if (state.outputMode === "file") {
-          fileOutput.appendText(cleanedText);
-          feedback.log(`Text appended to ${fileOutput.filePath}`);
-          feedback.showNotification(
-            "Voice to Text",
-            `Appended to ${fileOutput.filePath}`,
-          );
-        } else {
-          await copyToClipboard(cleanedText);
-          feedback.log("Text copied to clipboard.");
-
-          if (cursorInsert) {
-            await cursorInsert.insertAtCursor(cleanedText);
-            feedback.log("Text inserted at cursor.");
+          // Cleanup — file mode injects prior output as context
+          let priorOutput: string | undefined;
+          if (state.outputMode === "file") {
+            const content = fileOutput.readTailContent(8000);
+            if (content) {
+              priorOutput = content;
+              feedback.verboseLog(
+                "Prior output",
+                `${content.length} chars from ${fileOutput.filePath}`,
+              );
+            }
           }
 
-          feedback.showNotification("Voice to Text", "Done!");
-        }
+          const { text: cleanedText, prompt: cleanupPrompt } =
+            await cleanupService.cleanup(
+              transcription,
+              config.contextFiles,
+              config.vocabularyFiles,
+              config.instructionsFiles,
+              priorOutput,
+            );
+          feedback.verboseLog("Cleanup prompt", cleanupPrompt);
+          if (verbose) {
+            feedback.verboseLog("Cleanup result", cleanedText);
+          } else {
+            const cleanPreview = cleanedText.slice(0, 50);
+            feedback.log(
+              `Cleaned: ${cleanPreview}${cleanedText.length > 50 ? "..." : ""}`,
+            );
+          }
 
-        // Always save last transcription (both modes)
-        lastTranscription.save(cleanedText, state.outputMode ?? "clipboard");
-        feedback.verboseLog(
-          "Last transcription saved",
-          state.outputMode ?? "clipboard",
-        );
+          if (state.outputMode === "file") {
+            fileOutput.appendText(cleanedText);
+            feedback.log(`Text appended to ${fileOutput.filePath}`);
+            feedback.showNotification(
+              "Voice to Text",
+              `Appended to ${fileOutput.filePath}`,
+            );
+          } else {
+            await copyToClipboard(cleanedText);
+            feedback.log("Text copied to clipboard.");
+
+            if (cursorInsert) {
+              await cursorInsert.insertAtCursor(cleanedText);
+              feedback.log("Text inserted at cursor.");
+            }
+
+            feedback.showNotification("Voice to Text", "Done!");
+          }
+
+          lastTranscription.save(cleanedText, state.outputMode ?? "clipboard");
+          feedback.verboseLog(
+            "Last transcription saved",
+            state.outputMode ?? "clipboard",
+          );
+        }
 
         await feedback.playReadyBeep();
         feedback.log("Done!");
@@ -339,9 +467,9 @@ async function listenAction(opts: Record<string, unknown>) {
     }
   }
 
-  // Setup hotkey listener with both keys
+  // Setup hotkey listener with all three keys
   const hotkeyListener = await createHotkeyListener(
-    [config.hotkey, config.fileHotkey],
+    [config.hotkey, config.fileHotkey, config.shellHotkey],
     handleHotkey,
   );
 
@@ -370,11 +498,11 @@ async function listenAction(opts: Record<string, unknown>) {
   // Show startup message based on actual input mode
   if (hotkeyListener.isGlobalHotkey()) {
     feedback.log(
-      `Voice-to-text ready. ${config.hotkey}: clipboard, ${config.fileHotkey}: file mode. Output: ${outputFilePath}`,
+      `Voice-to-text ready. ${config.hotkey}: clipboard, ${config.fileHotkey}: file, ${config.shellHotkey}: shell. Output: ${outputFilePath}`,
     );
   } else {
     feedback.log(
-      `Voice-to-text ready. Enter/Space: clipboard, F: file mode. (Ctrl+C to exit)`,
+      `Voice-to-text ready. Enter/Space: clipboard, F: file mode (shell mode requires global hotkeys). (Ctrl+C to exit)`,
     );
   }
 }

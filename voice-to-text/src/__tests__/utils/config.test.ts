@@ -349,6 +349,137 @@ describe("config", () => {
       );
     });
 
+    test("shellHotkey defaults to F8", () => {
+      const resolution = resolveConfig({ cliOpts: {} });
+      expect(resolution.config.shellHotkey).toBe("F8");
+    });
+
+    test("shell file fields accumulate from multiple layers", () => {
+      fsFiles[CONFIG_PATH] = JSON.stringify({
+        shellContextFile: "global-shell-ctx.md",
+        shellVocabularyFile: "global-shell-vocab.txt",
+        shellInstructionsFile: "global-shell-instr.md",
+      });
+      fsFiles[join(mockCwd, "voice.json")] = JSON.stringify({
+        shellContextFile: "local-shell-ctx.md",
+        shellVocabularyFile: "local-shell-vocab.txt",
+        shellInstructionsFile: "local-shell-instr.md",
+      });
+
+      const resolution = resolveConfig({ cliOpts: {} });
+      expect(resolution.config.shellContextFiles).toHaveLength(2);
+      expect(resolution.config.shellContextFiles[0].source).toBe("global");
+      expect(resolution.config.shellContextFiles[0].path).toBe(
+        resolve(CONFIG_DIR, "global-shell-ctx.md"),
+      );
+      expect(resolution.config.shellContextFiles[1].source).toBe("local");
+      expect(resolution.config.shellContextFiles[1].path).toBe(
+        resolve(mockCwd, "local-shell-ctx.md"),
+      );
+      expect(resolution.config.shellVocabularyFiles).toHaveLength(2);
+      expect(resolution.config.shellInstructionsFiles).toHaveLength(2);
+    });
+
+    test("CLI shellContextFile replaces all layers", () => {
+      fsFiles[CONFIG_PATH] = JSON.stringify({
+        shellContextFile: "global-shell-ctx.md",
+      });
+      fsFiles[join(mockCwd, "voice.json")] = JSON.stringify({
+        shellContextFile: "local-shell-ctx.md",
+      });
+
+      const resolution = resolveConfig({
+        cliOpts: { shellContextFile: "cli-shell-ctx.md" },
+      });
+      expect(resolution.config.shellContextFiles).toHaveLength(1);
+      expect(resolution.config.shellContextFiles[0].source).toBe("cli");
+      expect(resolution.config.shellContextFiles[0].path).toBe(
+        resolve(mockCwd, "cli-shell-ctx.md"),
+      );
+    });
+
+    test("CLI shellVocabularyFile replaces all layers", () => {
+      fsFiles[CONFIG_PATH] = JSON.stringify({
+        shellVocabularyFile: "global-shell-vocab.txt",
+      });
+      const resolution = resolveConfig({
+        cliOpts: { shellVocabularyFile: "cli-shell-vocab.txt" },
+      });
+      expect(resolution.config.shellVocabularyFiles).toHaveLength(1);
+      expect(resolution.config.shellVocabularyFiles[0].source).toBe("cli");
+    });
+
+    test("CLI shellInstructionsFile replaces all layers", () => {
+      fsFiles[CONFIG_PATH] = JSON.stringify({
+        shellInstructionsFile: "global-shell-instr.md",
+      });
+      const resolution = resolveConfig({
+        cliOpts: { shellInstructionsFile: "cli-shell-instr.md" },
+      });
+      expect(resolution.config.shellInstructionsFiles).toHaveLength(1);
+      expect(resolution.config.shellInstructionsFiles[0].source).toBe("cli");
+    });
+
+    test("shellClaudeModel layers through scalar merge", () => {
+      fsFiles[CONFIG_PATH] = JSON.stringify({
+        shellClaudeModel: "global-model",
+      });
+      fsFiles[join(mockCwd, "voice.json")] = JSON.stringify({
+        shellClaudeModel: "local-model",
+      });
+
+      const resolution = resolveConfig({ cliOpts: {} });
+      expect(resolution.config.shellClaudeModel).toBe("local-model");
+
+      const cliResolution = resolveConfig({
+        cliOpts: { shellClaudeModel: "cli-model" },
+      });
+      expect(cliResolution.config.shellClaudeModel).toBe("cli-model");
+    });
+
+    test("shellHotkey layers through scalar merge with CLI override", () => {
+      fsFiles[CONFIG_PATH] = JSON.stringify({ shellHotkey: "F7" });
+      fsFiles[join(mockCwd, "voice.json")] = JSON.stringify({
+        shellHotkey: "F6",
+      });
+
+      const resolution = resolveConfig({ cliOpts: {} });
+      expect(resolution.config.shellHotkey).toBe("F6");
+
+      const cliResolution = resolveConfig({
+        cliOpts: { shellHotkey: "F5" },
+      });
+      expect(cliResolution.config.shellHotkey).toBe("F5");
+    });
+
+    test("shell file fields are empty arrays when not configured", () => {
+      const resolution = resolveConfig({ cliOpts: {} });
+      expect(resolution.config.shellContextFiles).toEqual([]);
+      expect(resolution.config.shellVocabularyFiles).toEqual([]);
+      expect(resolution.config.shellInstructionsFiles).toEqual([]);
+    });
+
+    test("shell files resolve relative to per-layer baseDir", () => {
+      const projectDir = "/projects/other-app";
+      fsFiles[CONFIG_PATH] = JSON.stringify({
+        shellContextFile: "from-global.md",
+      });
+      fsFiles[join(projectDir, "voice.json")] = JSON.stringify({
+        shellContextFile: "from-local.md",
+      });
+
+      const resolution = resolveConfig({
+        cliOpts: {},
+        projectDir,
+      });
+      expect(resolution.config.shellContextFiles[0]!.path).toBe(
+        resolve(CONFIG_DIR, "from-global.md"),
+      );
+      expect(resolution.config.shellContextFiles[1]!.path).toBe(
+        resolve(projectDir, "from-local.md"),
+      );
+    });
+
     test("projectDir loadedFrom metadata shows correct path", () => {
       const projectDir = "/projects/other-app";
       const resolution = resolveConfig({
@@ -368,6 +499,7 @@ describe("config", () => {
       const fileConfig = {
         hotkey: "F9",
         fileHotkey: "F10",
+        shellHotkey: "F8",
         autoInsert: true,
         beepEnabled: true,
         notificationEnabled: true,
@@ -383,6 +515,7 @@ describe("config", () => {
       const fileConfig = {
         hotkey: "F10",
         fileHotkey: "F10",
+        shellHotkey: "F8",
         autoInsert: false,
         beepEnabled: true,
         notificationEnabled: true,
@@ -401,6 +534,7 @@ describe("config", () => {
       const fileConfig = {
         hotkey: "F9",
         fileHotkey: "F10",
+        shellHotkey: "F8",
         autoInsert: true,
         beepEnabled: true,
         notificationEnabled: true,

@@ -7,6 +7,7 @@ describe("ConfigSchema", () => {
     expect(result).toEqual({
       hotkey: "F9",
       fileHotkey: "F10",
+      shellHotkey: "F8",
       autoInsert: true,
       beepEnabled: true,
       notificationEnabled: true,
@@ -19,10 +20,15 @@ describe("ConfigSchema", () => {
     const full = {
       hotkey: "F10",
       fileHotkey: "F11",
+      shellHotkey: "F12",
       contextFile: "ctx.md",
       instructionsFile: "instr.md",
+      shellContextFile: "shell-ctx.md",
+      shellVocabularyFile: "shell-vocab.txt",
+      shellInstructionsFile: "shell-instr.md",
       outputFile: "output.md",
       claudeModel: "claude-sonnet-4-5-20250929",
+      shellClaudeModel: "claude-haiku-4-5-20251001",
       autoInsert: false,
       beepEnabled: false,
       notificationEnabled: false,

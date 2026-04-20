@@ -3,11 +3,16 @@ import { z } from "zod";
 export const ConfigSchema = z.object({
   hotkey: z.string().default("F9"),
   fileHotkey: z.string().default("F10"),
+  shellHotkey: z.string().default("F8"),
   contextFile: z.string().optional(),
   vocabularyFile: z.string().optional(),
   instructionsFile: z.string().optional(),
+  shellContextFile: z.string().optional(),
+  shellVocabularyFile: z.string().optional(),
+  shellInstructionsFile: z.string().optional(),
   outputFile: z.string().optional(),
   claudeModel: z.string().optional(),
+  shellClaudeModel: z.string().optional(),
   autoInsert: z.boolean().default(true),
   beepEnabled: z.boolean().default(true),
   notificationEnabled: z.boolean().default(true),
@@ -22,12 +27,15 @@ export type ResolvedFileRef = {
   source: "global" | "local" | "specified" | "cli";
 };
 
-export type OutputMode = "clipboard" | "file";
+export type OutputMode = "clipboard" | "file" | "shell";
 
 export type ResolvedConfig = Config & {
   contextFiles: ResolvedFileRef[];
   vocabularyFiles: ResolvedFileRef[];
   instructionsFiles: ResolvedFileRef[];
+  shellContextFiles: ResolvedFileRef[];
+  shellVocabularyFiles: ResolvedFileRef[];
+  shellInstructionsFiles: ResolvedFileRef[];
   resolvedOutputFile?: string;
 };
 

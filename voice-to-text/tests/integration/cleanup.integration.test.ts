@@ -10,6 +10,7 @@ describe("cleanup integration", () => {
         "hello world this is a test",
         [],
         [],
+        [],
       );
 
       expect(result.text).toBeTruthy();
@@ -26,6 +27,7 @@ describe("cleanup integration", () => {
         "hello world this is a test",
         [],
         [],
+        [],
       );
 
       expect(result.text).toBeTruthy();
@@ -38,7 +40,7 @@ describe("cleanup integration", () => {
     "returns prompt used for cleanup",
     async () => {
       const service = createCleanupService();
-      const result = await service.cleanup("test transcription", [], []);
+      const result = await service.cleanup("test transcription", [], [], []);
 
       expect(result.prompt).toContain("<transcription>");
       expect(result.prompt).toContain("test transcription");
