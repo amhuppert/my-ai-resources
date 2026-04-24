@@ -6,7 +6,7 @@ inclusion: always
 
 ## Organization Philosophy
 
-Feature-grouped directories at the top level, with shared TypeScript tooling compiled by Bun. Installation splits between user-level (home directory) and project-level (current directory) targets. AI tool configurations (Claude Code, Cursor) live in their own directories, compiled and installed separately.
+Feature-grouped directories at the top level, with shared TypeScript tooling compiled by Bun. Installation splits between user-level (home directory) and project-level (current directory) targets. Claude Code configurations live in their own directories, compiled and installed separately.
 
 ## Directory Patterns
 
@@ -20,9 +20,6 @@ Plugin definitions with standardized internal structure. Each plugin contains:
 
 Primary plugin: `ai-resources-plugin/` (installed via `claude` CLI plugin system).
 
-### `cursor/` - Cursor IDE Configuration Source
-Rules (`.mdc` files with YAML frontmatter) and commands installed to target projects' `.cursor/` directory.
-
 ### `agent-docs/` - AI Agent Reference Documentation
 Markdown reference docs installed to `~/.claude/agent-docs/`. Includes code standards, workflow documentation, and tool references.
 
@@ -31,9 +28,6 @@ Library code (`lib/`) and CLI scripts (`scripts/`) compiled to standalone execut
 
 ### `scripts/` - Shell Utilities
 Standalone bash scripts installed to `~/.local/bin/`. Self-contained, no build step required.
-
-### `cursor-shortcuts-mcp/` - MCP Server
-TypeScript MCP server for keyboard shortcut management, compiled to `bin/` and globally linked via `bun link`.
 
 ### `memory-bank-mcp/` - MCP Server
 TypeScript MCP server for structured memory bank management (objectives, features, tasks, tickets). Compiled to `bin/` and globally linked via `bun link`.

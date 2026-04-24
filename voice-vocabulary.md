@@ -24,7 +24,6 @@ YAGNI
 ConfigSchema
 ResolvedFileRef
 ai-resources
-cursor-shortcuts-mcp
 modelcontextprotocol
 /test-slash-command
 /audit-standards
@@ -37,13 +36,10 @@ modelcontextprotocol
 /ai-resources:cheat-sheet
 /ai-resources:commit
 /ai-resources:compress
-/ai-resources:config-audit
 /ai-resources:configure-ralph
 /ai-resources:create-plan-anthropic
 /ai-resources:create-reference
 /ai-resources:create-requirements
-/ai-resources:cursor-rules-synchronizer
-/ai-resources:cursor-rules
 /ai-resources:design
 /ai-resources:fix-merge-conflicts
 /ai-resources:init-design-config

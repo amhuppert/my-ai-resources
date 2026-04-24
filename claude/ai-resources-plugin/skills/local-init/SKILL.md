@@ -20,7 +20,6 @@ Configure team repo: Make sure that `.git/info/exclude` is ignoring these privat
 .local
 
 # Ignore private files
-.cursor
 .claude
 CLAUDE.md
 dev-local
@@ -29,7 +28,7 @@ memory-bank
 
 Configure private repo:
 
-- Make sure that `.local/info/exclude` is ignoring all files from the team repo (`/*`) and is whitelisting the private files (`!.cursor`, etc)
+- Make sure that `.local/info/exclude` is ignoring all files from the team repo (`/*`) and is whitelisting the private files (`!.claude`, etc)
 
 Configure post-checkout hook that makes the private repo branch auto-follow the team repo branch:
 

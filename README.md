@@ -1,25 +1,17 @@
 # My AI Resources
 
-My personal AI workflow, config, prompts, etc.
-
-Support for:
-
-- Cursor
-- Claude Code
+My personal AI workflow, config, prompts, etc. for Claude Code.
 
 ## File Structure
 
 - `agent-docs/` - Documentation intended for consumption by AI agents (installed to `~/.claude/agent-docs/`)
 - `claude/` - Claude Code configuration files, plugin definition, and user/project CLAUDE.md templates
-- `cursor/` - Shared Cursor files (rules, commands) to be installed to other projects
-- `cursor-shortcuts-mcp/` - MCP server for AI-powered keyboard shortcut recommendations
 - `.kiro/` - Kiro SDD steering files for project context
 - `memory-bank/` - Session tracking (focus.md) for AI-assisted development
 - `prompts/` - Saved LLM prompts and prompt templates
 - `scripts/` - CLI utility scripts (lgit, code-tree, read-file, push-main)
 - `typescript/` - TypeScript tooling for installation and settings management
 - `.claude/` - Claude Code project-level configuration for this repository
-- `.cursor/` - Cursor IDE configuration for this repository
 
 ## Installation
 
@@ -36,16 +28,14 @@ Installs user-wide configurations that apply across all projects:
 - `scripts/code-tree` → `~/.local/bin/code-tree` - Directory visualizer with depth control (executable)
 - `scripts/read-file` → `~/.local/bin/read-file` - XML-formatted file reader for LLM context (executable)
 - `scripts/push-main` → `~/.local/bin/push-main` - Branch deployment utility (executable)
-- `cursor-shortcuts-mcp` - MCP server built and linked globally via `bun link`
 - `claude/settings.json` → Claude Code user settings (via TypeScript installer with deep merge)
 - MCP server registration for Claude Code:
-  - `cursor-shortcuts` (keyboard shortcut recommendations)
   - `context7` (third-party library documentation)
 - `ai-resources` plugin - Installed via Claude Code plugin system from local marketplace
 
 **Requirements:**
 
-- `bun` runtime (for MCP builds and settings installation)
+- `bun` runtime (for settings installation)
 - `claude` CLI (for MCP server registration and plugin installation)
 - `ffplay` (optional, for notification sounds in projects)
 
@@ -55,8 +45,6 @@ Installs project-specific configurations in the current directory:
 
 **What gets installed:**
 
-- `cursor/rules/` → `.cursor/rules/` - Cursor IDE rules (workflows, memory management)
-- `cursor/commands/` → `.cursor/commands/` - Cursor IDE custom commands
 - `claude/CLAUDE-project.md` → `CLAUDE.md` - Project-level Claude Code instructions (merged with existing)
 - Notification hook - If `.claude/notification.mp3` exists, installs hook to play sound on tool completions
 

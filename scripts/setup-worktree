@@ -48,7 +48,6 @@ echo "  Target: $WORKTREE_DIR"
 
 echo "Copying configuration files and directories..."
 
-copy_dir_if_exists "$ROOT_WORKTREE_PATH/.cursor" "$WORKTREE_DIR/.cursor" ".cursor"
 copy_dir_if_exists "$ROOT_WORKTREE_PATH/dev-local" "$WORKTREE_DIR/dev-local" "dev-local"
 copy_dir_if_exists "$ROOT_WORKTREE_PATH/.claude" "$WORKTREE_DIR/.claude" ".claude"
 
@@ -59,7 +58,6 @@ fi
 
 copy_file_if_exists "$ROOT_WORKTREE_PATH/.env.local" "$WORKTREE_DIR/" ".env.local"
 copy_file_if_exists "$ROOT_WORKTREE_PATH/.env" "$WORKTREE_DIR/" ".env"
-copy_file_if_exists "$ROOT_WORKTREE_PATH/.cursorignore" "$WORKTREE_DIR/" ".cursorignore"
 copy_file_if_exists "$ROOT_WORKTREE_PATH/CLAUDE.md" "$WORKTREE_DIR/" "CLAUDE.md"
 copy_file_if_exists "$ROOT_WORKTREE_PATH/voice-context.md" "$WORKTREE_DIR/" "voice-context.md"
 copy_file_if_exists "$ROOT_WORKTREE_PATH/voice.json" "$WORKTREE_DIR/" "voice.json"

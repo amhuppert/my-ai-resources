@@ -11,11 +11,6 @@ import {
 } from "@/lib/install-types.js";
 import { initSkill, validateSkill } from "@/lib/skill-operations.js";
 import { runReplaceImportCodemod } from "@/lib/codemods/replace-import.js";
-import {
-  auditConfiguration,
-  formatAuditReport,
-} from "@/lib/config-audit-operations.js";
-import { findCursorRules } from "@/lib/cursor-rules-sync.js";
 import { installHook } from "@/scripts/install-hooks.js";
 import { runCodexSync } from "@/lib/codex-sync/codex-sync-cli.js";
 
@@ -178,78 +173,6 @@ createSkill
     } catch (error) {
       console.error(
         `Error validating skill: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-      process.exit(1);
-    }
-  });
-
-const configAuditSkill = skill
-  .command("config-audit")
-  .description("Configuration audit helper commands");
-
-configAuditSkill
-  .command("run")
-  .description("Audit Claude Code and Cursor configurations")
-  .option(
-    "-p, --project-root <path>",
-    "project root directory (default: current directory)",
-    ".",
-  )
-  .option("--json", "output as JSON instead of formatted text")
-  .action(async (options) => {
-    try {
-      const report = auditConfiguration(options.projectRoot);
-
-      if (options.json) {
-        console.log(JSON.stringify(report, null, 2));
-      } else {
-        console.log(formatAuditReport(report));
-      }
-
-      process.exit(0);
-    } catch (error) {
-      console.error(
-        `Error running config audit: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-      process.exit(1);
-    }
-  });
-
-const cursorRulesSkill = skill
-  .command("cursor-rules-synchronizer")
-  .description("Cursor Rules synchronization helper commands");
-
-cursorRulesSkill
-  .command("list")
-  .description("List all Cursor Rules in the project")
-  .option(
-    "-p, --project-root <path>",
-    "project root directory (default: current directory)",
-    ".",
-  )
-  .action(async (options) => {
-    try {
-      const projectRoot = options.projectRoot;
-      const rulePaths = await findCursorRules(projectRoot);
-
-      if (rulePaths.length === 0) {
-        console.log("No Cursor Rules found");
-        process.exit(0);
-      }
-
-      // Output paths one per line
-      for (const path of rulePaths) {
-        console.log(path);
-      }
-
-      process.exit(0);
-    } catch (error) {
-      console.error(
-        `Error listing Cursor Rules: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );

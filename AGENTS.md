@@ -16,5 +16,5 @@
 ## Commands
 
 - `ai install --scope user` - Install binary utilities, agent-docs, MCP servers
-- `ai install --scope project` - Install plugin, Cursor rules, project configs
+- `ai install --scope project` - Install plugin, project configs
 - `cd typescript && bun run build` - Compile TypeScript tools

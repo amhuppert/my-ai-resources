@@ -4,7 +4,6 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import {
   printInstallationHeader,
-  installDirectory,
   installClaudeMd,
 } from "@/lib/installer-utils.js";
 import {
@@ -41,25 +40,7 @@ async function main(
 
   printInstallationHeader("project-level", SCRIPT_DIR);
 
-  // 1. cursor/rules -> .cursor/rules in current working directory
-  await installDirectory(
-    join(SCRIPT_DIR, "cursor", "rules"),
-    config.paths.cursorRulesDir,
-    `Syncing cursor/rules -> ${config.paths.cursorRulesDir}`,
-    config,
-    executor,
-  );
-
-  // 2. cursor/commands -> .cursor/commands in current working directory
-  await installDirectory(
-    join(SCRIPT_DIR, "cursor", "commands"),
-    config.paths.cursorCommandsDir,
-    `Syncing cursor/commands -> ${config.paths.cursorCommandsDir}`,
-    config,
-    executor,
-  );
-
-  // 3. claude/CLAUDE-project.md -> CLAUDE.md in current working directory
+  // 1. claude/CLAUDE-project.md -> CLAUDE.md in current working directory
   const projectClaudeFile = join(process.cwd(), "CLAUDE.md");
   await installClaudeMd(
     join(SCRIPT_DIR, "claude", "CLAUDE-project.md"),

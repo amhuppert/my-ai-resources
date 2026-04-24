@@ -18,7 +18,6 @@ import {
   createDefaultExecutor,
 } from "@/lib/install-types.js";
 import { WorktreeFilesSchema } from "@/lib/worktree-files-schema.js";
-import { installCursorJsonSchema } from "@/lib/cursor-settings.js";
 
 /**
  * Get the directory where this script is located
@@ -86,7 +85,7 @@ async function main(
     console.log("Install bun to enable settings installation: https://bun.sh");
   }
 
-  // 4. Install worktree-files JSON schema and register with Cursor
+  // 4. Install worktree-files JSON schema
   console.log("Installing worktree-files JSON schema...");
   try {
     const schemasDir = join(config.paths.userClaudeDir, "schemas");
@@ -96,12 +95,6 @@ async function main(
     const schemaPath = join(schemasDir, "worktree-files-schema.json");
     writeFileSync(schemaPath, JSON.stringify(jsonSchema, null, 2) + "\n");
     console.log(`  Schema written to ${schemaPath}`);
-
-    installCursorJsonSchema(
-      `file://${schemaPath}`,
-      ["**/worktree-files.json"],
-    );
-    console.log("  Registered worktree-files.json schema with Cursor");
   } catch (error) {
     console.log("Warning: Failed to install worktree-files schema");
     if (error instanceof Error) console.log(`  ${error.message}`);

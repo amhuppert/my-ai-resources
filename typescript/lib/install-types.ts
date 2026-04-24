@@ -32,8 +32,6 @@ export interface InstallConfig {
     userClaudeDir: string;
     userLocalBin: string;
     projectClaudeDir: string;
-    cursorRulesDir: string;
-    cursorCommandsDir: string;
   };
   commands: {
     rsyncFlags: string[];
@@ -93,8 +91,6 @@ export function createDefaultConfig(): InstallConfig {
       userClaudeDir: join(userHome, ".claude"),
       userLocalBin: join(userHome, ".local", "bin"),
       projectClaudeDir: join(process.cwd(), ".claude"),
-      cursorRulesDir: join(process.cwd(), ".cursor", "rules"),
-      cursorCommandsDir: join(process.cwd(), ".cursor", "commands"),
     },
     commands: {
       rsyncFlags: ["-a"],

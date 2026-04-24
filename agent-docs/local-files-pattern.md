@@ -6,7 +6,7 @@
 shared-repo/
 ├── .git/              ← public repo (team)
 ├── .local/            ← private bare repo (personal)
-└── .cursor/, memory-bank/, dev-local/, CLAUDE.md, etc.  ← versioned privately
+└── memory-bank/, dev-local/, CLAUDE.md, etc.  ← versioned privately
 ```
 
 ### Key Commands
@@ -14,17 +14,16 @@ shared-repo/
 **lgit** = wrapper around `git --git-dir="$PWD/.local" --work-tree="$PWD"`:
 
 ```bash
-lgit status           # see private changes
-lgit add .cursor/     # stage private files
-lgit commit -m "msg"  # commit private changes
-lgit push             # backup to private remote
+lgit status             # see private changes
+lgit add memory-bank/   # stage private files
+lgit commit -m "msg"    # commit private changes
+lgit push               # backup to private remote
 ```
 
 ### What's Tracked Privately
 
 Private repo ignores all files by default (via `.gitignore` or `.git/info/exclude`), then whitelists:
 
-- `.cursor/` (project rules, settings)
 - `memory-bank/`
 - `.claude/`
 - `dev-local/`
@@ -38,7 +37,7 @@ When you `git switch feature/foo`, private repo also switches to `feature/foo`.
 
 ### Usage for Claude Code
 
-- Use `lgit` for any operations on `.cursor/`, `memory-bank/`, or other private files
+- Use `lgit` for any operations on `memory-bank/`, `.claude/`, or other private files
 - Use regular `git` for shared project files
 - Private files are invisible to teammates (in `.gitignore`)
 

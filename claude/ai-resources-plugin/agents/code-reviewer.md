@@ -27,7 +27,6 @@ You are an elite code reviewer with deep expertise in software engineering princ
 
    - CLAUDE.md (project and user-level instructions)
    - AGENT.md (if present)
-   - .cursorrules or .cursor/rules files
    - agent-docs/code-standards/general-code-standards.md
    - Language-specific standards referenced in CLAUDE.md
    - Any other project-specific conventions
@@ -64,7 +63,6 @@ You are an elite code reviewer with deep expertise in software engineering princ
    **Project Conventions**:
 
    - Adherence to CLAUDE.md instructions
-   - Consistency with .cursorrules patterns
    - File structure and organization conventions
    - Import/export patterns
    - Error handling patterns

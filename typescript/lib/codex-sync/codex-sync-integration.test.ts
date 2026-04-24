@@ -74,13 +74,13 @@ function setupMockClaudeCodeStructure(rootDir: string) {
   );
 
   // Standalone skill (not in any plugin)
-  const standaloneSkillDir = join(rootDir, ".claude", "skills", "cursor-rules-sync");
+  const standaloneSkillDir = join(rootDir, ".claude", "skills", "example-sync-skill");
   mkdirSync(standaloneSkillDir, { recursive: true });
   writeFileSync(
     join(standaloneSkillDir, "SKILL.md"),
-    matter.stringify("Synchronizes cursor rules.", {
-      name: "cursor-rules-sync",
-      description: "Sync cursor rules to CLAUDE.md",
+    matter.stringify("Synchronizes example rules.", {
+      name: "example-sync-skill",
+      description: "Sync example rules to CLAUDE.md",
     }),
   );
 
@@ -112,8 +112,8 @@ function setupMockClaudeCodeStructure(rootDir: string) {
     join(rootDir, ".mcp.json"),
     JSON.stringify({
       mcpServers: {
-        "cursor-shortcuts": {
-          command: "cursor-shortcuts-mcp",
+        "example-mcp": {
+          command: "example-mcp",
           args: ["--stdio"],
           env: { API_KEY: "test-key" },
         },
@@ -192,12 +192,12 @@ describe("codex-sync end-to-end integration", () => {
     expect(architectTomlContent["model"]).toBe("gpt-5.4");
 
     // Verify standalone skill was synced
-    const standaloneSkillDest = join(projectDir, ".agents", "skills", "cursor-rules-sync");
+    const standaloneSkillDest = join(projectDir, ".agents", "skills", "example-sync-skill");
     expect(existsSync(standaloneSkillDest)).toBe(true);
     const standaloneSkillContent = readFileSync(join(standaloneSkillDest, "SKILL.md"), "utf-8");
     const { data: standaloneSkillData } = matter(standaloneSkillContent);
-    expect(standaloneSkillData["name"]).toBe("cursor-rules-sync");
-    expect(standaloneSkillData["description"]).toBe("Sync cursor rules to CLAUDE.md");
+    expect(standaloneSkillData["name"]).toBe("example-sync-skill");
+    expect(standaloneSkillData["description"]).toBe("Sync example rules to CLAUDE.md");
 
     // Verify top-level command was converted to skill
     const auditSkillDest = join(projectDir, ".agents", "skills", "audit-standards");
@@ -225,10 +225,10 @@ describe("codex-sync end-to-end integration", () => {
     const configToml = tomlParse(readFileSync(configTomlPath, "utf-8"));
     const mcpServers = configToml["mcp_servers"] as Record<string, Record<string, unknown>>;
     expect(mcpServers).toBeDefined();
-    expect(mcpServers["cursor-shortcuts"]).toBeDefined();
-    expect(mcpServers["cursor-shortcuts"]["command"]).toBe("cursor-shortcuts-mcp");
-    expect(mcpServers["cursor-shortcuts"]["args"]).toEqual(["--stdio"]);
-    expect((mcpServers["cursor-shortcuts"]["env"] as Record<string, string>)["API_KEY"]).toBe("test-key");
+    expect(mcpServers["example-mcp"]).toBeDefined();
+    expect(mcpServers["example-mcp"]["command"]).toBe("example-mcp");
+    expect(mcpServers["example-mcp"]["args"]).toEqual(["--stdio"]);
+    expect((mcpServers["example-mcp"]["env"] as Record<string, string>)["API_KEY"]).toBe("test-key");
     expect(mcpServers["memory-bank"]).toBeDefined();
     expect(mcpServers["memory-bank"]["command"]).toBe("memory-bank-mcp");
 
@@ -343,7 +343,7 @@ describe("codex-sync end-to-end integration", () => {
     expect(mcpServers["existing-server"]["command"]).toBe("keep-me");
 
     // Synced MCP servers present
-    expect(mcpServers["cursor-shortcuts"]).toBeDefined();
+    expect(mcpServers["example-mcp"]).toBeDefined();
     expect(mcpServers["memory-bank"]).toBeDefined();
   });
 
