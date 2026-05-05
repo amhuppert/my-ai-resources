@@ -27,7 +27,6 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **MCP** - Model Context Protocol; standard for AI tool integration via stdio servers
 - **focus.md** - Session file tracking current work-in-progress
 - **steering files** - Kiro SDD project context files in .kiro/steering/ (product.md, tech.md, structure.md)
-- **Ralph** - ralph-claude-code; autonomous agent loop for mechanical task execution
 - **CCSDD** - Claude Code SDD (Software Design Document); spec-driven design format
 - **SDD** - Software Design Document
 - **PRD** - Product Requirements Document
@@ -64,7 +63,6 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 
 - **/ai-resources:add-design-agent** - Create a new design workflow agent for the /design workflow
 - **/ai-resources:add-voice-context** - Add terms or context to voice-to-text config files
-- **/ai-resources:analyze-ralph-logs** - Analyze Ralph Loop workflow execution logs
 - **/ai-resources:approve** - Approve an implementation plan for immediate execution
 - **/ai-resources:break-into-subtasks** - Break frontend features into parallelizable work items
 - **/ai-resources:changes-tour-guide** - Create a pedagogical walkthrough of recent code changes
@@ -72,7 +70,6 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **/ai-resources:commit** - Commit staged changes with an AI-generated commit message
 - **/ai-resources:compress** - Optimize and compress AI instructions for token efficiency
 - **/ai-resources:config-audit** - Audit Claude Code and Cursor IDE configurations for gaps
-- **/ai-resources:configure-ralph** - Configure ralph-claude-code for a new objective
 - **/ai-resources:create-plan-anthropic** - Create a detailed, decision-complete implementation plan
 - **/ai-resources:create-reference** - Create an AI-optimized reference document for a tool or API
 - **/ai-resources:create-requirements** - Write a PRD or requirements document
@@ -87,7 +84,6 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **/ai-resources:local-commit** - Commit to the local private repository via lgit
 - **/ai-resources:local-init** - Initialize a new local private repository in the current directory
 - **/ai-resources:reflection** - Reflect on conversation to suggest CLAUDE.md improvements
-- **/ai-resources:sdd-to-ralph** - Convert CCSDD specs into Ralph execution artifacts
 - **/ai-resources:skill-creator** - Create or update a Claude Code skill
 - **/ai-resources:steer** - Create a navigation steering document from codebase exploration
 - **/ai-resources:understand-objective-anthropic** - Research and clarify a development objective

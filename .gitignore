@@ -4,21 +4,7 @@ claude/ai-resources-plugin/servers
 PROMPT.md
 memory-bank/focus.md
 
-.ralph/.call_count
-.ralph/.circuit_breaker_history
-.ralph/.circuit_breaker_state
-.ralph/.exit_signals
-.ralph/.last_reset
-.ralph/.loop_start_sha
-.ralph/.ralph_session
-.ralph/.ralph_session_history
-.ralph/fix_plan.md
-.ralph/live.log
-.ralph/progress.json
-.ralph/status.json
-.ralph/logs
 voice-to-text/dist
-typescript/.ralph/live.log
 
 voice-output.md
 .voice-last.json

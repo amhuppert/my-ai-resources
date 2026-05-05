@@ -362,19 +362,15 @@ memory-bank-mcp
 steering files
 ```
 
-### 3e. Check & Update: `.cursor/commands/_init-ralph-task.md`
-
-Read this file. If it references `memory-bank` as a concept (beyond `memory-bank/focus.md` path), update the language. The `memory-bank/focus.md` path reference is still valid and should remain.
-
-### 3f. Check & Update: `claude/ai-resources-plugin/skills/jog-users-memory/SKILL.md`
+### 3e. Check & Update: `claude/ai-resources-plugin/skills/jog-users-memory/SKILL.md`
 
 Read this file. If it references "memory bank" broadly, update to reference steering context. Keep the `memory-bank/focus.md` path reference since focus.md stays.
 
-### 3g. Check & Update: `claude/ai-resources-plugin/skills/save-current-context/SKILL.md`
+### 3f. Check & Update: `claude/ai-resources-plugin/skills/save-current-context/SKILL.md`
 
 Read this file. If it references memory-bank or document-map concepts, update accordingly.
 
-### 3h. `document-map.md` (Project Root)
+### 3g. `document-map.md` (Project Root)
 
 This file is deleted in Phase 5. No modifications needed — just ensure CLAUDE.md references are updated first (Phase 2).
 
@@ -484,7 +480,6 @@ Confirm `init-document-map` no longer appears in the help output.
 | `voice-context.md` | Remove legacy terms, update focus.md description, add steering files term, remove deprecated skills |
 | `voice-vocabulary.md` | Remove 14 legacy entries, add steering files |
 | `typescript/scripts/ai.ts` | Remove init-document-map command (~77 lines) |
-| `.cursor/commands/_init-ralph-task.md` | Check and update if needed |
 | `claude/ai-resources-plugin/skills/jog-users-memory/SKILL.md` | Check and update if needed |
 | `claude/ai-resources-plugin/skills/save-current-context/SKILL.md` | Check and update if needed |
 

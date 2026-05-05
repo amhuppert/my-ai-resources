@@ -11,7 +11,6 @@ write-file-atomic
 CLAUDE.md
 MCP
 voice-to-text
-Ralph
 CCSDD
 SDD
 PRD
@@ -29,14 +28,12 @@ modelcontextprotocol
 /audit-standards
 /ai-resources:add-design-agent
 /ai-resources:add-voice-context
-/ai-resources:analyze-ralph-logs
 /ai-resources:approve
 /ai-resources:break-into-subtasks
 /ai-resources:changes-tour-guide
 /ai-resources:cheat-sheet
 /ai-resources:commit
 /ai-resources:compress
-/ai-resources:configure-ralph
 /ai-resources:create-plan-anthropic
 /ai-resources:create-reference
 /ai-resources:create-requirements
@@ -49,7 +46,6 @@ modelcontextprotocol
 /ai-resources:local-commit
 /ai-resources:local-init
 /ai-resources:reflection
-/ai-resources:sdd-to-ralph
 /ai-resources:skill-creator
 /ai-resources:steer
 /ai-resources:understand-objective-anthropic
