@@ -1,7 +1,8 @@
 ---
 name: changes-tour-guide
-description: This skill should be used when the user wants to create a code change review guide that walks through recent code changes in a clear, pedagogical manner. Produces a two-phase markdown walkthrough (high-level overview then detailed explanations) organized in logical dependency order.
+description: Walk through recent code changes pedagogically: a two-phase markdown guide (overview, then detailed explanations) in dependency order.
 allowed-tools: Read, Write, Bash(git diff:*), Bash(git log:*), Bash(git status:*), Bash(git show:*)
+disable-model-invocation: true
 ---
 
 # Code Change Review Guide Creator

@@ -1,6 +1,7 @@
 ---
 name: break-into-subtasks
-description: This skill should be used when breaking down frontend feature requirements into parallelizable work items (API clients, UI components, and integration tasks) with clear dependencies. Particularly useful for creating structured work breakdowns with Mermaid diagrams and organizing tasks for team development.
+description: Break frontend feature requirements into parallelizable subtasks (API, UI, integration) with dependencies and a Mermaid diagram.
+disable-model-invocation: true
 ---
 
 # Break Into Subtasks

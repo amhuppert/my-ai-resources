@@ -1,6 +1,7 @@
 ---
 name: jog-users-memory
-description: This skill should be used when the user returns after being away and needs a quick memory jog about current progress, upcoming steps, and open questions. Provides a brief, scannable summary—not a comprehensive report.
+description: Jog the user's memory after they've been away: a brief, scannable summary of progress, next steps, and open questions.
+disable-model-invocation: true
 allowed-tools: Read, Bash(git log:*), Bash(git status:*), Bash(git diff:*)
 ---
 

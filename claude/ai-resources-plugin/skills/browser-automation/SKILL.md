@@ -1,6 +1,6 @@
 ---
 name: browser-automation
-description: This skill should be used when the user asks to "test a web app in the browser", "open a browser", "verify the UI", "check the page visually", "automate browser interaction", "take a screenshot of the app", "test the login flow", "debug the UI in a browser", "inspect the page", "run playwright", "use playwright MCP", "use playwright CLI", or mentions browser automation, visual verification, or web app testing with Playwright.
+description: Automate browser interaction with Playwright: open pages, take screenshots, verify UI, test flows, debug pages, inspect elements.
 ---
 
 # Browser Automation with Playwright

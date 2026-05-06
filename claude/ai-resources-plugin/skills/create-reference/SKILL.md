@@ -1,8 +1,9 @@
 ---
 name: create-reference
-description: This skill should be used when the user wants to create or update a reference document that teaches AI agents how to use a tool, technology, library, framework, or API. It conducts thorough research (web searches, documentation reading, codebase exploration) and produces a comprehensive, AI-optimized reference document.
+description: Create or update an AI-optimized reference document for a tool, library, framework, or API via thorough research.
 argument-hint: "<subject> [--update <existing-file>] [--language <language>]"
 allowed-tools: Read, Write, Glob, Grep, WebSearch, WebFetch, Task, AskUserQuestion, Bash(ls:*)
+disable-model-invocation: true
 ---
 
 # Reference Document Creator

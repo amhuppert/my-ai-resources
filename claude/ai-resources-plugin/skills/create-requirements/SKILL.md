@@ -1,6 +1,7 @@
 ---
 name: create-requirements
-description: This skill should be used when the user asks to "create a PRD", "write product requirements", "document app requirements", "create requirements document", or wants to define product behavior and functionality in a structured format. Provides guidance for writing comprehensive PRDs with app summary, design principles, and detailed requirements.
+description: Create a PRD / product requirements document with app summary, design principles, and detailed requirements.
+disable-model-invocation: true
 allowed-tools: Read, Write, Glob
 ---
 

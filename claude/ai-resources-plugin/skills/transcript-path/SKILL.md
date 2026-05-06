@@ -1,6 +1,6 @@
 ---
 name: transcript-path
-description: This skill should be used when the user asks to "find the transcript", "transcript file path", "path to this conversation", "where is the conversation log", "find the jsonl for session X", "transcript for project Y session Z", or otherwise wants to locate the on-disk Claude Code transcript file (.jsonl under ~/.claude/projects/) for the current conversation or another conversation specified by project path and session ID.
+description: Locate the on-disk Claude Code transcript file (.jsonl under ~/.claude/projects/) for the current or a specified conversation.
 ---
 
 # Conversation Transcript Path

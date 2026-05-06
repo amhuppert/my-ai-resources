@@ -1,6 +1,7 @@
 ---
 name: Save Current Context
-description: This skill should be used when the user asks to "save current context", "save progress", "save what we've done", "create a context file", "preserve context", "document current state", "save a handoff file", or wants to capture the current session's work so a future AI agent can continue it.
+description: Save current session context to a handoff file so a future AI agent can continue with no prior context.
+disable-model-invocation: true
 ---
 
 # Save Current Context

@@ -1,6 +1,6 @@
 ---
 name: code-standards-review
-description: Use this skill when reviewing a codebase for adherence to code standards. Performs comprehensive standards audits using specialized agents with progressive disclosure to determine which standards apply to the specific codebase.
+description: Review a codebase for adherence to code standards. Uses specialized agents with progressive disclosure to determine which standards apply.
 ---
 
 # Code Standards Review Skill

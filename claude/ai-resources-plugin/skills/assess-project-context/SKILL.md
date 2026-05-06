@@ -1,6 +1,7 @@
 ---
 name: assess-project-context
-description: This skill should be used when the user asks to "assess project context", "audit default context", "evaluate project understanding", "check what I know about this project", "review project onboarding context", "rate my CLAUDE.md", "grade my onboarding context", or wants to understand how well the default conversation context conveys the project to an AI agent. Produces a scored baseline and extended assessment across six dimensions with concrete improvement recommendations.
+description: Assess / rate the default project context (CLAUDE.md, onboarding). Scores how well it conveys the project to AI across six dimensions, with improvement recommendations.
+disable-model-invocation: true
 allowed-tools: Read, Glob, Grep
 ---
 

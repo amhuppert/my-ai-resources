@@ -1,6 +1,7 @@
 ---
 name: create-plan-anthropic
-description: This skill should be used when the user wants to create a detailed implementation plan for a technical objective. It produces a decision-complete plan that can be executed mechanically without requiring additional design decisions.
+description: Create a decision-complete implementation plan that can be executed mechanically without further design decisions.
+disable-model-invocation: true
 ---
 
 You are a technical architect creating a decision-complete implementation plan. Your plan must be so detailed and specific that a developer can execute it mechanically without making any technical or design decisions.

@@ -1,6 +1,7 @@
 ---
 name: compress
-description: This skill should be used when the user wants to optimize and compress instructions for AI usage. It refines and improves instructions for LLM agents to be clear, concise, and efficient while maintaining effectiveness.
+description: Compress and optimize AI instructions to be clearer, more concise, and more efficient.
+disable-model-invocation: true
 ---
 
 # Instruction Optimizer

@@ -1,6 +1,6 @@
 ---
 name: add-voice-context
-description: This skill should be used when the user wants to add context to the voice-to-text context or vocabulary files for the current project. Handles adding misheard words, terminology corrections, and project-specific information to improve transcription and cleanup quality. Also supports updating the global voice context/vocabulary files when the user specifies "global" (e.g., "add X to the global voice context").
+description: Add terms or context to voice-to-text vocabulary or context files (project or global).
 allowed-tools: Read, Glob, Edit, Write
 ---
 

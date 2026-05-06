@@ -1,8 +1,9 @@
 ---
 name: cheat-sheet
-description: This skill should be used when the user asks to "create a cheat sheet", "make a cheat sheet", "generate a cheat sheet", "quick reference for", "cheat sheet for", or wants a concise, printable reference document for a specific tool, technology, language, or framework. Produces a 1-2 page reference focusing on the most commonly used commands, features, and patterns.
+description: Create a 1-2 page cheat sheet / quick reference for a tool, language, or framework.
 argument-hint: "<topic> [--pdf] [--output <path>]"
 allowed-tools: Read, Write, WebSearch, WebFetch, Task, AskUserQuestion, Skill
+disable-model-invocation: true
 ---
 
 # Cheat Sheet Creator

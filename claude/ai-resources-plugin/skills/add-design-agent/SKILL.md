@@ -1,6 +1,7 @@
 ---
 name: add-design-agent
-description: This skill should be used when the user wants to create a new design workflow agent for their project. Guides creation of research or review agents that integrate with the /design workflow, using the plugin-dev:agent-development skill.
+description: Create a research or review agent for the /design workflow.
+disable-model-invocation: true
 argument-hint: [research|review] [agent-name]
 allowed-tools: Read, Write, Edit, AskUserQuestion
 ---

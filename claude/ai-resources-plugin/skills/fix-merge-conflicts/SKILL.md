@@ -1,6 +1,6 @@
 ---
 name: fix-merge-conflicts
-description: This skill should be used when the user asks to "fix merge conflicts", "resolve merge conflicts", "help with merge conflicts", "fix conflicts", "resolve conflicts", "finish the merge", "conflicts after rebase", or when git status shows unmerged paths or merge conflict markers (<<<<<<< / ======= / >>>>>>>).
+description: Resolve git merge conflicts. Use when git status shows unmerged paths or files contain conflict markers (<<<<<<< / ======= / >>>>>>>).
 allowed-tools: Bash, Read, Edit, Glob, Grep
 ---
 

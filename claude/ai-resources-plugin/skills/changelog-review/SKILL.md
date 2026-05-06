@@ -1,6 +1,7 @@
 ---
 name: changelog-review
-description: This skill should be used when the user asks to "review the changelog", "what's new in Claude Code", "Claude Code updates", "recent Claude Code changes", "changelog report", "what changed in Claude Code", or wants a summary of recent Claude Code changes and their significance.
+description: Review the Claude Code changelog and summarize recent changes and their significance.
+disable-model-invocation: true
 argument-hint: "[--comprehensive] [--since <date>]"
 allowed-tools: Read, Write, WebFetch, WebSearch, Task, AskUserQuestion
 ---

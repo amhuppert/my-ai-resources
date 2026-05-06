@@ -1,10 +1,7 @@
 ---
 name: explainer-document
-description: >-
-  This skill should be used when the user asks to "write an explainer",
-  "create a learning document", "explain X for beginners", "write a guide
-  about", "create a document explaining", or wants a concise educational
-  document that teaches a topic to someone unfamiliar with it.
+description: Write a concise explainer / learning document / beginner guide that teaches a topic to someone unfamiliar with it.
+disable-model-invocation: true
 ---
 
 # Explainer Document

@@ -1,6 +1,6 @@
 ---
 name: web-debugger
-description: This skill should be used when the user asks to "debug a web app", "check app logs", "get application state", "inspect runtime state", "get a snapshot", "check what the app is doing", "view server logs", "debug React state", "check the query cache", or mentions runtime debugging, application state inspection, or structured log analysis for a web application that has the web-debugger SDK integrated.
+description: Debug a running web app via the web-debugger SDK: app logs, application state, runtime snapshots, React state, query cache.
 ---
 
 # Web App Debugger

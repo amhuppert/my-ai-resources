@@ -1,6 +1,6 @@
 ---
 name: ai-validation-output
-description: This skill should be used when the user wants to configure validation tools for AI-optimal output, set up a pre-commit hook or validation script for AI agents, optimize linter/test/typecheck output for Claude Code, reduce token waste from tool output, or configure CommandCenter.json for pre-merge validation. Also triggered by "set up AI validation", "optimize test output for AI", "configure eslint for claude", "reduce test output noise", or "set up pre-merge checks".
+description: Configure AI-optimal validation: pre-commit hooks, CommandCenter.json, and low-noise linter/test/typecheck output for AI agents.
 ---
 
 # AI-Optimal Validation Output

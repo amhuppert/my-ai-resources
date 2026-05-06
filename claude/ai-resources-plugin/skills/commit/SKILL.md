@@ -1,6 +1,7 @@
 ---
 name: commit
-description: This skill should be used when the user wants to commit staged changes to git. It analyzes the staged changes, generates an appropriate commit message, and executes the commit after user approval.
+description: Commit staged git changes after generating and approving a message.
+disable-model-invocation: true
 allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff --cached), Bash(git commit -m:*)
 ---
 

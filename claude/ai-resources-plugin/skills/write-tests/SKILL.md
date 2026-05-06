@@ -1,6 +1,6 @@
 ---
 name: write-tests
-description: This skill should be used when the user asks to "write tests", "add tests", "create unit tests", "test this function", "test this component", "add test coverage", or wants to write automated tests for code. Guides test selection, mocking strategy, and writing tests that verify behavior rather than implementation details.
+description: Write automated tests. Guides test selection, mocking strategy, and writing tests that verify behavior over implementation.
 ---
 
 # Write Tests

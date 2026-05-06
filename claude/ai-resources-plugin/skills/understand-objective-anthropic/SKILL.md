@@ -1,6 +1,6 @@
 ---
 name: understand-objective-anthropic
-description: This skill should be used when the user wants to thoroughly understand a software development objective before beginning implementation. It conducts research, identifies ambiguities, asks clarifying questions, and confirms full understanding before work begins.
+description: Thoroughly understand a software development objective before implementation: research, identify ambiguities, ask clarifying questions.
 ---
 
 # Objective Understanding Assistant

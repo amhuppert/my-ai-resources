@@ -1,6 +1,7 @@
 ---
 name: design
-description: This skill should be used when the user wants to create or iterate on a software design. Orchestrates a multi-agent collaborative design workflow with parallel research and review phases. Requires a design name to organize artifacts in memory-bank/planning/{name}/. Supports "new" mode for fresh designs and iteration mode for improving existing designs.
+description: Create or iterate on a software design via a multi-agent workflow with parallel research and review phases. Stores artifacts in memory-bank/planning/{name}/.
+disable-model-invocation: true
 argument-hint: <name> [focus-area or "new"]
 allowed-tools: Read, Grep, Glob, Write, Task, WebSearch, WebFetch, AskUserQuestion
 ---

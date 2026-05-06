@@ -1,6 +1,6 @@
 ---
 name: investigate-web-perf
-description: This skill should be used when the user asks to "investigate a performance issue", "debug a slow page", "LCP is too high", "LCP regression", "INP is too slow", "slow interaction", "why is this re-rendering", "unnecessary re-renders", "bundle is too big", "bundle bloat", "memory leak", "analyze a performance trace", "debug web performance", "debug React performance", "debug Next.js performance", "Core Web Vitals regression", "ForcedReflow", or otherwise wants to diagnose a runtime performance problem in a web app using `chrome-devtools-mcp` traces and insights. Requires the `setup-perf-stack` tooling to be installed first.
+description: Investigate web perf issues: LCP/INP regressions, slow interactions, unnecessary React re-renders, bundle bloat, memory leaks, ForcedReflow. Uses chrome-devtools-mcp traces. Requires setup-perf-stack.
 ---
 
 # Investigate Web Performance Issues

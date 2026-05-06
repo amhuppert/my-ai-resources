@@ -1,11 +1,6 @@
 ---
 name: nano-banana-prompt
-description: >-
-  This skill should be used when the user asks to "generate an image prompt",
-  "create a Nano Banana prompt", "write a prompt for Nano Banana 2",
-  "optimize an image generation prompt", "Nano Banana", "NB2 prompt",
-  "image prompt for Gemini", or wants to create a high-quality prompt
-  optimized for Google's Nano Banana 2 image generation model.
+description: Create a high-quality image generation prompt for Google's Nano Banana 2 (NB2) model on Gemini.
 argument-hint: "<image description or concept>"
 allowed-tools: Read, AskUserQuestion
 ---

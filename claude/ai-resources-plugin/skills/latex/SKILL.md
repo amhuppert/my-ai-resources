@@ -1,6 +1,6 @@
 ---
 name: latex
-description: This skill should be used when the user asks to "create a LaTeX document", "convert markdown to LaTeX", "make a PDF from markdown", "format as LaTeX", "write LaTeX", or wants to produce beautifully typeset documents. Handles LaTeX generation from any input source with professional typography, and optionally compiles to PDF.
+description: Generate LaTeX documents (or convert markdown to LaTeX) with professional typography. Optionally compile to PDF.
 allowed-tools: Read, Write, Bash(pdflatex:*), Bash(xelatex:*), Bash(lualatex:*), Bash(latexmk:*), Bash(biber:*), Bash(bibtex:*), Bash(which:*), Bash(uname:*)
 ---
 

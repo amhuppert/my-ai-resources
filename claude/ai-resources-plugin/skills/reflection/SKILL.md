@@ -1,6 +1,7 @@
 ---
 name: reflection
-description: This skill should be used when the user wants Claude to reflect on the conversation and suggest improvements to CLAUDE.md configuration files. It analyzes chat history and proposes optimizations to enhance Claude's performance.
+description: Reflect on the conversation and propose improvements to CLAUDE.md configuration files.
+disable-model-invocation: true
 ---
 
 # Claude Instructions Optimizer

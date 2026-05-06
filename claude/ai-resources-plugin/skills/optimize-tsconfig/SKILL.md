@@ -1,8 +1,9 @@
 ---
 name: optimize-tsconfig
-description: This skill should be used when the user asks to "optimize tsconfig", "speed up TypeScript", "reduce tsc memory", "fix slow tsc watch", "too many file watchers", "TypeScript performance", "tsc is slow", "TypeScript build time", or "tsconfig audit". Analyzes existing tsconfig.json files and recommends targeted configuration changes for build speed, watch mode, and memory usage.
+description: Optimize tsconfig.json for build speed, watch mode, and tsc memory. Use for slow tsc, too many file watchers, or TypeScript performance audits.
 argument-hint: "[path/to/tsconfig.json]"
 allowed-tools: Read, Edit, Write, Bash(tsc:*), Bash(npx tsc:*), Glob, Grep, AskUserQuestion
+disable-model-invocation: true
 ---
 
 # TypeScript Configuration Performance Optimizer

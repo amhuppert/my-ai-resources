@@ -1,6 +1,7 @@
 ---
 name: steer
-description: This skill should be used at the end of a conversation to reflect on codebase navigation effectiveness. Triggered by "steer", "steer reflection", "navigation debrief", or "reflect on navigation". Analyzes dead ends, inefficiencies, and missing context, then presents actionable findings. Does NOT write any files — use /kiro:steering-custom afterward to persist insights as a steering document.
+description: Reflect on codebase navigation effectiveness at end of conversation. Surfaces dead ends, inefficiencies, missing context. Does not write files — pair with /kiro:steering-custom to persist.
+disable-model-invocation: true
 argument-hint: [topic-name]
 allowed-tools: Read, Glob, Grep
 ---

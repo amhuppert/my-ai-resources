@@ -1,6 +1,7 @@
 ---
 name: setup-perf-stack
-description: This skill should be used when the user asks to "set up performance debugging", "install chrome-devtools-mcp", "install the perf MCP stack", "equip Claude Code for React performance debugging", "set up frontend perf tooling", "add the Chrome DevTools MCP", "install next-devtools MCP", "install the performance tooling", or otherwise wants to bootstrap an AI-driven performance debugging workflow for a web application.
+description: Bootstrap web performance debugging tooling: install chrome-devtools-mcp and related MCP servers/skills.
+disable-model-invocation: true
 ---
 
 # Setup: Performance Debugging Stack

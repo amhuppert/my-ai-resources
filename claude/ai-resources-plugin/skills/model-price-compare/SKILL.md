@@ -1,6 +1,7 @@
 ---
 name: model-price-compare
-description: This skill should be used when the user asks to "compare model prices", "show model pricing", "generate a price comparison", "compare AI model costs", "model price chart", "compare frontier model prices", "pages per dollar", "cost per token comparison", "model pricing visualization", or mentions comparing pricing across AI providers like Anthropic, OpenAI, and Google.
+description: Compare AI model prices across Anthropic, OpenAI, and Google. Generates pages-per-dollar / cost-per-token visualizations.
+disable-model-invocation: true
 ---
 
 # Model Price Comparison

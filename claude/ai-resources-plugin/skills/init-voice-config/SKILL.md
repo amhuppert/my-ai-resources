@@ -1,6 +1,7 @@
 ---
 name: init-voice-config
-description: This skill should be used when the user wants to initialize voice-to-text configuration for the current project. Creates a voice.json config file and generates project-specific vocabulary and context files to improve transcription and cleanup quality.
+description: Initialize voice-to-text config for the project: voice.json, voice-vocabulary.md, voice-context.md.
+disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Write(voice.json), Write(voice-context.md), Write(voice-vocabulary.md), Agent
 ---
 

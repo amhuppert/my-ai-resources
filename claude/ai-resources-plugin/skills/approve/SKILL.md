@@ -1,6 +1,7 @@
 ---
 name: approve
-description: This skill should be used when the user wants to approve an implementation plan. It signals immediate execution of a previously created plan with no deviation or improvisation allowed.
+description: Approve and execute a previously created implementation plan with no deviation.
+disable-model-invocation: true
 ---
 
 # Approve Implementation Plan
