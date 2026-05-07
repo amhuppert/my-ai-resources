@@ -1,262 +1,98 @@
 ---
 name: browser-automation
 description: Automate browser interaction with Playwright: open pages, take screenshots, verify UI, test flows, debug pages, inspect elements.
+allowed-tools: Bash(playwright-cli:*), Bash(npx:*), Bash(npm:*), Bash(which:*), Bash(test:*), Bash(ls:*)
 ---
 
 # Browser Automation with Playwright
 
-Automate browser interactions for web app testing and visual verification using Playwright tools.
+Route the request to the right tool and let the dedicated skill drive the interaction. This file does **not** teach Playwright usage — it picks the tool, ensures the right skill is installed, and hands off.
 
-## Tool Selection: CLI First, MCP as Fallback
+## Routing Decision
 
-**Default to Playwright CLI.** It saves snapshots to disk as YAML files instead of streaming them into the context window, using ~4x fewer tokens than MCP for equivalent tasks.
+Pick **one** based on the use case:
 
-| Tool | When to Use | Token Cost |
-|------|------------|------------|
-| **Playwright CLI** (`playwright-cli`) | **Default choice.** All interactive browser automation when you have filesystem access | Low (~27K tokens/session) |
-| **Playwright MCP** (`browser_*` tools) | Fallback when CLI is unavailable, or when inline snapshot inspection is specifically needed | High (~114K tokens/session) |
-| **Test Runner** (`npx playwright test`) | Running existing test suites, codegen, visual regression, CI/CD | N/A (runs externally) |
+| Use case | Tool | Where to go |
+|----------|------|-------------|
+| Interactive automation, debugging a running app, ad-hoc verification | **Playwright CLI** | The official `playwright-cli` skill (see Setup) |
+| Running an existing Playwright test suite | `npx playwright test` | Official `playwright-cli` skill → `references/playwright-tests.md` |
+| Generating new test code from a recorded session | `npx playwright codegen` | Official `playwright-cli` skill → `references/test-generation.md` |
+| MCP-only client (Claude Desktop, Cursor) where shell isn't an option, or a single quick interaction where launching the CLI isn't worth it | **Playwright MCP** (fallback) | `references/playwright-mcp-reference.md` |
 
-### Decision Flow
+**Default to the CLI.** Microsoft's own guidance: coding agents are better served by CLI + skills than by MCP. CLI saves snapshots to disk instead of streaming them into context (~4× fewer tokens per session) and avoids the ~3,400-token MCP tool-schema overhead on every message. See `references/token-optimization.md` for the full breakdown.
 
-1. **Running existing tests?** → `npx playwright test`
-2. **Generating test code?** → `npx playwright codegen <url>`
-3. **CLI available?** → `playwright-cli` (check with `which playwright-cli`)
-4. **CLI unavailable?** → Playwright MCP (the `browser_*` tools)
+Use MCP only when no shell/filesystem is available, or for a one-shot interaction where setup overhead beats the per-action token savings.
 
-### Why CLI Over MCP
+## Setup: Required Before Any CLI Workflow
 
-- **Snapshots save to disk** — only read them when needed, instead of accumulating in context
-- **4x fewer tokens** — ~27K vs ~114K for equivalent sessions (benchmarked by Microsoft)
-- **No tool definition overhead** — MCP loads ~3,400 tokens of tool schemas on every message, whether used or not
-- **Parallel sessions** — named sessions (`-s=name`) for multi-browser workflows
+The Playwright CLI ships its own Claude Code skill (`playwright-cli`) — the canonical, always-up-to-date command reference plus task playbooks (test running, request mocking, tracing, video recording, storage state, spec-driven testing, element-attribute inspection, session management). This skill **never** duplicates that content. It either defers to the official skill or installs it.
 
-### When MCP Is Still Appropriate
-
-- CLI is not installed and cannot be installed
-- The client lacks filesystem access (Claude Desktop, Cursor)
-- You specifically need inline snapshot inspection in the conversation
-- Quick one-off interactions (1-3 steps) where CLI setup overhead isn't worth it
-
-## Setup
-
-### Playwright CLI (Preferred)
+### Step 1 — Detect
 
 ```bash
+# Is the binary on PATH?
+which playwright-cli || npx --no-install playwright-cli --version
+
+# Is the skill installed (project-level or user-level)?
+test -f .claude/skills/playwright-cli/SKILL.md && echo "project skill installed"
+test -f ~/.claude/skills/playwright-cli/SKILL.md && echo "user skill installed"
+```
+
+### Step 2 — Install if missing
+
+Install without asking — Alex always wants the official skill present:
+
+```bash
+# Install the global binary if `which playwright-cli` failed
 npm install -g @playwright/cli@latest
-playwright-cli install                    # install browsers
-playwright-cli install --skills           # generate Claude Code skills files
+
+# Scaffold .playwright/ workspace, install default browser,
+# and copy the skill to ./.claude/skills/playwright-cli/
+playwright-cli install --skills
 ```
 
-### Playwright MCP (Fallback)
+Briefly state what was installed (binary + skill path) so Alex can see it.
 
-Already configured at user level with optimized flags. If reconfiguring:
+### Step 3 — Hand off
 
-```bash
-claude mcp add playwright -- npx @playwright/mcp@latest --headless --snapshot-mode incremental --codegen none --console-level error --image-responses omit
-```
+After install, **all CLI command reference and patterns come from the official `playwright-cli` skill**. Do not invent commands, paraphrase its content here, or fall back to memory. Read its `SKILL.md` and the relevant `references/*.md` for the task at hand.
 
-### Test Runner
-
-```bash
-npm init playwright@latest    # scaffold project
-npx playwright install        # install browsers
-```
-
-## Core Workflow: Playwright CLI
-
-The CLI saves snapshots to `.playwright-cli/` as YAML files. Read them only when you need to inspect page structure.
-
-### 1. Open and Navigate
-
-```bash
-playwright-cli open http://localhost:3000         # launch browser
-playwright-cli snapshot                           # get element refs (saved to disk)
-```
-
-Read the snapshot file to find element refs, then interact:
-
-### 2. Interact Using Refs
-
-```bash
-playwright-cli click e15                          # click by ref
-playwright-cli fill e8 "user@example.com"         # fill input
-playwright-cli fill e12 "password123"             # fill another input
-playwright-cli press Enter                        # press key
-```
-
-### 3. Verify State
-
-```bash
-playwright-cli snapshot                           # check state (saved to disk)
-playwright-cli screenshot                         # save screenshot to disk
-playwright-cli screenshot --filename=result.png   # save with specific name
-```
-
-### Named Sessions for Parallel Work
-
-```bash
-playwright-cli -s=app open http://localhost:3000
-playwright-cli -s=admin open http://localhost:3000/admin
-playwright-cli -s=app snapshot
-```
-
-### Auth State Persistence
-
-Save authentication state to avoid re-authenticating across sessions:
-
-```bash
-playwright-cli state-save auth.json               # save after logging in
-playwright-cli state-load auth.json               # restore in future session
-```
-
-### Data Extraction Without Navigation
-
-Use `eval` instead of navigating and snapshotting multiple pages:
-
-```bash
-playwright-cli eval "document.querySelectorAll('.item').length"
-playwright-cli eval "JSON.stringify(Array.from(document.querySelectorAll('tr')).map(r => r.textContent))"
-```
-
-## Core Workflow: Playwright MCP (Fallback)
-
-The MCP exposes `browser_*` tools. **Every action returns a snapshot inline**, which accumulates in context — be deliberate about minimizing calls.
-
-### 1. Navigate and Snapshot
-
-```
-browser_navigate → url: "http://localhost:3000"
-browser_snapshot                                  # understand page structure
-```
-
-The snapshot returns an accessibility tree with element refs (e.g., `ref="e15"`).
-
-### 2. Interact Using Refs
-
-```
-browser_click → ref: "e15"
-browser_fill_form → fields: [                     # fill multiple fields at once (CRITICAL: saves N tool calls)
-  { ref: "e8", value: "user@example.com" },
-  { ref: "e12", value: "password123" }
-]
-browser_press_key → key: "Enter"
-```
-
-### 3. Verify State
-
-```
-browser_snapshot                                  # check result
-browser_take_screenshot                           # visual verification only when needed
-```
-
-### MCP Token-Saving Principles
-
-- **Always use `browser_fill_form`** for multiple fields — each separate `browser_type` call returns a full snapshot
-- **Use `browser_snapshot` with `selector`** to snapshot only a section (e.g., a modal dialog), not the entire page
-- **Use `browser_snapshot` with `depth`** to limit tree depth on complex pages
-- **Use `filename` parameter** on `browser_evaluate`, `browser_console_messages`, `browser_network_requests`, and `browser_snapshot` to save large outputs to disk instead of returning inline
-- **Use `browser_evaluate`** for data extraction instead of navigating multiple pages
-- **Use `browser_wait_for`** with specific text rather than arbitrary time waits
-- **Never take screenshots redundantly** — snapshots are returned automatically after every action; only use `browser_take_screenshot` for visual verification (CSS, layout, canvas)
-- **Close the browser when done** with `browser_close`
-
-### MCP: Scoping Down Large Pages
-
-On complex pages, a full snapshot can be 50K+ tokens. Scope it down:
-
-```
-# Snapshot only a dialog
-browser_snapshot → selector: "[role=dialog]"
-
-# Limit tree depth
-browser_snapshot → depth: 3
-
-# Save to disk instead of returning inline
-browser_snapshot → filename: "page-state.yml"
-```
-
-## Visual Verification
-
-### Snapshots vs Screenshots
-
-| | Snapshot (accessibility tree) | Screenshot (image) |
-|-|-----|-----|
-| Token cost | ~3,800 tokens | ~10,000+ tokens |
-| Can drive actions? | Yes (returns element refs) | No |
-| Use for | Structure, content, interaction | Visual appearance, CSS, canvas/WebGL |
-
-**Use snapshots by default.** Only take screenshots for visual verification (styling, layout, canvas content).
-
-### Quick Visual Check (CLI — preferred)
-
-```bash
-playwright-cli open http://localhost:3000/dashboard
-playwright-cli screenshot --filename=dashboard.png
-```
-
-Then read the screenshot file to inspect visually.
-
-### Quick Visual Check (MCP)
-
-```
-browser_navigate → url: "http://localhost:3000/dashboard"
-browser_take_screenshot
-```
-
-## Token Optimization Essentials
-
-1. **Use CLI over MCP** — snapshots save to disk instead of accumulating in context (~4x cheaper)
-2. **Prefer snapshots over screenshots** — ~3,800 tokens vs 10,000+ for images
-3. **Scope snapshots on complex pages** — use `selector` and `depth` parameters (MCP) to avoid 50K+ token snapshots
-4. **Batch form fills** — `browser_fill_form` (MCP) or sequential `fill` (CLI) instead of N separate `browser_type` calls
-5. **Save large outputs to disk** — use `filename` parameter on `browser_evaluate`, `browser_snapshot`, `browser_console_messages`, `browser_network_requests`
-6. **Use subagents for browser automation** — each subagent gets its own context loop, preventing the main conversation from filling up with browser state
-7. **Be specific in prompts** — provide URLs, selectors, and exact steps upfront to reduce exploratory navigation
-8. **Disconnect MCP when not in use** — tool definitions consume ~3,400 tokens on every message whether used or not
-
-For the complete optimization guide (auth state persistence, secrets management, architecture decisions), see `references/token-optimization.md`.
+If you find yourself wanting to add CLI command examples to *this* skill, stop — the right place is upstream (the official skill) or, for our own router-level concerns, in `references/token-optimization.md`.
 
 ## Architecture: Use Subagents for Browser Work
 
-For sessions involving more than a few browser interactions, **delegate to a subagent**. The Playwright maintainer explicitly recommends this pattern. Each subagent gets its own context loop — browser snapshots accumulate there instead of in the main conversation.
+For sessions involving more than a few interactions, **delegate to a subagent**. The Playwright maintainer recommends this pattern explicitly: each subagent gets its own context loop, so browser snapshots and intermediate state accumulate there instead of in the main conversation.
 
 ```
-# In the main conversation, delegate browser work:
 "Use a subagent to: navigate to http://localhost:3000/settings,
- verify the theme toggle exists, click it, and confirm the page
- switches to dark mode. Report back pass/fail."
+ verify the theme toggle exists, click it, confirm dark mode applies.
+ Report back pass/fail."
 ```
-
-## Self-Improvement
-
-During browser automation, watch for signs of inefficiency or struggle:
-
-- **Repeated failed interactions** (wrong refs, stale snapshots, elements not found)
-- **Excessive navigation** (visiting many pages when `eval` or direct URLs would suffice)
-- **Tool mismatch** (using MCP for a 30+ step session, or CLI for a quick 1-step check when MCP is already connected)
-- **Missing knowledge** (workarounds for auth flows, dynamic content, SPAs, or specific UI frameworks that this skill doesn't cover)
-- **Token waste** (taking screenshots when snapshots suffice, not batching form fills, redundant snapshots, not using `selector`/`depth` to scope down large pages)
-
-When any of these occur, after completing the immediate task, proactively suggest concrete improvements to this skill. Frame suggestions as specific edits — new patterns to add, existing guidance to revise, or missing reference material to create. Direct suggestions to Alex, who maintains this skill.
 
 ## Runtime Debugging
 
-When browser automation reveals unexpected behavior — errors in the console, wrong UI state, or failed interactions — combine Playwright with the **web-debugger** for runtime inspection:
+When browser automation reveals unexpected behavior — console errors, wrong UI state, failed interactions — combine Playwright with the **web-debugger** skill for runtime inspection:
 
 1. Reproduce the issue with Playwright
-2. Use `get_logs` to check structured application logs (both browser and server)
-3. Use `get_snapshot` to inspect application state at the point of failure
-4. Fix the issue and verify with Playwright
+2. Use `get_logs` to check structured app logs (browser + server)
+3. Use `get_snapshot` to inspect application state at the failure point
+4. Fix and verify with Playwright
 
-See `/web-debugger` for full tool reference, log format, and snapshot serialization details.
+See the `web-debugger` skill for full tool reference.
 
-## Additional Resources
+## Self-Improvement
 
-### Reference Files
+Watch for inefficiency or struggle:
 
-For complete tool references and advanced usage, consult:
+- **Repeated failed interactions** (wrong refs, stale snapshots, elements not found)
+- **Excessive navigation** when `eval` or direct URLs would suffice
+- **Tool mismatch** (using MCP for a 30+ step session, or CLI for a single-step check inside an MCP-only client)
+- **Token waste** (screenshots when snapshots suffice, redundant snapshots, full-page snapshots on huge apps)
+- **Missing knowledge in the official skill** (auth flows, dynamic content, SPA edge cases, framework-specific quirks)
 
-- **`references/playwright-cli-reference.md`** — Full CLI command reference (63+ commands), session management, configuration, and snapshot system
-- **`references/playwright-mcp-reference.md`** — Complete MCP tool catalog, all configuration options, capability groups, and interaction patterns
-- **`references/token-optimization.md`** — Detailed token cost analysis, optimization strategies, and architecture-level decisions for minimizing consumption
+Surface concrete suggestions to Alex after the immediate task. For CLI command gaps, the fix is upstream in the official `playwright-cli` skill, not here. For routing, MCP, or token-economics gaps, propose specific edits to this skill or its references.
+
+## References
+
+- **`references/playwright-mcp-reference.md`** — MCP setup, full tool catalog, configuration flags, and patterns. Use only when CLI isn't an option.
+- **`references/token-optimization.md`** — Token cost analysis, per-tool optimization patterns, architecture-level decisions.

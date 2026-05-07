@@ -1,20 +1,75 @@
-# Playwright MCP Server — Complete Reference
+# Playwright MCP — Fallback Reference
 
-## Installation
+Use the MCP **only** when the CLI is not an option:
+
+- The client lacks shell/filesystem access (Claude Desktop, Cursor without terminal)
+- A one-shot 1–3 step interaction where launching the CLI isn't worth it
+- Specific need for inline snapshot inspection in the conversation
+
+For everything else — interactive automation, debugging, multi-step flows, test running — use the Playwright CLI (~4× cheaper per session). See the parent SKILL.md for routing.
+
+## Setup
+
+### Standard install (Claude Code)
 
 ```bash
-# Add to Claude Code (project scope)
-claude mcp add playwright -- npx @playwright/mcp@latest --headless
-
-# Add with JSON config
-claude mcp add-json playwright '{"type":"stdio","command":"npx","args":["@playwright/mcp@latest","--headless"]}'
+claude mcp add playwright -- npx @playwright/mcp@latest
 ```
 
-Scopes: `--scope local` (default, private), `--scope project` (shared via `.mcp.json`), `--scope user` (all projects).
+### Token-optimized install (recommended)
+
+The defaults are wasteful. Pass these flags explicitly:
+
+```bash
+claude mcp add playwright -- npx @playwright/mcp@latest \
+  --headless \
+  --snapshot-mode incremental \
+  --codegen none \
+  --console-level error \
+  --image-responses omit
+```
+
+Why each flag matters:
+
+| Flag | Why |
+|------|-----|
+| `--headless` | No visible window; lower resource use |
+| `--snapshot-mode incremental` (default) | Sends only diffs after the first snapshot |
+| `--codegen none` | Stops generating TypeScript test code on every action (rarely needed interactively) |
+| `--console-level error` | Default `info` caused a documented 6× token spike on error-heavy SPAs |
+| `--image-responses omit` | Don't auto-inline screenshots; request them only when you need visual verification |
+
+### Scopes
+
+| Scope | When | Flag |
+|-------|------|------|
+| Local (default) | Personal use, this project only | none |
+| Project | Shared via committed `.mcp.json` | `--scope project` |
+| User | All your projects | `--scope user` |
+
+### Config file alternative
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless",
+        "--snapshot-mode", "incremental",
+        "--codegen", "none",
+        "--console-level", "error",
+        "--image-responses", "omit"
+      ]
+    }
+  }
+}
+```
 
 ## Configuration Flags
 
-Every flag has a corresponding env var prefixed with `PLAYWRIGHT_MCP_`.
+Every flag has an env-var equivalent prefixed with `PLAYWRIGHT_MCP_`.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -24,7 +79,7 @@ Every flag has a corresponding env var prefixed with `PLAYWRIGHT_MCP_`.
 | `--user-data-dir` | Persistent profile directory | temp dir |
 | `--isolated` | Ephemeral in-memory profile | `false` |
 | `--storage-state` | Pre-load cookies/storage from file | none |
-| `--caps` | Capability groups: `vision`, `pdf`, `devtools`, `testing`, `network`, `storage`, `config` | core only |
+| `--caps` | Capability groups: `vision`, `pdf`, `devtools` | core only |
 | `--snapshot-mode` | `incremental`, `full`, `none` | `incremental` |
 | `--image-responses` | `allow`, `omit` | `allow` |
 | `--codegen` | `typescript`, `none` | `typescript` |
@@ -38,154 +93,66 @@ Every flag has a corresponding env var prefixed with `PLAYWRIGHT_MCP_`.
 | `--proxy-server` | HTTP/SOCKS proxy | none |
 | `--extension` | Connect to existing browser via bridge extension | `false` |
 | `--config` | JSON config file path | none |
-| `--init-page` | TypeScript file evaluated on page object | none |
-| `--init-script` | JS files run before page scripts | none |
-| `--secrets` | Dotenv file with secrets (prevents LLM from seeing values) | none |
+| `--secrets` | Dotenv file with secrets (masked from LLM) | none |
 | `--save-session` | Persist session to output dir | `false` |
 | `--test-id-attribute` | Custom test ID attribute | `data-testid` |
 
-## Complete Tool Catalog
+Only enable `--caps` you actually need — each capability group adds tool definitions that consume tokens on every message.
 
-### Core Automation (always enabled)
+## Core Workflow
 
-| Tool | Description | Read-only |
-|------|-------------|-----------|
-| `browser_navigate` | Navigate to a URL | No |
-| `browser_navigate_back` | Go back in history | No |
-| `browser_snapshot` | Capture accessibility tree snapshot (preferred over screenshot). Accepts `selector` (scope to subtree), `depth` (limit tree depth), `filename` (save to disk) | Yes |
-| `browser_take_screenshot` | Take screenshot (use snapshot for actions, screenshot for visual verification) | Yes |
-| `browser_click` | Click element (single/double, with modifiers) | No |
-| `browser_hover` | Hover over element | No |
-| `browser_type` | Type text into editable element | No |
-| `browser_fill_form` | Fill multiple form fields at once | No |
-| `browser_select_option` | Select dropdown option | No |
-| `browser_press_key` | Press keyboard key | No |
-| `browser_drag` | Drag and drop between two elements | No |
-| `browser_file_upload` | Upload files | No |
-| `browser_handle_dialog` | Accept/dismiss browser dialogs | No |
-| `browser_evaluate` | Evaluate JavaScript on page or element. Accepts `filename` (save results to disk) | No |
-| `browser_run_code` | Run arbitrary Playwright code snippet | No |
-| `browser_wait_for` | Wait for text appear/disappear or time | No |
-| `browser_resize` | Resize browser window | No |
-| `browser_console_messages` | Return console messages (filterable by level). Accepts `filename` (save to disk) | Yes |
-| `browser_network_requests` | List network requests since page load. Accepts `filename` (save to disk), `filter` (regex) | Yes |
-| `browser_close` | Close the page | No |
+Every action automatically returns a snapshot inline. Be deliberate about minimizing calls.
 
-### Tab Management (always enabled)
-
-| Tool | Description |
-|------|-------------|
-| `browser_tabs` | List, create, close, or select browser tabs |
-
-### Testing (opt-in: `--caps=testing`)
-
-| Tool | Description |
-|------|-------------|
-| `browser_generate_locator` | Generate Playwright locator for element |
-| `browser_verify_element_visible` | Verify element visible by role + name |
-| `browser_verify_list_visible` | Verify list with specific items is visible |
-| `browser_verify_text_visible` | Verify text is visible on page |
-| `browser_verify_value` | Verify element value (checkbox, input, etc.) |
-
-### Network (opt-in: `--caps=network`)
-
-| Tool | Description |
-|------|-------------|
-| `browser_network_state_set` | Set online/offline state |
-| `browser_route` | Mock network requests matching URL pattern |
-| `browser_route_list` | List active network routes |
-| `browser_unroute` | Remove network routes |
-
-### Storage (opt-in: `--caps=storage`)
-
-| Tool | Description |
-|------|-------------|
-| `browser_cookie_list` | List cookies (filter by domain/path) |
-| `browser_cookie_get` | Get cookie by name |
-| `browser_cookie_set` | Set cookie with optional flags |
-| `browser_cookie_delete` | Delete specific cookie |
-| `browser_cookie_clear` | Clear all cookies |
-| `browser_localstorage_list` | List all localStorage pairs |
-| `browser_localstorage_get` | Get localStorage item |
-| `browser_localstorage_set` | Set localStorage item |
-| `browser_localstorage_delete` | Delete localStorage item |
-| `browser_localstorage_clear` | Clear all localStorage |
-| `browser_sessionstorage_list` | List all sessionStorage pairs |
-| `browser_sessionstorage_get` | Get sessionStorage item |
-| `browser_sessionstorage_set` | Set sessionStorage item |
-| `browser_sessionstorage_delete` | Delete sessionStorage item |
-| `browser_sessionstorage_clear` | Clear all sessionStorage |
-| `browser_set_storage_state` | Restore storage state from file |
-| `browser_storage_state` | Save storage state to file |
-
-### Vision (opt-in: `--caps=vision`)
-
-Coordinate-based interaction for canvas, custom-drawn UI, complex SVGs.
-
-| Tool | Description |
-|------|-------------|
-| `browser_mouse_click_xy` | Click at x,y coordinates |
-| `browser_mouse_down` | Press mouse button down |
-| `browser_mouse_drag_xy` | Drag from start to end coordinates |
-| `browser_mouse_move_xy` | Move mouse to coordinates |
-| `browser_mouse_up` | Release mouse button |
-| `browser_mouse_wheel` | Scroll mouse wheel |
-
-### DevTools (opt-in: `--caps=devtools`)
-
-| Tool | Description |
-|------|-------------|
-| `browser_start_tracing` | Start trace recording |
-| `browser_stop_tracing` | Stop trace recording |
-| `browser_start_video` | Start video recording |
-| `browser_stop_video` | Stop video recording |
-
-### PDF (opt-in: `--caps=pdf`)
-
-| Tool | Description |
-|------|-------------|
-| `browser_pdf_save` | Save page as PDF |
-
-### Config (opt-in: `--caps=config`)
-
-| Tool | Description |
-|------|-------------|
-| `browser_get_config` | Get resolved config after merging CLI/env/config file |
-
-## Snapshot Mode Details
-
-### `incremental` (default, recommended)
-
-Sends only what changed since the last snapshot. Dramatically reduces token usage in multi-step sessions. After the first full snapshot (~3,800 tokens), subsequent snapshots send only diffs.
-
-### `full`
-
-Sends the complete accessibility tree every time. Use when incremental diffs are unreliable (rare).
-
-### `none`
-
-Disables automatic snapshots. Manually call `browser_snapshot` when needed. Useful when combining with vision mode.
-
-## Scoping Snapshots to Reduce Token Usage
-
-On complex pages, `browser_snapshot` can return 50K-540K tokens. Use these parameters to scope it down:
+### 1. Navigate and snapshot
 
 ```
-# Snapshot only a specific section (e.g., a modal dialog)
-browser_snapshot → selector: "[role=dialog]"
-browser_snapshot → selector: "#main-content"
-
-# Limit tree depth (useful for deeply nested UIs)
-browser_snapshot → depth: 3
-
-# Save to disk instead of returning inline (keeps data out of context)
-browser_snapshot → filename: "page-state.yml"
-
-# Combine: scope + depth
-browser_snapshot → selector: "[role=dialog]", depth: 4
+browser_navigate → url: "http://localhost:3000"
+browser_snapshot                        # accessibility tree with element refs (e.g. ref="e15")
 ```
 
-Similarly, save large outputs from other tools to disk:
+### 2. Interact using refs
+
+```
+browser_click → ref: "e15"
+browser_fill_form → fields: [           # CRITICAL: batch instead of N browser_type calls
+  { ref: "e8",  value: "user@example.com" },
+  { ref: "e12", value: "password123" }
+]
+browser_press_key → key: "Enter"
+```
+
+### 3. Verify state
+
+```
+browser_snapshot                        # check result (returned inline)
+browser_take_screenshot                 # only for visual verification (CSS, layout, canvas)
+```
+
+### Close when done
+
+```
+browser_close
+```
+
+## Token-Saving Principles
+
+- **Batch form fills.** `browser_fill_form` for multiple fields. Each `browser_type` triggers a fresh snapshot response.
+- **Scope down snapshots.** On complex pages a full snapshot can be 50K–540K tokens. Use `selector` to limit to a subtree, `depth` to cap tree depth, or `filename` to redirect to disk.
+- **Save large outputs to disk.** `browser_evaluate`, `browser_console_messages`, `browser_network_requests`, and `browser_snapshot` all accept `filename` to write results to disk instead of returning inline.
+- **Use `browser_evaluate` for data extraction** instead of navigating multiple pages.
+- **Wait for specific text** with `browser_wait_for` rather than arbitrary time waits.
+- **Don't take redundant screenshots.** Snapshots come back automatically after every action; only call `browser_take_screenshot` for visual verification.
+- **Disconnect when idle.** MCP tool definitions add ~3,400 tokens per message whether used or not. Toggle the server off via `/mcp` when you're not actively automating.
+
+### Scoping examples
+
+```
+browser_snapshot → selector: "[role=dialog]"           # only the dialog
+browser_snapshot → selector: "#main-content"           # specific section
+browser_snapshot → depth: 3                            # cap depth on deeply nested UI
+browser_snapshot → filename: "page-state.yml"          # write to disk instead of returning
+browser_snapshot → selector: "[role=dialog]", depth: 4 # combine
+```
 
 ```
 browser_evaluate → expression: "...", filename: "eval-result.json"
@@ -193,75 +160,136 @@ browser_console_messages → filename: "console.log"
 browser_network_requests → filename: "network.log", filter: "api/"
 ```
 
-## Snapshot vs Vision Mode
+## Tool Catalog
+
+### Core (always enabled)
+
+| Tool | Description | Read-only |
+|------|-------------|-----------|
+| `browser_navigate` | Navigate to URL | No |
+| `browser_navigate_back` | Go back in history | No |
+| `browser_snapshot` | Capture accessibility tree. Accepts `selector`, `depth`, `filename` | Yes |
+| `browser_take_screenshot` | Take screenshot (visual verification only) | Yes |
+| `browser_click` | Click element (with modifiers) | No |
+| `browser_hover` | Hover element | No |
+| `browser_type` | Type into editable element | No |
+| `browser_fill_form` | Fill multiple fields in one call | No |
+| `browser_select_option` | Select dropdown option | No |
+| `browser_press_key` | Press keyboard key | No |
+| `browser_drag` | Drag and drop between elements | No |
+| `browser_file_upload` | Upload files | No |
+| `browser_handle_dialog` | Accept/dismiss dialogs | No |
+| `browser_evaluate` | Eval JS on page or element. Accepts `filename` | No |
+| `browser_run_code` | Run arbitrary Playwright code | No |
+| `browser_wait_for` | Wait for text appear/disappear or time | No |
+| `browser_resize` | Resize window | No |
+| `browser_console_messages` | Console messages (filterable). Accepts `filename` | Yes |
+| `browser_network_requests` | Requests since page load. Accepts `filename`, `filter` | Yes |
+| `browser_close` | Close page | No |
+
+### Tab management (always enabled)
+
+| Tool | Description |
+|------|-------------|
+| `browser_tabs` | List, create, close, or select tabs |
+
+### Vision (opt-in: `--caps=vision`)
+
+For canvas, custom-drawn UI, or complex SVGs that the accessibility tree can't describe.
+
+| Tool | Description |
+|------|-------------|
+| `browser_mouse_click_xy` | Click at x,y |
+| `browser_mouse_down` | Press mouse button |
+| `browser_mouse_drag_xy` | Drag from start to end coords |
+| `browser_mouse_move_xy` | Move mouse |
+| `browser_mouse_up` | Release mouse button |
+| `browser_mouse_wheel` | Scroll wheel |
+
+### DevTools (opt-in: `--caps=devtools`)
+
+| Tool | Description |
+|------|-------------|
+| `browser_start_tracing` / `browser_stop_tracing` | Trace recording |
+| `browser_start_video` / `browser_stop_video` | Video recording |
+
+### PDF (opt-in: `--caps=pdf`)
+
+| Tool | Description |
+|------|-------------|
+| `browser_pdf_save` | Save page as PDF |
+
+## Snapshot Mode Details
+
+| Mode | Behavior | When to use |
+|------|----------|-------------|
+| `incremental` (default) | After the first full snapshot (~3,800 tokens), sends only diffs | Default — best token economy |
+| `full` | Sends the complete tree every time | Only when incremental diffs misbehave |
+| `none` | Disables automatic snapshots; call `browser_snapshot` manually | When using vision mode or driving snapshots manually |
+
+## Snapshot vs Vision
 
 | Aspect | Snapshot (default) | Vision (`--caps=vision`) |
-|--------|-------------------|--------------------------|
-| Data format | Accessibility tree (structured text) | Screenshots (pixel data) |
+|--------|--------------------|--------------------------|
+| Format | Accessibility tree (structured text) | Pixel screenshots |
 | Token cost | ~3,800 tokens/page | ~10,000+ tokens/page |
 | Element targeting | `ref` from accessibility tree | x,y coordinates |
 | Covers 95% of cases | Yes | No |
 | Required for | Standard web UIs | Canvas, custom drawing, complex SVGs |
 
-**Start with snapshot mode.** Only enable vision when the accessibility tree cannot represent the elements needed.
+Start with snapshot mode. Only enable vision when the accessibility tree cannot represent the elements you need.
 
-## Interaction Patterns
+## Element Targeting Priority
 
-### Element Targeting Priority
-
-1. **`ref` parameter** (from snapshot) — most reliable, preferred
-2. **`selector` parameter** (CSS/role selectors) — fallback when ref unavailable
+1. **`ref` from snapshot** — most reliable, preferred
+2. **`selector` parameter** (CSS / role selector) — fallback when ref unavailable
 3. **Coordinates** (vision mode) — last resort for non-accessible elements
 
-### Efficient Form Filling
-
-Instead of separate `browser_type` calls per field:
+## Auth State Persistence
 
 ```
-# Inefficient: 3 tool calls
-browser_type → ref: "e8", text: "user@example.com"
-browser_type → ref: "e12", text: "password123"
-browser_type → ref: "e15", text: "John"
+# Save after authenticating
+browser_storage_state                                  # writes to file (cookies + localStorage)
 
-# Efficient: 1 tool call
-browser_fill_form → fields: [
-  { ref: "e8", value: "user@example.com" },
-  { ref: "e12", value: "password123" },
-  { ref: "e15", value: "John" }
-]
-```
-
-### Waiting Strategies
-
-```
-# Wait for specific text to appear
-browser_wait_for → text: "Dashboard"
-
-# Wait for text to disappear (loading indicator)
-browser_wait_for → textGone: "Loading..."
-
-# Wait for time (last resort)
-browser_wait_for → time: 2000
-```
-
-### Auth State Persistence
-
-Save authentication state to avoid re-authenticating:
-
-```
-# After logging in manually or via automation
-browser_storage_state     # saves cookies + localStorage to file
-
-# In a later session, restore state
+# Restore in a later session
 browser_set_storage_state → path: "auth-state.json"
 ```
 
-### Quick Data Extraction
+Or pre-load on startup via the config flag:
 
-Use `browser_evaluate` instead of navigating and snapshotting:
+```bash
+npx @playwright/mcp@latest --storage-state auth.json
+```
+
+## Secrets Management
+
+Use `--secrets` to keep sensitive values out of LLM context:
+
+```bash
+# .env.playwright
+LOGIN_EMAIL=admin@example.com
+LOGIN_PASSWORD=secret123
+
+npx @playwright/mcp@latest --secrets .env.playwright
+```
+
+The MCP server masks secret values in snapshots and responses.
+
+## Visual Verification
 
 ```
-# Extract data directly
-browser_evaluate → expression: "document.querySelectorAll('.item').length"
-browser_evaluate → expression: "JSON.stringify(Array.from(document.querySelectorAll('tr')).map(r => r.textContent))"
+browser_navigate → url: "http://localhost:3000/dashboard"
+browser_take_screenshot                                # use only when CSS/layout matters
 ```
+
+## Common Mistakes
+
+1. **Using MCP when CLI is available** — 4× more expensive
+2. **Taking screenshots after every action** — snapshots are returned automatically
+3. **Leaving `--console-level` at default `info`** — 6× token spike on error-heavy SPAs
+4. **Leaving `--codegen` at default `typescript`** — every response includes generated code you don't need
+5. **Full-page snapshots on complex apps** — use `selector` and `depth`
+6. **Not using `filename` for large outputs** — `browser_evaluate` returns can be huge
+7. **Separate `browser_type` calls per field** — use `browser_fill_form`
+8. **Leaving the MCP connected when idle** — ~3,400 tokens of tool definitions on every message
+9. **Enabling all `--caps`** — each adds tool definitions that cost tokens on every message
