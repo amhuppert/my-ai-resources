@@ -2,6 +2,16 @@
 
 React component re-render investigation. Load this reference when the symptom is UI jank on scroll/input/state-change, components rendering more often than their props change, or a general sense that "too much is re-rendering." Load `react.md` alongside this file.
 
+**Canonical react-scan workflow lives in the `react-scan` skill.** This file remains the entry point from `investigate-web-perf` for trace-driven analysis, but for setup, Playwright integration, full API surface, diagnosis classification by `changeDescription`, and minimal-diff fix recipes, defer to:
+
+- `react-scan/SKILL.md` — overview and the loop
+- `react-scan/references/setup.md` — install across Next.js / Vite / Remix / script tag / lite mode
+- `react-scan/references/playwright-integration.md` — `addInitScript` injection and render-counter pattern
+- `react-scan/references/diagnosis-patterns.md` — classify root cause from `changeDescription`
+- `react-scan/references/fix-recipes.md` — fixes per category
+
+This file keeps the trace-integration heuristics (chrome-devtools-mcp + React DevTools track) that are specific to `investigate-web-perf`. Use the react-scan skill for any work that originates from "this component renders too much" rather than "this trace shows a long task."
+
 ## What Counts as "Unnecessary"
 
 A render is unnecessary if the component produced identical output to its previous render and was not triggered by state or prop *value* changes. Common root causes:
@@ -18,29 +28,13 @@ A render is unnecessary if the component produced identical output to its previo
 
 `react-scan` is the supported, actively maintained successor to `why-did-you-render`. Run it before recording a trace — it gives you a render-count + reason overlay in the browser, which makes trace interpretation much faster.
 
-Ad-hoc run:
+Quickest possible check (no code change to the app):
 
 ```bash
 npx react-scan@latest http://localhost:3000
 ```
 
-Programmatic (dev only):
-
-```ts
-import { scan } from "react-scan";
-
-if (process.env.NODE_ENV === "development") {
-  scan({
-    enabled: true,
-    log: true,
-    onRender: (fiber, renders) => {
-      // renders: { timestamp, interactions, changes: {props, state, context} }
-    },
-  });
-}
-```
-
-The `onRender(fiber, renders)` callback exposes which props changed between renders — this is the agent-friendly feed you diff against source.
+For anything beyond ad-hoc browsing — programmatic setup, Playwright integration, the `onRender(fiber, renders)` payload shape, `changeDescription` classification, lite-mode capture for CI — load the `react-scan` skill. It owns the canonical guidance; duplicating it here causes drift.
 
 **Do not use `why-did-you-render` for new projects** — maintenance-only since Jan 2025. Existing integrations still work on React 19 but funnel new work through `react-scan`.
 
