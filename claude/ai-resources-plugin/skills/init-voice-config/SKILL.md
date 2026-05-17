@@ -7,15 +7,19 @@ allowed-tools: Read, Glob, Grep, Write(voice.json), Write(voice-context.md), Wri
 
 # Initialize Voice-to-Text Project Config
 
-Create a local `voice.json` config, a `voice-vocabulary.md` vocabulary file, and a `voice-context.md` context file in the current directory.
+Create a local `voice.json` config, a `voice-vocabulary.md` vocabulary file, and a `voice-context.md` context file in the current directory. These cover the **clipboard / file mode** baseline (F9 / F10). Advanced options — cleanup instructions and shell-command mode (F8) — are described at the bottom and can be added later via `/add-voice-context`.
 
 ## How voice-to-text uses these files
 
-The voice-to-text tool has two steps, each using different files:
+The voice-to-text tool has multiple pipelines that consume different files:
 
-**Transcription step (OpenAI)** — Uses `voice-vocabulary.md` only. This file is a flat list of terms sent as vocabulary hints to help the transcription model accurately recognize domain-specific words. It should contain only terms, one per line, with no descriptions or markdown structure.
+**Transcription step (OpenAI)** — uses `voice-vocabulary.md`. A flat list of terms sent as vocabulary hints to help the transcription model accurately recognize domain-specific words. One term per line, no descriptions or markdown structure.
 
-**Cleanup step (Claude)** — Uses `voice-context.md` and `voice-vocabulary.md`. The context file provides rich project knowledge (descriptions, terminology definitions, naming conventions) to help Claude correctly format and clean up the transcribed text. The vocabulary file is included as additional reference.
+**Cleanup step (Claude, clipboard/file mode)** — uses `voice-context.md` for project knowledge (descriptions, terminology, naming conventions). The vocabulary file is included as additional reference.
+
+**Optional cleanup customization** — an `instructionsFile` (conventionally `voice-instructions.md`) can be added to control *how* clipboard/file cleanup formats text: bullet style, code preservation, structural rules.
+
+**Optional shell-command mode (F8)** — a separate trio of files (`shellContextFile`, `shellVocabularyFile`, `shellInstructionsFile`) controls voice-driven shell-command generation. Not scaffolded by this skill — add via `/add-voice-context` when needed.
 
 ## Step 1: Gather project information
 
@@ -121,7 +125,14 @@ Write `voice.json` in the current directory:
 }
 ```
 
-This config sets the context and vocabulary file paths. All other settings inherit from the global config at `~/.config/voice-to-text/config.json`.
+This config sets the context and vocabulary file paths for clipboard / file mode (F9 / F10). All other settings inherit from the global config at `~/.config/voice-to-text/config.json`.
+
+Additional optional keys (not scaffolded by default):
+
+- `instructionsFile` — formatting rules for clipboard/file cleanup (how to clean up the text)
+- `shellContextFile`, `shellVocabularyFile`, `shellInstructionsFile` — for voice-driven shell-command mode (F8)
+
+Add these via `/add-voice-context` if and when needed.
 
 ## Step 4: Confirm
 
@@ -130,4 +141,5 @@ After creating all three files, display:
 - The generated `voice-vocabulary.md` content
 - The generated `voice-context.md` content
 - Confirmation that `voice.json` was created
+- A note that cleanup instructions and shell-mode files are not scaffolded — point to `/add-voice-context` for adding them later
 - Remind the user: run `voice-to-text` from this directory to use the local config
