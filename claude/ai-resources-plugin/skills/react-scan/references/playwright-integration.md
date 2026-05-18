@@ -75,7 +75,7 @@ Notes:
 
 ## Pattern B — Inject `auto.global.js` via `addInitScript`
 
-When the target app does not include react-scan, use `page.addInitScript` to inject before the page's own scripts execute. See `scripts/inject-react-scan.js` for the production-ready version.
+When the target app does not include react-scan, use `page.addInitScript` to inject before the page's own scripts execute. Pair the bundle with the polling helper at `scripts/inject-react-scan.js` and **await `window.__REACT_SCAN_READY__`** after navigating.
 
 ```ts
 import { test } from "@playwright/test";
@@ -87,22 +87,30 @@ const reactScanBundle = readFileSync(
   resolve(__dirname, "../fixtures/react-scan-auto.global.js"),
   "utf8",
 );
+// Copy of scripts/inject-react-scan.js from this skill, vendored into fixtures/.
+const injectHelper = readFileSync(
+  resolve(__dirname, "../fixtures/inject-react-scan.js"),
+  "utf8",
+);
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(`
-    ${reactScanBundle}
-    // Disable the toolbar overlay for headless measurement.
-    if (window.__REACT_SCAN__) {
-      const internals = window.__REACT_SCAN__.ReactScanInternals;
-      internals.options.value = {
-        ...internals.options.value,
-        showToolbar: false,
-        log: false,
-      };
-    }
-  `);
+  await page.addInitScript(`${reactScanBundle}\n${injectHelper}`);
+});
+
+test("example", async ({ page }) => {
+  await page.goto("/");
+
+  const ready = await page.evaluate(() => (window as any).__REACT_SCAN_READY__);
+  if (!ready) throw new Error("react-scan failed to attach within 30s");
+
+  // Now safe to use the helper's counters.
+  await page.evaluate(() => (window as any).__REACT_SCAN_RESET__());
+  // ... drive interactions ...
+  const snapshot = await page.evaluate(() => (window as any).__REACT_SCAN_SNAPSHOT__());
 });
 ```
+
+**Why the `__REACT_SCAN_READY__` await is non-negotiable.** `auto.global.js` registers `window.__REACT_SCAN__` only after a React renderer announces itself on `__REACT_DEVTOOLS_GLOBAL_HOOK__`. That registration happens once the page's bundle loads React — which is **after** the `addInitScript` IIFE completes. A naive `if (window.__REACT_SCAN__) { ... }` inside the same `addInitScript` bails silently and your counters never install. The helper polls every 50 ms (capped at 30 s) and resolves `__REACT_SCAN_READY__` to `true` once counters are wired, or `false` on timeout with a `console.warn` explaining why (most often: React production build without `dangerouslyForceRunInProduction`).
 
 Fetch and pin `auto.global.js` once (e.g., `curl -o fixtures/react-scan-auto.global.js https://unpkg.com/react-scan/dist/auto.global.js`) so CI does not depend on `unpkg.com` reachability.
 

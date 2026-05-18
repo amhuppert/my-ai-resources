@@ -6,12 +6,26 @@ What react-scan exposes on the page, what it emits, and how to read each surface
 
 | Global | Set by | Contents |
 |---|---|---|
-| `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` | bippy (installed when react-scan loads) | React's DevTools hook. Multiple consumers (React DevTools + react-scan) can coexist. |
-| `window.__REACT_SCAN__` | Full bundle `scan()` call | `{ ReactScanInternals, version, ... }`. Primary handle for full-bundle integrations. |
-| `window.__REACT_SCAN_VERSION__` | Full bundle | Version string. Compare across pages when debugging mismatches. |
+| `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` | bippy (installed when react-scan loads) | React's DevTools hook. Multiple consumers (React DevTools + react-scan) can coexist. Installed synchronously by `auto.global.js`. |
+| `window.__REACT_SCAN__` | Full bundle `scan()` call | `{ ReactScanInternals, version, ... }`. Primary handle for full-bundle integrations. **Attaches lazily** — see "Attach timing" below. |
+| `window.__REACT_SCAN_VERSION__` | Full bundle | Version string. **Set together with `__REACT_SCAN__`**, not at bundle load. May read `null`/`undefined` before the first React renderer registers. |
 | `window.__REACT_SCAN_LITE__` | `react-scan/lite` `instrument()` | The singleton `LiteHandle`. Subsequent `instrument()` calls return this same handle. |
 | `window.__REACT_SCAN_TOOLBAR_CONTAINER__` | Overlay UI | The shadow-root container element. Useful only for overlay debugging. |
 | `document.getElementById('react-scan-root')` | Overlay UI | Shadow host element. `shadowRoot` is non-null when the toolbar mounted. |
+
+### Attach timing
+
+`auto.global.js` runs in two phases:
+
+1. **Bundle load (synchronous).** Registers a listener on `__REACT_DEVTOOLS_GLOBAL_HOOK__` (creating the hook if it does not yet exist). Does **not** set `__REACT_SCAN__` yet.
+2. **React renderer registration (asynchronous).** When the page's React bundle loads and calls `__REACT_DEVTOOLS_GLOBAL_HOOK__.inject(renderer)`, react-scan finishes setup and **then** assigns `window.__REACT_SCAN__` (and `__REACT_SCAN_VERSION__`).
+
+Implication for Playwright + `addInitScript`: reading `window.__REACT_SCAN__` inside the same addInitScript that loaded the bundle is a race — typically a losing one, because page scripts run after addInitScript. Either:
+
+- Poll/await until `__REACT_SCAN__` appears (see `scripts/inject-react-scan.js`'s `__REACT_SCAN_READY__` Promise), or
+- Inject the bundle via `addInitScript`, then `await page.waitForFunction(() => window.__REACT_SCAN__?.ReactScanInternals)`, then run any configuration via `page.evaluate`.
+
+Symptom when ignored: counters never install, no error, no log. Symptom when configured correctly: counters populate after the first commit following navigation.
 
 ## `ReactScanInternals`
 
