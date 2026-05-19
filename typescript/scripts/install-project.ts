@@ -12,6 +12,10 @@ import {
   createDefaultConfig,
   createDefaultExecutor,
 } from "@/lib/install-types.js";
+import {
+  ITEMS_BY_SCOPE,
+  type InstallItem,
+} from "@/lib/install-items.js";
 
 /**
  * Get the directory where this script is located
@@ -35,18 +39,20 @@ function getScriptDir(): string {
 async function main(
   config: InstallConfig,
   executor: CommandExecutor,
+  selectedItems: ReadonlySet<InstallItem>,
 ): Promise<void> {
   const SCRIPT_DIR = getScriptDir();
 
   printInstallationHeader("project-level", SCRIPT_DIR);
 
-  // 1. claude/CLAUDE-project.md -> CLAUDE.md in current working directory
-  const projectClaudeFile = join(process.cwd(), "CLAUDE.md");
-  await installClaudeMd(
-    join(SCRIPT_DIR, "claude", "CLAUDE-project.md"),
-    projectClaudeFile,
-    `Installing project-level CLAUDE.md -> ${projectClaudeFile}`,
-  );
+  if (selectedItems.has("claude-md")) {
+    const projectClaudeFile = join(process.cwd(), "CLAUDE.md");
+    await installClaudeMd(
+      join(SCRIPT_DIR, "claude", "CLAUDE-project.md"),
+      projectClaudeFile,
+      `Installing project-level CLAUDE.md -> ${projectClaudeFile}`,
+    );
+  }
 
   console.log("");
   console.log("project-level installation complete!");
@@ -57,7 +63,8 @@ if (import.meta.main) {
   try {
     const config = createDefaultConfig();
     const executor = createDefaultExecutor();
-    await main(config, executor);
+    const selectedItems = new Set<InstallItem>(ITEMS_BY_SCOPE.project);
+    await main(config, executor, selectedItems);
   } catch (error) {
     console.error("Error during project-level installation:", error);
     process.exit(1);

@@ -7,7 +7,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "bun build scripts/ai.ts --outdir=dist --target=bun && bun build scripts/json-to-zod-to-json-schema.ts --outdir=dist --target=bun",
+    "build": "bun build scripts/ai.ts --outdir=dist --target=bun && bun build scripts/json-to-zod-to-json-schema.ts --outdir=dist --target=bun && bun run build:list-servers",
+    "build:list-servers": "bun run scripts/build-list-servers.ts",
     "install-user": "bun run scripts/ai.ts install --scope user",
     "install-project": "bun run scripts/ai.ts install --scope project",
     "init-document-map": "bun run scripts/ai.ts init-document-map",
@@ -34,7 +35,8 @@
     "configuration"
   ],
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/react": "^19.2.15"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -45,9 +47,11 @@
     "eta": "^4.0.1",
     "glob": "^13.0.0",
     "gray-matter": "^4.0.3",
+    "ink": "^7.0.3",
     "json-to-zod": "^1.1.2",
     "jsonc-parser": "^3.3.1",
     "prettier": "^3.6.2",
+    "react": "^19.2.6",
     "smol-toml": "^1.6.0",
     "yaml": "^2.8.2",
     "zod": "^3.25.74",

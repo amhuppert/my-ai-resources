@@ -17,6 +17,10 @@ import {
   createDefaultConfig,
   createDefaultExecutor,
 } from "@/lib/install-types.js";
+import {
+  ITEMS_BY_SCOPE,
+  type InstallItem,
+} from "@/lib/install-items.js";
 import { WorktreeFilesSchema } from "@/lib/worktree-files-schema.js";
 
 /**
@@ -41,63 +45,84 @@ function getScriptDir(): string {
 async function main(
   config: InstallConfig,
   executor: CommandExecutor,
+  selectedItems: ReadonlySet<InstallItem>,
 ): Promise<void> {
   const SCRIPT_DIR = getScriptDir();
 
   printInstallationHeader("user-level", SCRIPT_DIR);
 
-  // 1. agent-docs -> ~/.claude/agent-docs
-  await installDirectory(
-    join(SCRIPT_DIR, "agent-docs"),
-    join(config.paths.userClaudeDir, "agent-docs"),
-    `Syncing agent-docs -> ${config.paths.userClaudeDir}/agent-docs`,
-    config,
-    executor,
-  );
-
-  // 2. Install scripts
-  await installDirectoryFiles(
-    join(SCRIPT_DIR, "scripts"),
-    config.paths.userLocalBin,
-    `Installing scripts -> ${config.paths.userLocalBin}`,
-    config,
-    executor,
-    true,
-  );
-
-  // 3. Install Claude Code settings using TypeScript installer
-  console.log("Installing Claude Code user-level settings...");
-  if (await commandExists("bun", executor)) {
-    try {
-      installSettingsFromFile(
-        join(SCRIPT_DIR, "claude", "settings.json"),
-        config,
-      );
-      console.log("Claude Code settings installed successfully");
-    } catch (error) {
-      console.log("Warning: Failed to install Claude Code settings");
-      console.error(error);
-    }
-  } else {
-    console.log(
-      "Warning: bun not found, skipping Claude Code settings installation",
+  if (selectedItems.has("agent-docs")) {
+    await installDirectory(
+      join(SCRIPT_DIR, "agent-docs"),
+      join(config.paths.userClaudeDir, "agent-docs"),
+      `Syncing agent-docs -> ${config.paths.userClaudeDir}/agent-docs`,
+      config,
+      executor,
     );
-    console.log("Install bun to enable settings installation: https://bun.sh");
   }
 
-  // 4. Install worktree-files JSON schema
-  console.log("Installing worktree-files JSON schema...");
-  try {
-    const schemasDir = join(config.paths.userClaudeDir, "schemas");
-    mkdirSync(schemasDir, { recursive: true });
+  if (selectedItems.has("utility-scripts")) {
+    console.log("Building list-servers...");
+    const buildResult = await executor.exec(
+      "bun",
+      ["run", "build:list-servers"],
+      { cwd: join(SCRIPT_DIR, "typescript") },
+    );
+    if (!buildResult.success) {
+      console.error("Failed to build list-servers:");
+      if (buildResult.stdout) console.error(buildResult.stdout);
+      if (buildResult.stderr) console.error(buildResult.stderr);
+      throw new Error("list-servers build failed");
+    }
+    if (buildResult.stdout) console.log(buildResult.stdout);
 
-    const jsonSchema = z.toJSONSchema(WorktreeFilesSchema);
-    const schemaPath = join(schemasDir, "worktree-files-schema.json");
-    writeFileSync(schemaPath, JSON.stringify(jsonSchema, null, 2) + "\n");
-    console.log(`  Schema written to ${schemaPath}`);
-  } catch (error) {
-    console.log("Warning: Failed to install worktree-files schema");
-    if (error instanceof Error) console.log(`  ${error.message}`);
+    await installDirectoryFiles(
+      join(SCRIPT_DIR, "scripts"),
+      config.paths.userLocalBin,
+      `Installing scripts -> ${config.paths.userLocalBin}`,
+      config,
+      executor,
+      true,
+    );
+  }
+
+  if (selectedItems.has("claude-settings")) {
+    console.log("Installing Claude Code user-level settings...");
+    if (await commandExists("bun", executor)) {
+      try {
+        installSettingsFromFile(
+          join(SCRIPT_DIR, "claude", "settings.json"),
+          config,
+        );
+        console.log("Claude Code settings installed successfully");
+      } catch (error) {
+        console.log("Warning: Failed to install Claude Code settings");
+        console.error(error);
+      }
+    } else {
+      console.log(
+        "Warning: bun not found, skipping Claude Code settings installation",
+      );
+      console.log(
+        "Install bun to enable settings installation: https://bun.sh",
+      );
+    }
+  }
+
+  if (selectedItems.has("worktree-schema")) {
+    console.log("Installing worktree-files JSON schema...");
+    try {
+      const schemasDir = join(config.paths.userClaudeDir, "schemas");
+      mkdirSync(schemasDir, { recursive: true });
+
+      const jsonSchema = z.toJSONSchema(WorktreeFilesSchema);
+      const schemaPath = join(schemasDir, "worktree-files-schema.json");
+      writeFileSync(schemaPath, JSON.stringify(jsonSchema, null, 2) + "\n");
+      console.log(`  Schema written to ${schemaPath}`);
+    } catch (error) {
+      console.log("Warning: Failed to install worktree-files schema");
+      if (error instanceof Error) console.log(`  ${error.message}`);
+    }
   }
 
   console.log("");
@@ -109,7 +134,8 @@ if (import.meta.main) {
   try {
     const config = createDefaultConfig();
     const executor = createDefaultExecutor();
-    await main(config, executor);
+    const selectedItems = new Set<InstallItem>(ITEMS_BY_SCOPE.user);
+    await main(config, executor, selectedItems);
   } catch (error) {
     console.error("Error during user-level installation:", error);
     process.exit(1);

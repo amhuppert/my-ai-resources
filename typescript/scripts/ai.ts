@@ -9,6 +9,16 @@ import {
   createDefaultConfig,
   createDefaultExecutor,
 } from "@/lib/install-types.js";
+import {
+  ScopeChoiceSchema,
+  getItemsForScopes,
+  scopeChoiceToScopes,
+  type InstallItem,
+} from "@/lib/install-items.js";
+import {
+  GumPrompter,
+  ensureGumInstalled,
+} from "@/lib/install-prompts.js";
 import { initSkill, validateSkill } from "@/lib/skill-operations.js";
 import { runReplaceImportCodemod } from "@/lib/codemods/replace-import.js";
 import { installHook } from "@/scripts/install-hooks.js";
@@ -26,33 +36,78 @@ program
   .description("Install AI workflow resources")
   .option(
     "-s, --scope <type>",
-    "installation scope: user (home directory) or project (current directory)",
-    "project",
+    "installation scope: user, project, or both (prompts if omitted)",
   )
   .action(async (options) => {
-    const scope = options.scope.toLowerCase();
     const config = createDefaultConfig();
     const executor = createDefaultExecutor();
 
-    if (scope === "user") {
+    try {
+      await ensureGumInstalled();
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+
+    const prompter = new GumPrompter();
+
+    let scopeChoice;
+    if (options.scope) {
+      const parsed = ScopeChoiceSchema.safeParse(options.scope.toLowerCase());
+      if (!parsed.success) {
+        console.error(
+          `Invalid scope: ${options.scope}. Must be 'user', 'project', or 'both'.`,
+        );
+        process.exit(1);
+      }
+      scopeChoice = parsed.data;
+    } else {
       try {
-        await installUser(config, executor);
+        scopeChoice = await prompter.chooseScope();
+      } catch (error) {
+        console.error(
+          `Error selecting scope: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        process.exit(1);
+      }
+    }
+
+    const scopes = scopeChoiceToScopes(scopeChoice);
+    const availableItems = getItemsForScopes(scopes);
+
+    let selectedItemList: InstallItem[];
+    try {
+      selectedItemList = await prompter.chooseItems(availableItems);
+    } catch (error) {
+      console.error(
+        `Error selecting items: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      process.exit(1);
+    }
+
+    if (selectedItemList.length === 0) {
+      console.log("No items selected. Nothing to install.");
+      process.exit(0);
+    }
+
+    const selectedItems = new Set<InstallItem>(selectedItemList);
+
+    if (scopes.includes("user")) {
+      try {
+        await installUser(config, executor, selectedItems);
       } catch (error) {
         console.error("Error during user-level installation:", error);
         process.exit(1);
       }
-    } else if (scope === "project") {
+    }
+
+    if (scopes.includes("project")) {
       try {
-        await installProject(config, executor);
+        await installProject(config, executor, selectedItems);
       } catch (error) {
         console.error("Error during project-level installation:", error);
         process.exit(1);
       }
-    } else {
-      console.error(
-        `Invalid scope: ${scope}. Must be either 'user' or 'project'.`,
-      );
-      process.exit(1);
     }
   });
 

@@ -6,6 +6,8 @@ memory-bank/focus.md
 
 voice-to-text/dist
 
+scripts/list-servers
+
 voice-output.md
 .voice-last.json
 .worktrees

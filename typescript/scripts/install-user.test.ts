@@ -7,6 +7,10 @@ import type {
   CommandResult,
   InstallConfig,
 } from "@/lib/install-types.js";
+import {
+  ITEMS_BY_SCOPE,
+  type InstallItem,
+} from "@/lib/install-items.js";
 import { main } from "./install-user";
 
 class MockCommandExecutor implements CommandExecutor {
@@ -41,6 +45,7 @@ describe("install-user", () => {
   let tempDir: string;
   let mockExecutor: MockCommandExecutor;
   let mockConfig: InstallConfig;
+  const allUserItems = new Set<InstallItem>(ITEMS_BY_SCOPE.user);
 
   beforeEach(() => {
     tempDir = join(tmpdir(), `install-user-test-${Date.now()}-${Math.random()}`);
@@ -69,12 +74,75 @@ describe("install-user", () => {
   });
 
   test("does not install ai-resources plugin", async () => {
-    await main(mockConfig, mockExecutor);
+    await main(mockConfig, mockExecutor, allUserItems);
 
     const pluginCalls = mockExecutor.calls.filter(
       (call) => call.command === "claude" && call.args[0] === "plugin",
     );
 
     expect(pluginCalls).toHaveLength(0);
+  });
+
+  test("skips utility-scripts when not selected", async () => {
+    const selected = new Set<InstallItem>(["agent-docs"]);
+    await main(mockConfig, mockExecutor, selected);
+
+    const builtListServers = mockExecutor.calls.some(
+      (call) =>
+        call.command === "bun" &&
+        call.args.includes("run") &&
+        call.args.includes("build:list-servers"),
+    );
+    expect(builtListServers).toBe(false);
+
+    const copiedToLocalBin = mockExecutor.calls.some(
+      (call) =>
+        call.command === "rsync" &&
+        call.args.some((arg) => arg.includes(mockConfig.paths.userLocalBin)),
+    );
+    expect(copiedToLocalBin).toBe(false);
+  });
+
+  test("skips agent-docs when not selected", async () => {
+    const selected = new Set<InstallItem>(["utility-scripts"]);
+    await main(mockConfig, mockExecutor, selected);
+
+    const syncedAgentDocs = mockExecutor.calls.some(
+      (call) =>
+        call.command === "rsync" &&
+        call.args.some((arg) => arg.includes("agent-docs")),
+    );
+    expect(syncedAgentDocs).toBe(false);
+  });
+
+  test("skips worktree-schema when not selected", async () => {
+    const selected = new Set<InstallItem>(["agent-docs"]);
+    await main(mockConfig, mockExecutor, selected);
+
+    const schemaPath = join(
+      mockConfig.paths.userClaudeDir,
+      "schemas",
+      "worktree-files-schema.json",
+    );
+    expect(existsSync(schemaPath)).toBe(false);
+  });
+
+  test("installs worktree-schema when selected", async () => {
+    const selected = new Set<InstallItem>(["worktree-schema"]);
+    await main(mockConfig, mockExecutor, selected);
+
+    const schemaPath = join(
+      mockConfig.paths.userClaudeDir,
+      "schemas",
+      "worktree-files-schema.json",
+    );
+    expect(existsSync(schemaPath)).toBe(true);
+  });
+
+  test("does nothing when no items are selected", async () => {
+    const selected = new Set<InstallItem>();
+    await main(mockConfig, mockExecutor, selected);
+
+    expect(mockExecutor.calls).toHaveLength(0);
   });
 });

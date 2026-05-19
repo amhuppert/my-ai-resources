@@ -8,7 +8,7 @@ Usage: kill-by-port <port> [<port> ...] [--signal <sig>] [--help]
 
 Description:
     Kill all processes listening on any of the specified ports.
-    Requires lsof to be installed.
+    Uses ss on Linux and lsof on macOS.
 
 Arguments:
     port            One or more port numbers to target
@@ -62,15 +62,40 @@ if [[ ${#PORTS[@]} -eq 0 ]]; then
     exit 1
 fi
 
-if ! command -v lsof &> /dev/null; then
-    echo "Error: lsof is required but not installed" >&2
-    exit 1
-fi
+OS="$(uname -s)"
+case "$OS" in
+    Linux)
+        if ! command -v ss &> /dev/null; then
+            echo "Error: ss (iproute2) is required on Linux but not installed" >&2
+            exit 1
+        fi
+        ;;
+    Darwin)
+        if ! command -v lsof &> /dev/null; then
+            echo "Error: lsof is required on macOS but not installed" >&2
+            exit 1
+        fi
+        ;;
+    *)
+        echo "Error: unsupported platform: $OS" >&2
+        exit 1
+        ;;
+esac
+
+pids_on_port() {
+    local port=$1
+    if [[ "$OS" == "Linux" ]]; then
+        ss -Hltnp "sport = :$port" 2>/dev/null \
+            | grep -oP 'pid=\K\d+' | sort -u
+    else
+        lsof -ti :"$port" 2>/dev/null
+    fi
+}
 
 KILLED=0
 
 for PORT in "${PORTS[@]}"; do
-    PIDS=$(lsof -ti :"$PORT" 2>/dev/null || true)
+    PIDS=$(pids_on_port "$PORT" || true)
     if [[ -z "$PIDS" ]]; then
         echo "No processes found on port $PORT"
         continue
