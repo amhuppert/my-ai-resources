@@ -16,6 +16,9 @@ fi
 
 cat <<'EOF'
 {
-  "systemMessage": "You are about to write or edit a test file. If you have not already done so in this session, invoke the write-tests skill (Skill tool with skill name 'ai-resources:write-tests') to load the project's testing standards. Key reminders: prefer injected test doubles over jest.mock on internal modules; assert behavior (outputs, state, side effects), not implementation details; apply the confidence test — if replacing the production code with 'return mockValue' wouldn't break the test, the test is exercising the mock rather than the code."
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "additionalContext": "You are about to write or edit a test file. If you have not already done so in this session, invoke the write-tests skill (Skill tool with skill name 'ai-resources:write-tests') to load the project's testing standards. Key reminders: prefer injected test doubles over jest.mock on internal modules; assert behavior (outputs, state, side effects), not implementation details; apply the confidence test — if replacing the production code with 'return mockValue' wouldn't break the test, the test is exercising the mock rather than the code."
+  }
 }
 EOF
