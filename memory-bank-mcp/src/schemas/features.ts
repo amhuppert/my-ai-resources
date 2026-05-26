@@ -10,7 +10,7 @@ export const FeatureSchema = z.object({
   updated_at: z.string(),
 });
 
-export const CreateFeatureInputSchema = z.object({
+const CreateFeatureInputSchema = z.object({
   slug: SlugSchema,
   name: z.string().min(1),
   description: z.string().optional(),
@@ -39,7 +39,6 @@ export const DeleteFeatureInputSchema = z.object({
 });
 
 export type Feature = z.infer<typeof FeatureSchema>;
-export type CreateFeatureInput = z.infer<typeof CreateFeatureInputSchema>;
 export type CreateFeaturesInput = z.infer<typeof CreateFeaturesInputSchema>;
 export type GetFeatureInput = z.infer<typeof GetFeatureInputSchema>;
 export type ListFeaturesInput = z.infer<typeof ListFeaturesInputSchema>;

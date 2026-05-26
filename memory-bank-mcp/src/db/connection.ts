@@ -53,17 +53,8 @@ export function closeDb(): void {
 /**
  * Set a custom database path for testing.
  * Use ":memory:" for in-memory database.
- * Call resetDb() first to close existing connection.
+ * Call closeDb() first to close any existing connection.
  */
 export function setDbPath(path: string): void {
   customDbPath = path;
-}
-
-/**
- * Reset the database connection and clear custom path.
- * Must be called before setDbPath to take effect.
- */
-export function resetDb(): void {
-  closeDb();
-  customDbPath = null;
 }

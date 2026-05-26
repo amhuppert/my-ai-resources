@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "knip": {
+      "source": "brianlovin/agent-config",
+      "sourceType": "github",
+      "skillPath": "skills/knip/SKILL.md",
+      "computedHash": "89f3a78088109045afc77e09c93a28b6cc4cb51ae00e789091e9991a180e39db"
+    },
+    "knip-deadcode": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.experimental/knip-deadcode/SKILL.md",
+      "computedHash": "09879fec7939329934ef2fc383a8d734b53e6500e8d7f5fd7fdad03becd51ad8"
+    }
+  }
+}

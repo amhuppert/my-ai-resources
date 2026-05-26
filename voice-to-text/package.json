@@ -14,12 +14,12 @@
     "test": "bun test src/",
     "test:integration": "bun test tests/",
     "test:all": "bun test",
-    "test:watch": "bun test --watch src/"
+    "test:watch": "bun test --watch src/",
+    "knip": "knip"
   },
   "dependencies": {
     "clipboardy": "^4.0.0",
     "commander": "^12.0.0",
-    "input-event": "^1.2.6",
     "node-notifier": "^10.0.1",
     "openai": "^4.0.0",
     "play-sound": "^1.1.6",
@@ -29,6 +29,7 @@
     "@types/bun": "^1.3.9",
     "@types/node": "^20.0.0",
     "@types/play-sound": "^1.1.2",
+    "knip": "^6.14.2",
     "typescript": "^5.0.0"
   }
 }

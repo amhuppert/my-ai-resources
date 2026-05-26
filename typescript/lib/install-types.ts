@@ -42,7 +42,7 @@ export interface InstallConfig {
 /**
  * Default implementation of CommandExecutor using Bun.spawn
  */
-export class BunCommandExecutor implements CommandExecutor {
+class BunCommandExecutor implements CommandExecutor {
   async exec(
     command: string,
     args: string[],

@@ -14,7 +14,7 @@ const CONFIG_DIR = join(homedir(), ".config", "voice-to-text");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 const LOCAL_CONFIG_NAME = "voice.json";
 
-export function loadConfigFile(path: string): Config {
+function loadConfigFile(path: string): Config {
   const raw = readFileSync(path, "utf-8");
   const parsed = JSON.parse(raw);
   return ConfigSchema.parse(parsed);
@@ -256,10 +256,6 @@ export function mergeConfig(
     }
   }
   return ConfigSchema.parse(merged);
-}
-
-export function getConfigDir(): string {
-  return CONFIG_DIR;
 }
 
 export function getAssetsDir(): string {

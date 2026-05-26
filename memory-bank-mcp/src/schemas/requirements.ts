@@ -10,7 +10,7 @@ export const RequirementSchema = z.object({
   updated_at: z.string(),
 });
 
-export const CreateRequirementInputSchema = z.object({
+const CreateRequirementInputSchema = z.object({
   text: z.string().min(1),
   notes: z.array(z.string()).optional(),
 });
@@ -39,9 +39,6 @@ export const DeleteRequirementInputSchema = z.object({
 });
 
 export type Requirement = z.infer<typeof RequirementSchema>;
-export type CreateRequirementInput = z.infer<
-  typeof CreateRequirementInputSchema
->;
 export type CreateRequirementsInput = z.infer<
   typeof CreateRequirementsInputSchema
 >;

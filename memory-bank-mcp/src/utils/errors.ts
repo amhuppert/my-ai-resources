@@ -4,7 +4,7 @@ export type ErrorType =
   | "constraint_violation"
   | "db_error";
 
-export class MemoryBankError extends Error {
+class MemoryBankError extends Error {
   constructor(
     public readonly type: ErrorType,
     message: string,
@@ -35,13 +35,6 @@ export class ConstraintViolationError extends MemoryBankError {
   }
 }
 
-export class DatabaseError extends MemoryBankError {
-  constructor(message: string) {
-    super("db_error", message);
-    this.name = "DatabaseError";
-  }
-}
-
 export interface ErrorResponse {
   success: false;
   error: {
@@ -50,7 +43,7 @@ export interface ErrorResponse {
   };
 }
 
-export function createErrorResponse(error: MemoryBankError): ErrorResponse {
+function createErrorResponse(error: MemoryBankError): ErrorResponse {
   return {
     success: false,
     error: {

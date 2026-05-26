@@ -16,7 +16,7 @@ export const PathSchema = z.object({
   updated_at: z.string(),
 });
 
-export const CreatePathInputSchema = z.object({
+const CreatePathInputSchema = z.object({
   path: z.string().min(1),
   type: PathTypeSchema,
   description: z.string().optional(),
@@ -59,7 +59,6 @@ export const UnlinkPathFromFeatureInputSchema = z.object({
 });
 
 export type Path = z.infer<typeof PathSchema>;
-export type CreatePathInput = z.infer<typeof CreatePathInputSchema>;
 export type CreatePathsInput = z.infer<typeof CreatePathsInputSchema>;
 export type GetPathInput = z.infer<typeof GetPathInputSchema>;
 export type ListPathsInput = z.infer<typeof ListPathsInputSchema>;

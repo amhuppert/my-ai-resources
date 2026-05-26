@@ -256,13 +256,4 @@ if (import.meta.main) {
   program.parse();
 }
 
-// Export functions for programmatic use
-export {
-  getProjectClaudeSettingsDir,
-  getUserClaudeSettingsDir,
-  getClaudeSettingsPath,
-  loadExistingHookSettings,
-  saveHookSettings,
-  installHook,
-  hookExists,
-};
+export { installHook };

@@ -2,8 +2,6 @@
   "name": "my-ai-resources-ts",
   "version": "1.0.0",
   "description": "TypeScript types and utilities for Claude Code settings.json configuration",
-  "main": "lib/claude-code-settings.js",
-  "module": "lib/claude-code-settings.js",
   "type": "module",
   "private": true,
   "scripts": {
@@ -16,7 +14,8 @@
     "json-to-schema": "bun run scripts/json-to-zod-to-json-schema.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "test:unit": "bun test lib/ scripts/"
+    "test:unit": "bun test lib/ scripts/",
+    "knip": "knip"
   },
   "bin": {
     "ai": "dist/ai.js",
@@ -36,7 +35,8 @@
   ],
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/react": "^19.2.15"
+    "@types/react": "^19.2.15",
+    "knip": "^6.14.2"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -45,11 +45,9 @@
     "@types/node": "^24.0.13",
     "commander": "^14.0.1",
     "eta": "^4.0.1",
-    "glob": "^13.0.0",
     "gray-matter": "^4.0.3",
     "ink": "^7.0.3",
     "json-to-zod": "^1.1.2",
-    "jsonc-parser": "^3.3.1",
     "prettier": "^3.6.2",
     "react": "^19.2.6",
     "smol-toml": "^1.6.0",

@@ -16,5 +16,3 @@ export const WorktreeFilesSchema = z
       .describe("Files to copy from source repo to worktree"),
   })
   .describe("Project-specific files to copy into new worktrees");
-
-export type WorktreeFiles = z.infer<typeof WorktreeFilesSchema>;

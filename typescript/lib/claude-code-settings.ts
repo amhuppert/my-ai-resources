@@ -54,7 +54,7 @@ export const HookMatcherSchema = z.object({
  * Hooks configuration for Claude Code.
  * Uses .passthrough() to accept new event types added in future Claude Code versions.
  */
-export const HooksSchema = z
+const HooksSchema = z
   .object({
     SessionStart: z.array(HookMatcherSchema).optional(),
     UserPromptSubmit: z.array(HookMatcherSchema).optional(),
@@ -76,7 +76,7 @@ export const HooksSchema = z
 /**
  * Permissions configuration for Claude Code
  */
-export const PermissionsSchema = z.object({
+const PermissionsSchema = z.object({
   /** Array of allowed permission rules (e.g., "Bash(npm run lint)", "WebFetch") */
   allow: z.array(z.string()).optional(),
   /** Array of denied permission rules (e.g., "Bash(curl:*)", "WebFetch") */
@@ -116,8 +116,6 @@ export type HookType = z.infer<typeof HookTypeSchema>;
 export type HookEvent = z.infer<typeof HookEventSchema>;
 export type HookConfig = z.infer<typeof HookConfigSchema>;
 export type HookMatcher = z.infer<typeof HookMatcherSchema>;
-export type Hooks = z.infer<typeof HooksSchema>;
-export type Permissions = z.infer<typeof PermissionsSchema>;
 export type ClaudeCodeSettings = z.infer<typeof ClaudeCodeSettingsSchema>;
 
 /**
@@ -145,10 +143,3 @@ export function parseSettings(settings: unknown): {
   };
 }
 
-/**
- * Create default Claude Code settings
- * TODO: Turn this into a const object instead of a function.
- */
-export function createDefaultSettings(): ClaudeCodeSettings {
-  return ClaudeCodeSettingsSchema.parse({});
-}

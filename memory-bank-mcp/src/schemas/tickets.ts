@@ -10,7 +10,7 @@ export const TicketSchema = z.object({
   updated_at: z.string(),
 });
 
-export const CreateTicketInputSchema = z.object({
+const CreateTicketInputSchema = z.object({
   key: z.string().min(1),
   title: z.string().optional(),
   description: z.string().optional(),
@@ -37,7 +37,6 @@ export const DeleteTicketInputSchema = z.object({
 });
 
 export type Ticket = z.infer<typeof TicketSchema>;
-export type CreateTicketInput = z.infer<typeof CreateTicketInputSchema>;
 export type CreateTicketsInput = z.infer<typeof CreateTicketsInputSchema>;
 export type GetTicketInput = z.infer<typeof GetTicketInputSchema>;
 export type ListTicketsInput = z.infer<typeof ListTicketsInputSchema>;

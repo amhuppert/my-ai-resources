@@ -11,7 +11,7 @@ export const TaskSchema = z.object({
   updated_at: z.string(),
 });
 
-export const CreateTaskInputSchema = z.object({
+const CreateTaskInputSchema = z.object({
   text: z.string().min(1),
   status: StatusSchema.optional(),
 });
@@ -46,7 +46,6 @@ export const ReorderTasksInputSchema = z.object({
 });
 
 export type Task = z.infer<typeof TaskSchema>;
-export type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;
 export type CreateTasksInput = z.infer<typeof CreateTasksInputSchema>;
 export type GetTaskInput = z.infer<typeof GetTaskInputSchema>;
 export type ListTasksInput = z.infer<typeof ListTasksInputSchema>;

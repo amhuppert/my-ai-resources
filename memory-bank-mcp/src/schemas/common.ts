@@ -16,13 +16,7 @@ export const PathTypeSchema = z.enum(["file", "directory"]);
 
 export const UseWhenSchema = z.array(z.string());
 
-export const TimestampSchema = z.string().datetime();
-
-export type Slug = z.infer<typeof SlugSchema>;
-export type Id = z.infer<typeof IdSchema>;
-export type Status = z.infer<typeof StatusSchema>;
 export type PathType = z.infer<typeof PathTypeSchema>;
-export type UseWhen = z.infer<typeof UseWhenSchema>;
 
 export interface SuccessResponse<T> {
   success: true;

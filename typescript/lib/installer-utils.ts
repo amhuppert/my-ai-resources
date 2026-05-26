@@ -109,16 +109,6 @@ export function printInstallationHeader(
 }
 
 /**
- * Print installation footer
- */
-export function printInstallationFooter(
-  installType: "user-level" | "project-level",
-): void {
-  console.log("");
-  console.log(`${installType} installation complete!`);
-}
-
-/**
  * Install directory with optional check
  */
 export async function installDirectory(

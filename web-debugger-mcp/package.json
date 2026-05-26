@@ -13,7 +13,8 @@
     "dev": "bun run src/index.ts",
     "build": "bun build src/index.ts --compile --outfile=bin/web-debugger-mcp && mkdir -p ../claude/ai-resources-plugin/servers && cp bin/web-debugger-mcp ../claude/ai-resources-plugin/servers/",
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "knip": "knip"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.5",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "bun-types": "latest",
+    "knip": "^6.14.2",
     "typescript": "^5.0.0"
   }
 }

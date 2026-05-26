@@ -3,8 +3,7 @@ import { z } from "zod";
 export const SourceSchema = z.enum(["browser", "server"]);
 export type Source = z.infer<typeof SourceSchema>;
 
-export const LogLevelSchema = z.enum(["info", "warn", "error", "debug"]);
-export type LogLevel = z.infer<typeof LogLevelSchema>;
+const LogLevelSchema = z.enum(["info", "warn", "error", "debug"]);
 
 const ConnectMessageSchema = z.object({
   type: z.literal("connect"),
@@ -43,7 +42,6 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
   RegisterProviderMessageSchema,
   SnapshotResponseMessageSchema,
 ]);
-export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
 export const SnapshotRequestMessageSchema = z.object({
   type: z.literal("snapshot_request"),

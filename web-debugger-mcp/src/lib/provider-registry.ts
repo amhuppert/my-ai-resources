@@ -15,10 +15,6 @@ export function registerProvider(name: string, source: Source, ws: MessageSender
   providers.set(name, { source, ws });
 }
 
-export function unregisterProvider(name: string): void {
-  providers.delete(name);
-}
-
 export function getProvider(name: string): ProviderEntry | undefined {
   return providers.get(name);
 }
