@@ -1,0 +1,267 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+show_help() {
+    cat << EOF
+Usage: orphaned-test-workers [options]
+
+Description:
+    Detect likely orphaned Vitest/Vite/Jest/Node test workers on macOS and Linux.
+    By default, this reports matching processes whose parent PID is 1 and whose
+    RSS is at least 100 MB.
+
+    Exit code is 1 when matching processes are found, so this can be used as a
+    post-test leak detector. Use --kill to terminate matches after reporting.
+
+Options:
+    --all                 Include matching processes even when PPID is not 1
+    --cwd <path>          Only include processes whose cwd is inside <path>
+    --pattern <regex>     awk regex matched against the full ps line
+                          (default matches Vitest, Vite, Jest, and common Node worker entrypoints)
+    --min-rss-mb <mb>     Minimum RSS in MB (default: 100)
+    --kill                Send SIGTERM to matches, then SIGKILL after grace period
+    --grace <seconds>     Seconds to wait before SIGKILL with --kill (default: 2)
+    --quiet               Suppress normal output
+    --help                Show this help message
+
+Examples:
+    orphaned-test-workers
+    orphaned-test-workers --cwd .
+    orphaned-test-workers --min-rss-mb 50 --pattern 'vitest|jest|node .*worker'
+    orphaned-test-workers --cwd . --kill
+
+EOF
+}
+
+PATTERN='(vitest|vite-node|tinypool|jest|jest-worker|@jest/worker|node .*vitest|node .*vite-node|node .*jest|processChild[.]js)'
+MIN_RSS_MB="100"
+ORPHANS_ONLY=1
+KILL_MATCHES=0
+GRACE_SECONDS="2"
+QUIET=0
+CWD_FILTER=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --all)
+            ORPHANS_ONLY=0
+            shift
+            ;;
+        --cwd)
+            CWD_FILTER="${2:-}"
+            if [[ -z "$CWD_FILTER" ]]; then
+                echo "Error: --cwd requires a path" >&2
+                exit 2
+            fi
+            if [[ ! -d "$CWD_FILTER" ]]; then
+                echo "Error: --cwd path does not exist or is not a directory: $CWD_FILTER" >&2
+                exit 2
+            fi
+            CWD_FILTER="$(cd "$CWD_FILTER" && pwd -P)"
+            shift 2
+            ;;
+        --pattern)
+            PATTERN="${2:-}"
+            if [[ -z "$PATTERN" ]]; then
+                echo "Error: --pattern requires a regex" >&2
+                exit 2
+            fi
+            shift 2
+            ;;
+        --min-rss-mb)
+            MIN_RSS_MB="${2:-}"
+            if [[ -z "$MIN_RSS_MB" ]]; then
+                echo "Error: --min-rss-mb requires a number" >&2
+                exit 2
+            fi
+            shift 2
+            ;;
+        --kill)
+            KILL_MATCHES=1
+            shift
+            ;;
+        --grace)
+            GRACE_SECONDS="${2:-}"
+            if [[ -z "$GRACE_SECONDS" ]]; then
+                echo "Error: --grace requires a number of seconds" >&2
+                exit 2
+            fi
+            shift 2
+            ;;
+        --quiet)
+            QUIET=1
+            shift
+            ;;
+        --help)
+            show_help
+            exit 0
+            ;;
+        -*)
+            echo "Error: Unknown option '$1'" >&2
+            echo "Use --help for usage information" >&2
+            exit 2
+            ;;
+        *)
+            echo "Error: Unexpected argument '$1'" >&2
+            echo "Use --help for usage information" >&2
+            exit 2
+            ;;
+    esac
+done
+
+if ! awk -v n="$MIN_RSS_MB" 'BEGIN { exit (n ~ /^[0-9]+([.][0-9]+)?$/) ? 0 : 1 }'; then
+    echo "Error: --min-rss-mb must be a non-negative number" >&2
+    exit 2
+fi
+
+if ! awk -v n="$GRACE_SECONDS" 'BEGIN { exit (n ~ /^[0-9]+([.][0-9]+)?$/) ? 0 : 1 }'; then
+    echo "Error: --grace must be a non-negative number" >&2
+    exit 2
+fi
+
+OS="$(uname -s)"
+case "$OS" in
+    Linux|Darwin)
+        ;;
+    *)
+        echo "Error: unsupported platform: $OS" >&2
+        exit 2
+        ;;
+esac
+
+if [[ -n "$CWD_FILTER" && "$OS" == "Darwin" ]] && ! command -v lsof >/dev/null 2>&1; then
+    echo "Error: --cwd requires lsof on macOS" >&2
+    exit 2
+fi
+
+MIN_RSS_KB="$(awk -v mb="$MIN_RSS_MB" 'BEGIN { printf "%.0f", mb * 1024 }')"
+
+process_cwd() {
+    local pid="$1"
+    if [[ "$OS" == "Linux" ]]; then
+        readlink "/proc/$pid/cwd" 2>/dev/null || true
+    else
+        lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | awk 'sub(/^n/, "") { print; exit }' || true
+    fi
+}
+
+is_inside_cwd_filter() {
+    local pid="$1"
+    local cwd
+    cwd="$(process_cwd "$pid")"
+    [[ -n "$cwd" ]] || return 1
+    [[ "$cwd" == "$CWD_FILTER" || "$cwd" == "$CWD_FILTER"/* ]]
+}
+
+MATCHES="$(
+    ps axo rss=,pid=,ppid=,pgid=,etime=,command= |
+    awk \
+        -v pat="$PATTERN" \
+        -v min_rss="$MIN_RSS_KB" \
+        -v orphans_only="$ORPHANS_ONLY" \
+        -v self_pid="$$" '
+            $2 != self_pid &&
+            $3 != self_pid &&
+            $1 >= min_rss &&
+            (!orphans_only || $3 == 1) &&
+            $0 ~ pat {
+                cmd = $0
+                sub(/^[[:space:]]*[0-9]+[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+[-]?[0-9]+[[:space:]]+[^[:space:]]+[[:space:]]+/, "", cmd)
+                printf "%s\t%s\t%s\t%s\t%s\t%.1f\t%s\n", $2, $3, $4, $5, $1, $1 / 1024, cmd
+            }
+        '
+)"
+
+FILTERED_MATCHES=""
+if [[ -n "$MATCHES" && -n "$CWD_FILTER" ]]; then
+    while IFS=$'\t' read -r pid ppid pgid etime rss_kb rss_mb command; do
+        [[ -n "$pid" ]] || continue
+        if is_inside_cwd_filter "$pid"; then
+            FILTERED_MATCHES+="${pid}"$'\t'"${ppid}"$'\t'"${pgid}"$'\t'"${etime}"$'\t'"${rss_kb}"$'\t'"${rss_mb}"$'\t'"${command}"$'\n'
+        fi
+    done <<< "$MATCHES"
+    MATCHES="${FILTERED_MATCHES%$'\n'}"
+fi
+
+if [[ -z "$MATCHES" ]]; then
+    if [[ "$QUIET" -eq 0 ]]; then
+        echo "No matching orphaned test workers found."
+    fi
+    exit 0
+fi
+
+PIDS=()
+COUNT=0
+TOTAL_RSS_MB="0.0"
+
+if [[ "$QUIET" -eq 0 ]]; then
+    if [[ "$ORPHANS_ONLY" -eq 1 ]]; then
+        echo "Likely orphaned test workers:"
+    else
+        echo "Matching test worker processes:"
+    fi
+    printf "%8s  %7s  %7s  %7s  %-10s  %s\n" "RSS_MB" "PID" "PPID" "PGID" "ETIME" "COMMAND"
+    printf "%8s  %7s  %7s  %7s  %-10s  %s\n" "------" "---" "----" "----" "-----" "-------"
+fi
+
+while IFS=$'\t' read -r pid ppid pgid etime rss_kb rss_mb command; do
+    [[ -n "$pid" ]] || continue
+    PIDS+=("$pid")
+    COUNT=$((COUNT + 1))
+    TOTAL_RSS_MB="$(awk -v total="$TOTAL_RSS_MB" -v rss="$rss_mb" 'BEGIN { printf "%.1f", total + rss }')"
+    if [[ "$QUIET" -eq 0 ]]; then
+        printf "%8.1f  %7s  %7s  %7s  %-10s  %s\n" "$rss_mb" "$pid" "$ppid" "$pgid" "$etime" "$command"
+    fi
+done <<< "$MATCHES"
+
+if [[ "$QUIET" -eq 0 ]]; then
+    echo
+    echo "Total: ${COUNT} process(es), ${TOTAL_RSS_MB} MB RSS."
+    if [[ -n "$CWD_FILTER" ]]; then
+        echo "CWD filter: $CWD_FILTER"
+    fi
+fi
+
+if [[ "$KILL_MATCHES" -eq 0 ]]; then
+    exit 1
+fi
+
+if [[ "$QUIET" -eq 0 ]]; then
+    echo "Sending SIGTERM to ${COUNT} process(es)..."
+fi
+kill -TERM "${PIDS[@]}" 2>/dev/null || true
+
+sleep "$GRACE_SECONDS"
+
+STILL_ALIVE=()
+for pid in "${PIDS[@]}"; do
+    if kill -0 "$pid" 2>/dev/null; then
+        STILL_ALIVE+=("$pid")
+    fi
+done
+
+if [[ ${#STILL_ALIVE[@]} -gt 0 ]]; then
+    if [[ "$QUIET" -eq 0 ]]; then
+        echo "${#STILL_ALIVE[@]} process(es) still alive; sending SIGKILL..."
+    fi
+    kill -KILL "${STILL_ALIVE[@]}" 2>/dev/null || true
+fi
+
+FINAL_ALIVE=()
+for pid in "${PIDS[@]}"; do
+    if kill -0 "$pid" 2>/dev/null; then
+        FINAL_ALIVE+=("$pid")
+    fi
+done
+
+if [[ ${#FINAL_ALIVE[@]} -gt 0 ]]; then
+    if [[ "$QUIET" -eq 0 ]]; then
+        echo "Warning: ${#FINAL_ALIVE[@]} process(es) could not be killed: ${FINAL_ALIVE[*]}" >&2
+    fi
+    exit 1
+fi
+
+if [[ "$QUIET" -eq 0 ]]; then
+    echo "Killed ${COUNT} process(es)."
+fi
