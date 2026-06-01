@@ -1,0 +1,191 @@
+# AeroSpace config — tailored for MacBook Pro 16" + 3-monitor desk / 1-monitor travel
+# Docs: https://nikitabobko.github.io/AeroSpace/guide
+# Reload after editing: alt-shift-semicolon then esc  (or: aerospace reload-config)
+#
+# Monitor roles:
+#   S34CG50 (ultrawide 3440x1440) -> prime dev surface  -> workspaces 1,2,3
+#   Built-in Retina               -> comms/media/scratch -> workspaces 4,5,6
+#   HP 23es (1080p)               -> reference/logs       -> workspaces 7,8,9
+#
+# TRAVEL: when only the built-in is connected, AeroSpace falls back every
+# workspace to the built-in monitor automatically. Nothing to change — just
+# use alt-1..9 to cycle through all your workspaces on the one screen.
+
+# Start AeroSpace at login (handled by the app's own setting too; harmless here)
+start-at-login = true
+
+# Run once when AeroSpace starts. JankyBorders draws a highlight around the
+# focused window (AeroSpace has no built-in active-window indicator).
+# Tune: active_color / inactive_color (0xAARRGGBB), width, style=round|square.
+after-startup-command = [
+  'exec-and-forget /usr/local/bin/borders active_color=0xffe1a0ff inactive_color=0x00000000 width=6.0 style=round'
+]
+
+# ─── Normalization ────────────────────────────────────────────────────────
+# Keep the tree tidy: merge single-child containers and alternate orientation.
+enable-normalization-flatten-containers = true
+enable-normalization-opposite-orientation-for-nested-containers = true
+
+# ─── Layout defaults ──────────────────────────────────────────────────────
+accordion-padding = 30
+default-root-container-layout = 'tiles'
+# 'auto' = horizontal split on wide screens (ultrawide), vertical on tall ones.
+# This is what makes the same config feel right on the ultrawide AND the laptop.
+default-root-container-orientation = 'auto'
+
+# Don't let macOS un-hide apps you've hidden with cmd-h.
+automatically-unhide-macos-hidden-apps = false
+
+# ─── Mouse behavior (nice with multiple monitors) ─────────────────────────
+# Warp the cursor to the monitor you just focused, so you don't lose it.
+on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+# Uncomment to also recenter the mouse on every window focus change:
+# on-focus-changed = ['move-mouse window-lazy-center']
+
+# ─── Gaps ─────────────────────────────────────────────────────────────────
+[gaps]
+inner.horizontal = 6
+inner.vertical   = 6
+outer.left       = 6
+outer.bottom     = 6
+outer.top        = 6
+outer.right      = 6
+
+# ─── Workspace → monitor pinning ──────────────────────────────────────────
+# Patterns are regexes matched against names from `aerospace list-monitors`.
+# Verify the exact names after first launch and adjust if needed.
+# Any workspace whose monitor is absent falls back to the built-in monitor.
+[workspace-to-monitor-force-assignment]
+1 = 'S34CG50'     # ultrawide — browser
+2 = 'S34CG50'     # ultrawide — code + terminal
+3 = 'S34CG50'     # ultrawide — spare / second project
+4 = 'built-in'    # laptop — Zed (editor)
+5 = 'built-in'    # laptop — Zed (editor)
+6 = 'built-in'    # laptop — Zed (editor)
+7 = 'HP 23es'     # side — reference / docs
+8 = 'HP 23es'     # side — logs / monitoring
+9 = 'HP 23es'     # side — spare
+
+# ─── Auto-place apps when first seen ──────────────────────────────────────
+# Adjust workspace numbers to taste. Find an app-id with: aerospace list-apps
+[[on-window-detected]]
+if.app-id = 'com.google.Chrome'
+run = 'move-node-to-workspace 1'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Safari'
+run = 'move-node-to-workspace 1'
+
+# Zed -> built-in (native) display: 1st -> ws 4, 2nd -> ws 5, 3rd -> ws 6.
+[[on-window-detected]]
+if.app-id = 'dev.zed.Zed'
+run = 'exec-and-forget /Users/alex/.config/aerospace/place-window.sh Zed 4 5 6'
+
+# Spread windows of an app across an ordered workspace list: the script puts the
+# new window in the first listed workspace with no window of that app (overflow ->
+# last). Reuse it for any app, e.g.  place-window.sh "Google Chrome" 1 2 3
+# WezTerm -> HP monitor: 1st -> ws 7, 2nd -> ws 8, 3rd -> ws 9.
+[[on-window-detected]]
+if.app-id = 'com.github.wez.wezterm'
+run = 'exec-and-forget /Users/alex/.config/aerospace/place-window.sh WezTerm 7 8 9'
+
+# Let these float instead of tiling — they behave badly as tiles.
+[[on-window-detected]]
+if.app-id = 'com.apple.finder'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.systempreferences'
+run = 'layout floating'
+
+# ─── Main mode keybindings ────────────────────────────────────────────────
+# alt is the primary modifier; it rarely collides with macOS shortcuts.
+[mode.main.binding]
+
+# Focus window (vim keys)
+alt-h = 'focus left'
+alt-j = 'focus down'
+alt-k = 'focus up'
+alt-l = 'focus right'
+
+# Move window within the workspace
+alt-shift-h = 'move left'
+alt-shift-j = 'move down'
+alt-shift-k = 'move up'
+alt-shift-l = 'move right'
+
+# Focus another monitor directionally
+alt-ctrl-h = 'focus-monitor left'
+alt-ctrl-l = 'focus-monitor right'
+alt-ctrl-k = 'focus-monitor up'
+alt-ctrl-j = 'focus-monitor down'
+
+# Send the focused window to the next/prev monitor (and follow it)
+alt-shift-ctrl-l = 'move-node-to-monitor --focus-follows-window --wrap-around next'
+alt-shift-ctrl-h = 'move-node-to-monitor --focus-follows-window --wrap-around prev'
+
+# Layout toggles
+alt-slash = 'layout tiles horizontal vertical'      # cycle tiling orientation
+alt-comma = 'layout accordion horizontal vertical'  # cycle accordion orientation
+alt-f = 'fullscreen'                                 # toggle window fullscreen
+
+# Join the focused window into its neighbor's container
+alt-shift-minus = 'join-with left'
+alt-shift-equal = 'join-with right'
+
+# Switch workspace (also moves focus to whichever monitor it lives on)
+alt-1 = 'workspace 1'
+alt-2 = 'workspace 2'
+alt-3 = 'workspace 3'
+alt-4 = 'workspace 4'
+alt-5 = 'workspace 5'
+alt-6 = 'workspace 6'
+alt-7 = 'workspace 7'
+alt-8 = 'workspace 8'
+alt-9 = 'workspace 9'
+
+# Send focused window to a workspace
+alt-shift-1 = 'move-node-to-workspace 1'
+alt-shift-2 = 'move-node-to-workspace 2'
+alt-shift-3 = 'move-node-to-workspace 3'
+alt-shift-4 = 'move-node-to-workspace 4'
+alt-shift-5 = 'move-node-to-workspace 5'
+alt-shift-6 = 'move-node-to-workspace 6'
+alt-shift-7 = 'move-node-to-workspace 7'
+alt-shift-8 = 'move-node-to-workspace 8'
+alt-shift-9 = 'move-node-to-workspace 9'
+
+# Jump back to the previous workspace
+alt-tab = 'workspace-back-and-forth'
+# Move the whole current workspace to the next monitor
+alt-shift-tab = 'move-workspace-to-monitor --wrap-around next'
+
+# Enter sub-modes
+alt-shift-r = 'mode resize'
+alt-shift-semicolon = 'mode service'
+
+# ─── Resize mode ──────────────────────────────────────────────────────────
+[mode.resize.binding]
+h = 'resize width -50'
+l = 'resize width +50'
+k = 'resize height -50'
+j = 'resize height +50'
+b = 'balance-sizes'
+minus = 'resize smart -50'
+equal = 'resize smart +50'
+enter = 'mode main'
+esc = 'mode main'
+
+# ─── Service mode ─────────────────────────────────────────────────────────
+[mode.service.binding]
+esc = ['reload-config', 'mode main']
+r = ['flatten-workspace-tree', 'mode main']   # reset workspace to a flat layout
+f = ['layout floating tiling', 'mode main']   # toggle float/tile for this window
+backspace = ['close-all-windows-but-current', 'mode main']
+
+# Quick-join from service mode
+alt-shift-h = ['join-with left', 'mode main']
+alt-shift-j = ['join-with down', 'mode main']
+alt-shift-k = ['join-with up', 'mode main']
+alt-shift-l = ['join-with right', 'mode main']
+
