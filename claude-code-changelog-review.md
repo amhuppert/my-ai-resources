@@ -1,96 +1,150 @@
 # Claude Code Changelog Review
 
-**Period**: April 5, 2026 to April 12, 2026
+**Period**: April 13, 2026 to May 30, 2026
 **Mode**: Default (significant changes only)
-**Versions covered**: 2.1.96 through 2.1.101
-**Generated**: April 12, 2026
+**Versions covered**: 2.1.102 through 2.1.158
+**Generated**: May 30, 2026
+
+> **Coverage note**: This review continues from the previous one, which ended at 2.1.101 (April 12). Entries from 2.1.117 onward were retrieved in full. Versions 2.1.102–2.1.116 (≈April 13–22) could not be retrieved — both the hosted changelog and the GitHub raw file truncate before reaching them. Based on the surrounding releases, that window appears to have been incremental fixes rather than headline features, but it is not independently verified here.
 
 ## Highlights
 
-This was one of the more consequential weeks for Claude Code. The Monitor tool introduces a fundamentally new interaction pattern — event-driven background monitoring that replaces expensive polling loops. Enterprise adoption gets a major boost with automatic OS CA certificate trust and an interactive Vertex AI setup wizard. And `/team-onboarding` tackles the human side of AI tooling by generating ramp-up guides from your actual usage.
+This was a transformative seven weeks — arguably the largest single jump in Claude Code's capabilities since background agents shipped. Three things define the period: **Opus 4.8** landed as the new default model alongside **dynamic workflows**, which let Claude orchestrate tens to hundreds of background agents from a single prompt. The new **agent view** (`claude agents`) turned background execution from a niche feature into a first-class workspace where every session — running, blocked, or done — lives in one list. And **auto mode** quietly graduated from an opt-in experiment to the default permission experience. Underneath all of it, the largest share of changelog volume by far went to hardening background/detached sessions, which is the throughline connecting nearly every release.
 
 ## Major Features
 
-### Monitor Tool — Event-Driven Background Monitoring
+### Opus 4.8 — New Default Model
 
-*v2.1.98 — April 9*
+*v2.1.154 — May 28*
 
-Claude Code can now spawn background processes and react to their stdout in real time, without blocking your conversation thread. This replaces the previous pattern of using `/loop` or `ScheduleWakeup` to periodically poll for changes — a pattern that burned a full prompt's worth of tokens every cycle regardless of whether anything happened.
+Opus 4.8 is now the default model and defaults to **high effort**, with a new `/effort xhigh` tier reserved for the hardest tasks. The economics of fast mode shifted meaningfully too: on Opus 4.8, fast mode now costs 2× the standard rate for 2.5× the speed — a far better ratio than before, making "fast" a genuinely viable everyday setting rather than a premium splurge.
 
-With Monitor, you can tell Claude to watch a log file, tail a dev server, or follow `kubectl logs`, and it will only consume tokens when something interesting actually appears. Each stdout line streams in as an event; if nothing relevant lands, nothing happens.
+Two related changes matter for daily use. First, the **lean system prompt is now the default** for all models except Haiku, Sonnet, and Opus 4.7-and-earlier — meaning 4.8 starts every session with less baseline context overhead, leaving more room for your actual work. Second, Claude now **reserves the multiple-choice question prompt** (`AskUserQuestion`) for decisions it genuinely cannot make on its own, rather than interrupting you when it already has enough context to proceed. If 4.8 feels like it asks fewer clarifying questions, that's deliberate.
 
-**Practical use cases**: Watch your Next.js dev server for compilation errors while you keep chatting. Monitor CI logs for a build you just triggered. Tail application logs and have Claude react to errors as they occur.
+A migration note for fast-mode users: `CLAUDE_CODE_OPUS_4_6_FAST_MODE_OVERRIDE` is deprecated and slated for removal on June 1. To keep fast mode on Opus 4.6, switch with `/model claude-opus-4-6[1m]` then `/fast on`.
 
-**Limitations**: Not available on Bedrock, Vertex AI, or Foundry. Follows the same permission rules as the Bash tool.
+### Dynamic Workflows — Orchestrate Hundreds of Agents
 
-### `/team-onboarding` — Generate Ramp-Up Guides from Your Usage
+*v2.1.154 — May 28*
 
-*v2.1.101 — April 10*
+This is the period's most consequential new capability. You can now ask Claude to **create a workflow**, and it will author and run a script that orchestrates work across tens to hundreds of subagents in the background — fanning out parallel searches, running adversarial verification passes, pipelining multi-stage transforms, and synthesizing results. Run `/workflows` to view your runs.
 
-This command analyzes how you've been using Claude Code locally — your CLAUDE.md configuration, memory files, common workflows — and generates a structured onboarding guide that helps teammates get productive faster. Instead of writing "here's how we use Claude Code" documentation by hand, you can generate it from the patterns you've already established.
+Why it matters: this is a step-change in the scale of work a single request can take on. Tasks that were previously too large for one context window — auditing an entire codebase, migrating every call site of a deprecated API, researching a question across dozens of sources — become tractable because the orchestration runs as deterministic JavaScript while the individual agents do the bounded work. It's the difference between "Claude does the task" and "Claude builds a machine that does the task."
 
-This is particularly useful for teams adopting Claude Code incrementally, where one person has dialed in their setup and wants to propagate it. The generated guide pairs naturally with your project's existing CLAUDE.md and steering files.
+Practical caveats discovered around the rollout: workflows can spawn dozens of agents and consume a large amount of tokens, so they're meant for genuinely large work, not quick checks. The feature is keyword-triggered — and that created enough noise that the team shipped a **"Workflow keyword trigger" setting in `/config`** (v2.1.158) to stop the literal word "workflow" appearing in a prompt from spuriously kicking one off. Pressing backspace right after the trigger keyword now dismisses the request (same as `alt+w`). There was also a bug, since fixed, where the term "workflow" anywhere in output created a spurious trigger and made long output unreadable.
 
-### Focus View Toggle (`Ctrl+O`)
+### Agent View (`claude agents`) — One List for Every Session
 
-*v2.1.97 — April 8*
+*v2.1.139 — May 11 (Research Preview)*
 
-In NO_FLICKER mode, `Ctrl+O` now cycles through view states: normal prompt, transcript mode, and a new focus view. Focus view strips the display down to just your last prompt, a one-line summary of tool calls (with edit diffstats), and Claude's final response. Everything in between — the step-by-step tool output, intermediate reasoning — is collapsed.
+`claude agents` opens a single dashboard listing every Claude Code session — running, blocked on your input, or done. This is the UI that makes background execution actually usable: instead of losing track of detached sessions, you get a live roster with awaiting-input counts (even surfaced in the terminal tab title so an alt-tabbed window tells you when an agent needs you), PR columns, and the ability to attach/detach at will.
 
-This matters for longer interactions where the conversation history pushes your prompt off-screen. Instead of scrolling through pages of tool calls to find what Claude actually concluded, focus view gives you the answer immediately. It's especially useful when reviewing the results of multi-step operations like code reviews or refactoring sessions.
+The agent view accumulated an enormous amount of polish over the following two weeks — by my count it was the single most-touched area in the period. Highlights that affect workflow:
 
-**Requires**: `CLAUDE_CODE_NO_FLICKER=1` environment variable (v2.1.89+).
+- **Background shell sessions**: type `! <command>` in the dispatch input to run a shell command as an attachable/detachable background session, also available as `claude --bg --exec '<command>'` (v2.1.154).
+- **Configuration parity**: dispatched sessions now honor `--add-dir`, `--settings`, `--mcp-config`, `--plugin-dir`, `--permission-mode`, `--model`, `--effort`, and `--dangerously-skip-permissions` (v2.1.142–143).
+- **`--json` output** for scripting status bars and session pickers (v2.1.145).
+- **Pinned sessions** (`Ctrl+T`) stay alive when idle and restart in place to apply updates (v2.1.147).
+- **Resume integration**: `claude --bg` sessions now appear in `/resume`, marked `bg` (v2.1.144).
+
+If you tried background agents earlier and found them hard to keep track of, this is the release that fixes that.
+
+### `/goal` — Persistent Completion Conditions
+
+*v2.1.139 — May 11*
+
+The `/goal` command lets you set a **completion condition** and Claude keeps working across turns until that condition is met — in interactive, `-p`, and Remote Control modes. A live overlay panel shows elapsed time, turn count, and token spend so you can watch the cost accumulate.
+
+This is distinct from `/loop` (which repeats on an interval) and from a single long turn: `/goal` is outcome-driven. You describe what "done" looks like — "all tests pass," "no TypeScript errors in `src/`" — and Claude iterates autonomously toward it. A follow-up fix (v2.1.143) stopped the evaluator from firing prematurely while background shells or delegated subagents were still running, which is important: the goal should only be judged complete once the work it spawned actually finishes.
 
 ## Significant Enhancements
 
-### OS CA Certificate Store Trust by Default
+### Auto Mode Goes Mainstream
 
-*v2.1.101 — April 10*
+Auto mode — where a safety classifier evaluates each action instead of prompting you — matured from experiment to default over the period:
 
-Claude Code now trusts your operating system's certificate store alongside its bundled Mozilla CAs. This means enterprise TLS-inspection proxies (CrowdStrike Falcon, Zscaler, etc.) work out of the box — no more `NODE_EXTRA_CA_CERTS` workarounds or custom certificate configuration.
+- **No more opt-in consent** required (v2.1.152, May 27).
+- **Available on Bedrock, Vertex, and Foundry** for Opus 4.7 and 4.8 via `CLAUDE_CODE_ENABLE_AUTO_MODE=1` (v2.1.158, May 30) — previously first-party only.
+- The classifier got better at **detecting data exfiltration**, particularly bulk transfers of repository contents (v2.1.154), and a new `autoMode.hard_deny` setting (v2.1.136) lets you define rules that block unconditionally regardless of inferred user intent.
 
-This was one of the more persistent friction points for enterprise users. If your company's security infrastructure injects its own root CA (and most do), Claude Code previously needed manual certificate setup that varied by platform. Now it reads the same trust store your browser uses. Set `CLAUDE_CODE_CERT_STORE=bundled` if you specifically need to opt out.
+The trajectory here is clear: Anthropic is positioning auto mode as the everyday permission experience, with the classifier — not a wall of prompts — as the primary guardrail. If you've avoided it, it's worth re-evaluating now that it's the default and the exfiltration detection has tightened.
 
-### Interactive Vertex AI Setup Wizard
+### `/code-review` and `/simplify` Settle Into Distinct Roles
 
-*v2.1.98 — April 9*
+These two commands churned through several identities this period before landing in a sensible split — worth understanding if you use either:
 
-Setting up Claude Code with Google Vertex AI previously required manually exporting environment variables for GCP authentication, project IDs, and region configuration. The new setup wizard, accessible from the login screen under "3rd-party platform", walks you through the entire process: choosing an authentication method (ADC, service account key, or existing environment credentials), selecting your project and region, verifying the connection works, and optionally pinning specific models. Configuration is saved to your user settings file automatically. Run `/setup-vertex` anytime to reconfigure.
+- **v2.1.147**: `/simplify` was *renamed* to `/code-review`, now reporting correctness bugs at a chosen effort level (e.g. `/code-review high`), with `--comment` to post findings as inline GitHub PR comments. The old cleanup-and-fix behavior was removed.
+- **v2.1.152**: `/code-review --fix` gained the ability to apply review findings to your working tree, and `/simplify` was reintroduced as an alias for it.
+- **v2.1.154**: The split finalized — **`/simplify` now runs a cleanup-only review** (reuse, simplification, efficiency, altitude) and applies fixes, while **`/code-review` hunts for correctness bugs**. They're now genuinely different tools: one for quality cleanup, one for bug-finding.
 
-### Ultraplan Auto-Creates Cloud Environments
+If you scripted against the intermediate behaviors, re-check them — this area moved three times in two weeks.
 
-*v2.1.101 — April 10*
+### Plugins Without a Marketplace
 
-Ultraplan — the feature that offloads planning to a cloud session running Opus 4.6 for up to 30 minutes — previously required you to set up a cloud environment through the web interface before you could use it. Now it auto-creates a default environment on first use. This removes what was effectively a prerequisite step that discouraged first-time usage.
+*v2.1.157 — May 29*
 
-### Subprocess Sandboxing with PID Namespace Isolation
+Plugins dropped into `.claude/skills` directories are now **automatically loaded with no marketplace required**, and `claude plugin init <name>` scaffolds a new plugin there. This substantially lowers the barrier to local/project-specific plugins — you can now just create a directory and have it picked up, rather than standing up a marketplace entry. Combined with the new `/reload-skills` command (v2.1.152) and `SessionStart` hooks that can return `reloadSkills: true`, the skill-authoring loop is now fast enough to iterate on within a single session.
 
-*v2.1.98 — April 9*
+### Skills and Hooks Gain Real Control Surfaces
 
-When `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` is set, Claude Code now strips cloud credentials (Anthropic API keys, AWS tokens, etc.) from Bash, hook, and MCP subprocesses. On Linux, it additionally isolates subprocesses in their own PID namespace so they can't see or signal other processes. Combined with the new `CLAUDE_CODE_SCRIPT_CAPS` variable (which limits per-session script invocations), this gives CI/CD pipelines and automated workflows tighter control over what Claude's subprocesses can access.
+A cluster of changes made skills and hooks meaningfully more powerful:
 
-### Improved `/agents` Interface
+- **`disallowed-tools` in skill/command frontmatter** (v2.1.152) removes tools from the model while a skill is active — useful for forcing a skill down a specific path.
+- **`MessageDisplay` hook** (v2.1.152) lets hooks transform or hide assistant message text as it's displayed.
+- **`SessionTitle` and `ToolSearch` hook events** (v2.1.118) compute custom session titles and customize which tools appear in a session (e.g. hiding archived MCP servers).
+- **Hooks can invoke MCP tools directly** via `type: "mcp_tool"` (v2.1.118), and `PostToolUse` hooks can replace tool output for all tools, not just MCP (v2.1.121).
+- **Effort awareness**: hooks now receive the active effort level (`effort.level` / `$CLAUDE_EFFORT`), and Bash commands can read `$CLAUDE_EFFORT` (v2.1.133).
 
-*v2.1.98 — April 9*
+### `/usage` Becomes the One-Stop Cost Dashboard
 
-The `/agents` command now has a tabbed layout: a **Running** tab shows live subagent instances with their status, and a **Library** tab lists available agent types with actions to run or view instances. Agent types with active instances show a `● N running` indicator. This makes it significantly easier to manage multiple concurrent background agents.
+*v2.1.118, v2.1.149*
 
-### Rate-Limit Retry Messages Now Show What Was Hit
+`/cost` and `/stats` were **merged into `/usage`** (both remain as typing shortcuts to the relevant tab). More usefully, `/usage` now shows a **per-category breakdown of what's driving your limits** — skills, subagents, plugins, and per-MCP-server cost (v2.1.149). For anyone trying to understand why they're hitting rate limits, this finally attributes consumption to specific sources instead of one opaque number.
 
-*v2.1.101 — April 10*
+### Editor and Terminal Quality of Life
 
-When you hit a rate limit, the retry message now tells you which specific limit was triggered and when it resets, replacing the previous opaque countdown. Small quality-of-life change, but if you're hitting limits frequently (common on Team/Pro plans during heavy usage), knowing whether it's a tokens-per-minute or requests-per-minute limit helps you decide whether to wait or adjust your approach.
+*v2.1.118 and throughout*
 
-## Security Fixes Worth Noting
+- **Vim visual mode** (`v`) and visual-line mode (`V`) with selection and operators (v2.1.118).
+- **Custom named themes**: create and switch from `/theme`, or hand-edit JSON in `~/.claude/themes/`; plugins can ship themes (v2.1.118).
+- **`/compact` subcommand** to manually trigger compaction with a preview and confirmation (v2.1.118), plus a Rewind-menu "Summarize up to here" option (v2.1.141).
+- **GFM task-list checkboxes** now render as real checkboxes in markdown output (v2.1.149).
+- **Read tool partial view**: a whole-file read that exceeds the token limit now returns a truncated first page with a "PARTIAL view" notice instead of a hard error (v2.1.145) — you'll see this behavior in this very review's tool output.
 
-Three security fixes in this period warrant attention:
+## Developer Experience
 
-- **Command injection in POSIX `which` fallback** (v2.1.101): A vulnerability in the LSP binary detection path could allow command injection. Fixed.
-- **Bash tool permission bypass via backslash-escaped flags** (v2.1.98): A backslash-escaped flag could trick the permission system into auto-allowing a command as read-only, enabling arbitrary code execution.
-- **Compound Bash commands bypassing forced permission prompts** (v2.1.98): In auto and bypass-permissions modes, compound commands could skip safety checks that should have been enforced.
+### Worktree and Background Isolation Controls
 
-If you're running Claude Code in automated environments or with relaxed permission modes, updating to 2.1.101 is particularly important.
+The background-agent machinery exposed several new knobs for teams whose repos don't fit the default assumptions:
+
+- **`worktree.baseRef`** (`fresh` | `head`, v2.1.133) chooses whether new worktrees branch from `origin/<default>` or local `HEAD`. Note the default `fresh` changed `EnterWorktree`'s base back to `origin/<default>` — set `head` to keep unpushed commits. This setting flip-flopped a couple of times (see 2.1.128), so verify your behavior explicitly.
+- **`worktree.bgIsolation: "none"`** (v2.1.143) lets background sessions edit the working copy directly, for repos where worktrees are impractical.
+- A meaningful safety fix: worktree cleanup **no longer falls back to `rm -rf`** when `git worktree remove` fails (v2.1.143), preventing loss of gitignored or in-progress files.
+
+### Windows / PowerShell Becomes First-Class
+
+A sustained push made Windows a properly supported platform rather than a compatibility afterthought:
+
+- **Git for Windows is no longer required** — when absent, Claude Code uses PowerShell as the shell tool (v2.1.120).
+- The **PowerShell tool is enabled by default** on Windows for Bedrock/Vertex/Foundry users (v2.1.143) and now passes `-ExecutionPolicy Bypass` by default.
+- Numerous permission-parsing fixes for PowerShell allow rules, plus detection of PowerShell installed via Microsoft Store / winget / .NET global tool.
+
+### Security Hardening
+
+Several permission-bypass holes were closed — worth noting because they affect the trust model:
+
+- A **PowerShell permission bypass** where built-in `cd` functions (`cd..`, `cd\`, etc.) changed the working directory undetected, letting a later command read outside the workspace (v2.1.149).
+- **Bare variable assignments** to non-allowlisted env vars in Bash commands being auto-approved (v2.1.145).
+- Enterprise **login restrictions** (`forceLoginOrgUUID`, `forceLoginMethod`) not being enforced against third-party-provider and API-key sessions (v2.1.147).
+- A custom API gateway potentially receiving the user's **Anthropic OAuth credential** instead of the gateway's own token (v2.1.153).
+
+### Notable Operational Fixes
+
+- **Startup hang up to 75s** when `api.anthropic.com` is unreachable (captive portal, VPN) — side-channel calls now time out after 15s (v2.1.144).
+- **`find` in the Bash tool exhausting the macOS file/vnode table and crashing the host** on large directory trees (v2.1.149, with related fixes in 2.1.120/2.1.121).
+- **Multi-GB memory growth** from image-heavy sessions, `/usage` on large histories, and stdio MCP servers writing non-protocol data to stdout (v2.1.121, v2.1.132).
+- **1-hour prompt cache TTL silently downgraded to 5 minutes** (v2.1.129) — a real cost regression for cache-heavy workflows, now fixed.
 
 ## Summary
 
-The theme of this week is Claude Code maturing for both individual power users and enterprise teams. The Monitor tool represents a genuine paradigm shift in how background tasks work — moving from expensive polling to event-driven streaming. The enterprise improvements (CA trust, Vertex wizard, subprocess sandboxing) lower adoption barriers in corporate environments. And the UX refinements (focus view, `/agents` tabs, better rate-limit messages) show continued polish for daily users. The security fixes in Bash tool permissions are a reminder to stay current, especially in automated or CI environments.
+The connective theme of this period is **scale and autonomy**. Opus 4.8 raised the ceiling on what a single agent can reason through; dynamic workflows raised the ceiling on how many agents one prompt can marshal; `/goal` and the agent view made long-running, multi-session autonomous work something you can dispatch and supervise rather than babysit; and auto mode removed the prompt-wall friction that made autonomy tedious. Everything else — the relentless background-session hardening, the worktree controls, the Windows push — is infrastructure in service of that same direction: Claude Code is increasingly built to run *more work, more independently, for longer*, with the human supervising a fleet rather than driving a single thread. The flip side, visible in the workflow-keyword-trigger noise and the `/code-review` churn, is that features are shipping fast enough that the UX is still settling — worth keeping an eye on `/config` and re-reading frontmatter behaviors if you automate against these tools.
