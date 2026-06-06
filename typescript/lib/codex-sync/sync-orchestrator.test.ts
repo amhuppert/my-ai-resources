@@ -146,7 +146,7 @@ describe("runSync", () => {
     expect(result.hasErrors).toBe(true);
     const failed = result.items.filter((i) => i.status === "failed");
     expect(failed.length).toBe(1);
-    expect(failed[0].artifact).toBe("skill:bad-skill");
+    expect(failed[0]!.artifact).toBe("skill:bad-skill");
     // Despite the failed skill, MCP and instructions should still succeed
     const synced = result.items.filter((i) => i.status === "synced");
     expect(synced.length).toBe(2);
@@ -195,7 +195,7 @@ describe("runSync", () => {
     expect(result.hasErrors).toBe(true);
     const failed = result.items.filter((i) => i.status === "failed");
     expect(failed.length).toBe(1);
-    expect(failed[0].artifact).toBe("skill:bad-skill");
+    expect(failed[0]!.artifact).toBe("skill:bad-skill");
 
     // Instructions and MCP still succeed
     const synced = result.items.filter((i) => i.status === "synced");
@@ -226,7 +226,7 @@ describe("runSync", () => {
     expect(result.hasErrors).toBe(false);
     const skipped = result.items.filter((i) => i.status === "skipped");
     expect(skipped.length).toBe(1);
-    expect(skipped[0].artifact).toBe("instructions");
+    expect(skipped[0]!.artifact).toBe("instructions");
   });
 
   test("includes standalone agents alongside plugin agents", () => {
@@ -404,8 +404,8 @@ describe("runSync", () => {
     // Project-only plugin's skill should still be synced
     const skillResults = result.items.filter((i) => i.artifact.startsWith("skill:"));
     expect(skillResults).toHaveLength(1);
-    expect(skillResults[0].artifact).toBe("skill:project-skill");
-    expect(skillResults[0].status).toBe("synced");
+    expect(skillResults[0]!.artifact).toBe("skill:project-skill");
+    expect(skillResults[0]!.status).toBe("synced");
   });
 
   test("excludes plugins listed in config.exclude by name", () => {
@@ -437,7 +437,7 @@ describe("runSync", () => {
 
     const skillResults = result.items.filter((i) => i.artifact.startsWith("skill:"));
     expect(skillResults).toHaveLength(1);
-    expect(skillResults[0].artifact).toBe("skill:keep-plugin-skill");
+    expect(skillResults[0]!.artifact).toBe("skill:keep-plugin-skill");
   });
 
   test("pipeline executes stages in order: instructions, skills, agents, MCP", () => {

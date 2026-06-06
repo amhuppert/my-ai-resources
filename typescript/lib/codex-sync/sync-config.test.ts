@@ -54,7 +54,7 @@ describe("loadOrCreateSyncConfig", () => {
     };
     writeFileSync(configPath, JSON.stringify(configWithExtra));
 
-    const result = loadOrCreateSyncConfig(configPath);
+    const result: unknown = loadOrCreateSyncConfig(configPath);
     expect((result as Record<string, unknown>)["futureField"]).toBe(
       "preserved-value",
     );

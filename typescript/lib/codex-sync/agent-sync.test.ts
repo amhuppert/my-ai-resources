@@ -248,9 +248,9 @@ describe("syncAgents", () => {
     );
 
     expect(results).toHaveLength(1);
-    expect(results[0].status).toBe("synced");
-    expect(results[0].warnings).toHaveLength(1);
-    expect(results[0].warnings?.[0]).toInclude("unknown-model");
+    expect(results[0]!.status).toBe("synced");
+    expect(results[0]!.warnings).toHaveLength(1);
+    expect(results[0]!.warnings?.[0]).toInclude("unknown-model");
   });
 
   test("overwrites existing agent with matching name", () => {
@@ -274,7 +274,7 @@ describe("syncAgents", () => {
     const results = syncAgents(agents, destDir, {});
 
     expect(results).toHaveLength(1);
-    expect(results[0].status).toBe("synced");
+    expect(results[0]!.status).toBe("synced");
 
     const parsed = parseToml(
       readFileSync(join(destDir, "reviewer.toml"), "utf-8"),
@@ -330,8 +330,8 @@ describe("syncAgents", () => {
     const results = syncAgents(agents, join(tempDir, "dest"), {});
 
     expect(results).toHaveLength(1);
-    expect(results[0].status).toBe("failed");
-    expect(results[0].artifact).toBe("agent:bad-agent");
-    expect(results[0].reason).toBeString();
+    expect(results[0]!.status).toBe("failed");
+    expect(results[0]!.artifact).toBe("agent:bad-agent");
+    expect(results[0]!.reason).toBeString();
   });
 });

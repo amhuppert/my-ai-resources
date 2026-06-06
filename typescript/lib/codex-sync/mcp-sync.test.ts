@@ -40,8 +40,8 @@ describe("syncMcpServers", () => {
     const results = syncMcpServers(mcpSourcePath, codexConfigDir);
 
     expect(results).toHaveLength(1);
-    expect(results[0].artifact).toBe("mcp:my-server");
-    expect(results[0].status).toBe("synced");
+    expect(results[0]!.artifact).toBe("mcp:my-server");
+    expect(results[0]!.status).toBe("synced");
 
     const toml = readFileSync(join(codexConfigDir, "config.toml"), "utf-8");
     expect(toml).toInclude('[mcp_servers.my-server]');
@@ -73,7 +73,7 @@ describe("syncMcpServers", () => {
     const results = syncMcpServers(mcpSourcePath, codexConfigDir);
 
     expect(results).toHaveLength(1);
-    expect(results[0].status).toBe("synced");
+    expect(results[0]!.status).toBe("synced");
 
     const toml = readFileSync(join(codexConfigDir, "config.toml"), "utf-8");
     expect(toml).toInclude('[mcp_servers.api-server]');
@@ -189,9 +189,9 @@ describe("syncMcpServers", () => {
     const results = syncMcpServers(mcpSourcePath, codexConfigDir);
 
     expect(results).toHaveLength(1);
-    expect(results[0].status).toBe("failed");
-    expect(results[0].artifact).toBe("mcp");
-    expect(results[0].reason).toBeString();
+    expect(results[0]!.status).toBe("failed");
+    expect(results[0]!.artifact).toBe("mcp");
+    expect(results[0]!.reason).toBeString();
   });
 
   test("returns failed result when existing config.toml is malformed", () => {
@@ -211,9 +211,9 @@ describe("syncMcpServers", () => {
     const results = syncMcpServers(mcpSourcePath, codexConfigDir);
 
     expect(results).toHaveLength(1);
-    expect(results[0].status).toBe("failed");
-    expect(results[0].artifact).toBe("mcp");
-    expect(results[0].reason).toContain("Invalid existing TOML");
+    expect(results[0]!.status).toBe("failed");
+    expect(results[0]!.artifact).toBe("mcp");
+    expect(results[0]!.reason).toContain("Invalid existing TOML");
   });
 
   test("syncs multiple servers and returns a result for each", () => {
@@ -258,7 +258,7 @@ describe("syncMcpServers", () => {
     const results = syncMcpServers(mcpSourcePath, codexConfigDir);
 
     expect(results).toHaveLength(1);
-    expect(results[0].status).toBe("synced");
+    expect(results[0]!.status).toBe("synced");
 
     const toml = readFileSync(join(codexConfigDir, "config.toml"), "utf-8");
     expect(toml).toInclude('[mcp_servers.no-env-server]');
@@ -285,7 +285,7 @@ describe("syncMcpServers", () => {
     const skipped = results.filter((r) => r.status === "skipped");
     expect(synced).toHaveLength(2);
     expect(skipped).toHaveLength(1);
-    expect(skipped[0].artifact).toBe("mcp:bad-server");
+    expect(skipped[0]!.artifact).toBe("mcp:bad-server");
 
     const toml = readFileSync(join(codexConfigDir, "config.toml"), "utf-8");
     expect(toml).toInclude('[mcp_servers.good-server]');
@@ -311,8 +311,8 @@ describe("syncMcpServers", () => {
     const results = syncMcpServers(mcpSourcePath, codexConfigDir);
 
     expect(results).toHaveLength(1);
-    expect(results[0].status).toBe("synced");
-    expect(results[0].artifact).toBe("mcp:remote-server");
+    expect(results[0]!.status).toBe("synced");
+    expect(results[0]!.artifact).toBe("mcp:remote-server");
 
     const toml = readFileSync(join(codexConfigDir, "config.toml"), "utf-8");
     expect(toml).toInclude('[mcp_servers.remote-server]');
@@ -341,7 +341,7 @@ describe("syncMcpServers", () => {
     const results = syncMcpServers(mcpSourcePath, codexConfigDir);
 
     expect(results).toHaveLength(1);
-    expect(results[0].status).toBe("synced");
+    expect(results[0]!.status).toBe("synced");
 
     const toml = readFileSync(join(codexConfigDir, "config.toml"), "utf-8");
     expect(toml).toInclude('[mcp_servers.auth-server]');
@@ -393,9 +393,9 @@ describe("syncMcpServers", () => {
     const synced = results.filter((r) => r.status === "synced");
     const skipped = results.filter((r) => r.status === "skipped");
     expect(synced).toHaveLength(1);
-    expect(synced[0].artifact).toBe("mcp:good-server");
+    expect(synced[0]!.artifact).toBe("mcp:good-server");
     expect(skipped).toHaveLength(1);
-    expect(skipped[0].artifact).toBe("mcp:sse-server");
-    expect(skipped[0].reason).toInclude("SSE");
+    expect(skipped[0]!.artifact).toBe("mcp:sse-server");
+    expect(skipped[0]!.reason).toInclude("SSE");
   });
 });

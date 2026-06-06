@@ -226,11 +226,11 @@ describe("codex-sync end-to-end integration", () => {
     const mcpServers = configToml["mcp_servers"] as Record<string, Record<string, unknown>>;
     expect(mcpServers).toBeDefined();
     expect(mcpServers["example-mcp"]).toBeDefined();
-    expect(mcpServers["example-mcp"]["command"]).toBe("example-mcp");
-    expect(mcpServers["example-mcp"]["args"]).toEqual(["--stdio"]);
-    expect((mcpServers["example-mcp"]["env"] as Record<string, string>)["API_KEY"]).toBe("test-key");
+    expect(mcpServers["example-mcp"]!["command"]).toBe("example-mcp");
+    expect(mcpServers["example-mcp"]!["args"]).toEqual(["--stdio"]);
+    expect((mcpServers["example-mcp"]!["env"] as Record<string, string>)["API_KEY"]).toBe("test-key");
     expect(mcpServers["memory-bank"]).toBeDefined();
-    expect(mcpServers["memory-bank"]["command"]).toBe("memory-bank-mcp");
+    expect(mcpServers["memory-bank"]!["command"]).toBe("memory-bank-mcp");
 
     // Verify default config was created
     expect(existsSync(configPath)).toBe(true);
@@ -340,7 +340,7 @@ describe("codex-sync end-to-end integration", () => {
     expect((configToml["model"] as Record<string, string>)["name"]).toBe("gpt-5.4");
     const mcpServers = configToml["mcp_servers"] as Record<string, Record<string, unknown>>;
     expect(mcpServers["existing-server"]).toBeDefined();
-    expect(mcpServers["existing-server"]["command"]).toBe("keep-me");
+    expect(mcpServers["existing-server"]!["command"]).toBe("keep-me");
 
     // Synced MCP servers present
     expect(mcpServers["example-mcp"]).toBeDefined();

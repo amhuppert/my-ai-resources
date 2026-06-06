@@ -370,9 +370,12 @@ describe("discoverMcpServers", () => {
     const servers = discoverMcpServers(configPath);
     expect(servers).toHaveLength(1);
     expect(servers[0]!.id).toBe("my-server");
-    expect(servers[0]!.command).toBe("npx");
-    expect(servers[0]!.args).toEqual(["-y", "my-server"]);
-    expect(servers[0]!.env).toEqual({ API_KEY: "secret" });
+    expect(servers[0]!.transport).toBe("stdio");
+    if (servers[0]!.transport === "stdio") {
+      expect(servers[0]!.command).toBe("npx");
+      expect(servers[0]!.args).toEqual(["-y", "my-server"]);
+      expect(servers[0]!.env).toEqual({ API_KEY: "secret" });
+    }
   });
 
   test("parses multiple MCP servers", () => {
@@ -401,8 +404,11 @@ describe("discoverMcpServers", () => {
     );
 
     const servers = discoverMcpServers(configPath);
-    expect(servers[0]!.args).toEqual([]);
-    expect(servers[0]!.env).toEqual({});
+    expect(servers[0]!.transport).toBe("stdio");
+    if (servers[0]!.transport === "stdio") {
+      expect(servers[0]!.args).toEqual([]);
+      expect(servers[0]!.env).toEqual({});
+    }
   });
 
   test("returns empty array when file is missing", () => {
