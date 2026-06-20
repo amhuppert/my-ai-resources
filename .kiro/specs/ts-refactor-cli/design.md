@@ -6,7 +6,7 @@
 
 **Users**: AI coding agents (and, secondarily, humans/scripts) that need to apply mechanical-but-correctness-sensitive refactors across a TypeScript codebase. The tool is optimized for machine consumption: deterministic addressing, machine-readable edit plans, inspectable and hash-verified output, and warm-process speed.
 
-**Impact**: Adds a new binary (`ts-refactor`) built from `typescript/` alongside the existing `ai` CLI — using the same `bun build … --outdir=dist --target=bun` + `package.json` `bin` pattern as `ai` (output `dist/ts-refactor.js`), **not** voice-to-text's `--compile` standalone-executable pattern. Plus a new library module `typescript/lib/ts-refactor/`. Introduces one runtime dependency, `ts-morph` (which transitively pulls `typescript`). No changes to existing installers beyond registering the new binary.
+**Impact**: Adds a new binary (`ts-refactor`) built from `typescript/` alongside the existing `ai` CLI — using the same `bun build … --outdir=dist --target=bun` + `package.json` `bin` pattern as `ai` (output `dist/ts-refactor.js`), **not** a `--compile` standalone-executable pattern. Plus a new library module `typescript/lib/ts-refactor/`. Introduces one runtime dependency, `ts-morph` (which transitively pulls `typescript`). No changes to existing installers beyond registering the new binary.
 
 ### Objectives / Goals
 
@@ -448,7 +448,7 @@ typescript/
     ts-refactor.ts             # binary entry: one-shot Commander commands + `serve` loop
 ```
 
-Build: extend `typescript/package.json` `scripts.build` with `bun build scripts/ts-refactor.ts --outdir=dist --target=bun`, and add a `bin` entry `"ts-refactor": "dist/ts-refactor.js"` (same shape as `ai` → `dist/ai.js`). The `bin` entry is the registration mechanism: like the existing `ai` and `json-to-schema` binaries, `ts-refactor` is exposed on `PATH` via the package's `bin` map plus a manual `bun link` (per `typescript/README.md`) — `install-user.ts` does **not** register any package binary, so no installer change is required for parity with the others. This follows the `typescript/` package's JS-output + `bin` pattern, **not** voice-to-text's `bun build --compile --outfile` standalone-executable pattern. If a true self-contained executable is later wanted for `ts-refactor` (faster cold start, no Bun on PATH), that is a deliberate divergence requiring `--compile --outfile dist/ts-refactor` plus executable-bit handling in the installer.
+Build: extend `typescript/package.json` `scripts.build` with `bun build scripts/ts-refactor.ts --outdir=dist --target=bun`, and add a `bin` entry `"ts-refactor": "dist/ts-refactor.js"` (same shape as `ai` → `dist/ai.js`). The `bin` entry is the registration mechanism: like the existing `ai` and `json-to-schema` binaries, `ts-refactor` is exposed on `PATH` via the package's `bin` map plus a manual `bun link` (per `typescript/README.md`) — `install-user.ts` does **not** register any package binary, so no installer change is required for parity with the others. This follows the `typescript/` package's JS-output + `bin` pattern, **not** a `bun build --compile --outfile` standalone-executable pattern. If a true self-contained executable is later wanted for `ts-refactor` (faster cold start, no Bun on PATH), that is a deliberate divergence requiring `--compile --outfile dist/ts-refactor` plus executable-bit handling in the installer.
 
 ## Open Questions / Future Work
 

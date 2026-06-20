@@ -14,7 +14,7 @@ Reflect on the current conversation to evaluate codebase navigation effectivenes
 
 Topic name: $ARGUMENTS
 
-If no topic name provided, derive one from the conversation's primary task using kebab-case (e.g., `voice-to-text`, `installer-scripts`, `mcp-server`).
+If no topic name provided, derive one from the conversation's primary task using kebab-case (e.g., `api-client`, `installer-scripts`, `mcp-server`).
 
 ## Step 1: Reflect on Navigation
 

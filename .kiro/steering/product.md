@@ -13,7 +13,6 @@ Operates as a "meta-repository" that installs AI development infrastructure to b
 - **Plugin-Based Slash Commands**: Extensible skill system for Claude Code with AI-aware git commits, code review, design workflows, and more
 - **TypeScript CLI Tooling**: Installation management, settings validation, and utility scripts compiled to standalone executables
 - **MCP Server Integration**: Tool integration via Model Context Protocol (memory bank management)
-- **Voice-to-Text Tooling**: Voice transcription with project-specific vocabulary and context for AI-assisted dictation
 
 ## Target Use Cases
 
@@ -21,7 +20,6 @@ Operates as a "meta-repository" that installs AI development infrastructure to b
 - Managing persistent project context across AI sessions via steering files
 - Optimizing AI instructions for token efficiency
 - Standardizing AI development workflows across multiple projects
-- Voice-to-text transcription with project-aware vocabulary
 
 ## Value Proposition
 
