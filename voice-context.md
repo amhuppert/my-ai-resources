@@ -41,12 +41,12 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **worktree** - Git worktree; isolated branch environment for parallel sessions
 - **YAGNI** - You Aren't Gonna Need It; design principle
 - **ai** - Main CLI binary for this project (`ai install`, `ai worktree`)
-- **voice-to-text** - The transcription and cleanup tool built in this repository
+- **Shama** - The voice dictation app these skills configure (separate repo at `~/github/shama`)
 - **slash commands** - Custom Claude Code commands invoked with `/command-name` syntax
 
 ## Naming Conventions
 
-- **kebab-case** for file names, CLI commands, MCP server names, and skill names (e.g., `cursor-shortcuts-mcp`, `init-voice-config`)
+- **kebab-case** for file names, CLI commands, MCP server names, and skill names (e.g., `cursor-shortcuts-mcp`, `shama-init-config`)
 - **camelCase** for TypeScript variables and functions (e.g., `installUser`, `deepMerge`)
 - **PascalCase** for TypeScript types and Zod schemas (e.g., `ClaudeSettings`, `McpServer`, `ConfigSchema`)
 - Hierarchical slugs use forward slashes: `feature-x/sub-feature-y`
@@ -62,7 +62,7 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 ### ai-resources Plugin Skills
 
 - **/ai-resources:add-design-agent** - Create a new design workflow agent for the /design workflow
-- **/ai-resources:add-voice-context** - Add terms or context to voice-to-text config files
+- **/ai-resources:shama-add-context** - Add terms or context to Shama voice config files
 - **/ai-resources:approve** - Approve an implementation plan for immediate execution
 - **/ai-resources:break-into-subtasks** - Break frontend features into parallelizable work items
 - **/ai-resources:changes-tour-guide** - Create a pedagogical walkthrough of recent code changes
@@ -78,7 +78,7 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **/ai-resources:design** - Orchestrate a multi-agent collaborative software design workflow
 - **/ai-resources:fix-merge-conflicts** - Resolve git merge conflicts
 - **/ai-resources:init-design-config** - Initialize DESIGN-AGENTS.md configuration file
-- **/ai-resources:init-voice-config** - Initialize voice-to-text configuration for a project
+- **/ai-resources:shama-init-config** - Initialize Shama voice config for a project
 - **/ai-resources:jog-users-memory** - Provide a quick summary of current progress after returning
 - **/ai-resources:latex** - Create or convert documents to LaTeX format
 - **/ai-resources:local-commit** - Commit to the local private repository via lgit

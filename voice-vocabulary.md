@@ -10,7 +10,7 @@ proper-lockfile
 write-file-atomic
 CLAUDE.md
 MCP
-voice-to-text
+Shama
 CCSDD
 SDD
 PRD
@@ -27,7 +27,7 @@ modelcontextprotocol
 /test-slash-command
 /audit-standards
 /ai-resources:add-design-agent
-/ai-resources:add-voice-context
+/ai-resources:shama-add-context
 /ai-resources:approve
 /ai-resources:break-into-subtasks
 /ai-resources:changes-tour-guide
@@ -40,7 +40,7 @@ modelcontextprotocol
 /ai-resources:design
 /ai-resources:fix-merge-conflicts
 /ai-resources:init-design-config
-/ai-resources:init-voice-config
+/ai-resources:shama-init-config
 /ai-resources:jog-users-memory
 /ai-resources:latex
 /ai-resources:local-commit

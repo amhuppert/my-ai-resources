@@ -32,9 +32,6 @@ Standalone bash scripts installed to `~/.local/bin/`. Self-contained, no build s
 ### `memory-bank-mcp/` - MCP Server
 TypeScript MCP server for structured memory bank management (objectives, features, tasks, tickets). Compiled to `bin/` and globally linked via `bun link`.
 
-### `voice-to-text/` - Voice Transcription Tool
-Standalone voice-to-text application with HTTP server mode and hotkey-driven recording (F9/F10). Uses OpenAI transcription API. Compiled to `dist/`.
-
 ### `notes-for-humans/` - Reference Documentation
 Workflow guides, CLI cheat sheets, and skill pattern documentation for human consumption.
 
