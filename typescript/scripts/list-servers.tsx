@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Box, render, Text, useApp, useInput } from "ink";
 import { execSync } from "node:child_process";
 import { readlinkSync } from "node:fs";
 import { platform } from "node:os";
+import { setTimeout as sleep } from "node:timers/promises";
 
 type Listener = {
   pid: number;
@@ -12,6 +13,19 @@ type Listener = {
 };
 
 type SortKey = "pid" | "port" | "cwd" | "command";
+
+type SignalResult =
+  | { type: "sent" }
+  | { type: "not-running" }
+  | { type: "error"; message: string };
+
+type TerminationResult =
+  | { type: "already-stopped" }
+  | { type: "terminated"; forced: boolean }
+  | { type: "failed"; message: string };
+
+const GRACEFUL_TERMINATION_MS = 5000;
+const FORCE_TERMINATION_CHECK_MS = 1000;
 
 function runCmd(cmd: string): string {
   try {
@@ -77,6 +91,60 @@ function getMacosCwd(pid: number): string {
 function getCommand(pid: number): string {
   const out = runCmd(`ps -ww -p ${pid} -o command=`).trim();
   return out || "(unavailable)";
+}
+
+function getErrorCode(err: unknown): string | undefined {
+  if (typeof err !== "object" || err === null) return undefined;
+  const descriptor = Object.getOwnPropertyDescriptor(err, "code");
+  return typeof descriptor?.value === "string" ? descriptor.value : undefined;
+}
+
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function sendSignal(pid: number, signal: NodeJS.Signals): SignalResult {
+  try {
+    process.kill(pid, signal);
+    return { type: "sent" };
+  } catch (err) {
+    if (getErrorCode(err) === "ESRCH") return { type: "not-running" };
+    return { type: "error", message: getErrorMessage(err) };
+  }
+}
+
+function isProcessTerminated(pid: number): boolean {
+  const state = runCmd(`ps -p ${pid} -o stat=`).trim();
+  return state === "" || state.startsWith("Z");
+}
+
+async function terminateProcess(pid: number): Promise<TerminationResult> {
+  if (isProcessTerminated(pid)) return { type: "already-stopped" };
+
+  const termResult = sendSignal(pid, "SIGTERM");
+  if (termResult.type === "not-running") return { type: "already-stopped" };
+  if (termResult.type === "error") {
+    return { type: "failed", message: `could not send SIGTERM: ${termResult.message}` };
+  }
+
+  await sleep(GRACEFUL_TERMINATION_MS);
+  if (isProcessTerminated(pid)) return { type: "terminated", forced: false };
+
+  const killResult = sendSignal(pid, "SIGKILL");
+  if (killResult.type === "not-running") {
+    return { type: "terminated", forced: false };
+  }
+  if (killResult.type === "error") {
+    return {
+      type: "failed",
+      message: `could not send SIGKILL after SIGTERM: ${killResult.message}`,
+    };
+  }
+
+  await sleep(FORCE_TERMINATION_CHECK_MS);
+  if (isProcessTerminated(pid)) return { type: "terminated", forced: true };
+
+  return { type: "failed", message: "process is still running after SIGKILL" };
 }
 
 function collectListeners(): Listener[] {
@@ -152,19 +220,26 @@ const TableRow = ({
   cells,
   fixedWidths,
   isHeader,
+  isSelected,
 }: {
   cells: string[];
   fixedWidths: number[];
   isHeader?: boolean;
+  isSelected?: boolean;
 }) => {
   const lastIdx = cells.length - 1;
   return (
     <Box flexDirection="row">
+      <Box flexShrink={0} marginRight={1}>
+        <Text color={isSelected ? "yellow" : undefined}>
+          {isHeader ? " " : isSelected ? ">" : " "}
+        </Text>
+      </Box>
       {cells.map((value, i) => {
         const col = COLUMNS[i];
         if (!col) return null;
         const marginRight = i === lastIdx ? 0 : GAP;
-        const color = isHeader ? "cyan" : col.color;
+        const color = isHeader ? "cyan" : isSelected ? "yellow" : col.color;
 
         if (col.flex === undefined) {
           const width = fixedWidths[i] ?? value.length;
@@ -197,7 +272,13 @@ const TableRow = ({
   );
 };
 
-const ServerTable = ({ rows }: { rows: Listener[] }) => {
+const ServerTable = ({
+  rows,
+  selectedIndex,
+}: {
+  rows: Listener[];
+  selectedIndex: number;
+}) => {
   const fixedWidths = COLUMNS.map((col, i) => {
     if (col.flex !== undefined) return 0;
     return Math.max(col.header.length, ...rows.map((r) => col.get(r).length));
@@ -212,9 +293,10 @@ const ServerTable = ({ rows }: { rows: Listener[] }) => {
       />
       {rows.map((row, idx) => (
         <TableRow
-          key={idx}
+          key={`${row.pid}:${row.port}`}
           cells={COLUMNS.map((c) => c.get(row))}
           fixedWidths={fixedWidths}
+          isSelected={idx === selectedIndex}
         />
       ))}
     </Box>
@@ -227,6 +309,11 @@ const App = ({ initialRows }: { initialRows: Listener[] }) => {
   const [asc, setAsc] = useState(true);
   const [rows, setRows] = useState<Listener[]>(initialRows);
   const [refreshedAt, setRefreshedAt] = useState<string>("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
+  const [status, setStatus] = useState<string>("");
+
+  const sorted = useMemo(() => sortRows(rows, sortKey, asc), [rows, sortKey, asc]);
 
   const toggleOrSet = (key: SortKey) => {
     if (key === sortKey) {
@@ -237,9 +324,59 @@ const App = ({ initialRows }: { initialRows: Listener[] }) => {
     }
   };
 
+  const refreshRows = () => {
+    setRows(collectListeners());
+    setRefreshedAt(new Date().toLocaleTimeString());
+  };
+
+  const killSelected = async () => {
+    const selected = sorted[selectedIndex];
+    if (!selected || terminatingPid !== null) return;
+
+    setTerminatingPid(selected.pid);
+    setStatus(`Sending SIGTERM to PID ${selected.pid} on port ${selected.port}...`);
+
+    try {
+      const result = await terminateProcess(selected.pid);
+      refreshRows();
+      if (result.type === "already-stopped") {
+        setStatus(`PID ${selected.pid} was already stopped.`);
+      } else if (result.type === "terminated" && result.forced) {
+        setStatus(`PID ${selected.pid} did not stop after SIGTERM; sent SIGKILL.`);
+      } else if (result.type === "terminated") {
+        setStatus(`PID ${selected.pid} stopped after SIGTERM.`);
+      } else {
+        setStatus(`Failed to stop PID ${selected.pid}: ${result.message}`);
+      }
+    } catch (err) {
+      setStatus(`Failed to stop PID ${selected.pid}: ${getErrorMessage(err)}`);
+    } finally {
+      setTerminatingPid(null);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedIndex >= sorted.length) {
+      setSelectedIndex(Math.max(sorted.length - 1, 0));
+    }
+  }, [selectedIndex, sorted.length]);
+
   useInput((input, key) => {
     if (input === "q" || key.escape || (key.ctrl && input === "c")) {
       exit();
+      return;
+    }
+    if (terminatingPid !== null) return;
+    if (key.upArrow) {
+      setSelectedIndex((idx) => Math.max(idx - 1, 0));
+      return;
+    }
+    if (key.downArrow) {
+      setSelectedIndex((idx) => Math.min(idx + 1, Math.max(sorted.length - 1, 0)));
+      return;
+    }
+    if (input.toLowerCase() === "k") {
+      void killSelected();
       return;
     }
     if (input === "p") toggleOrSet("pid");
@@ -247,12 +384,10 @@ const App = ({ initialRows }: { initialRows: Listener[] }) => {
     if (input === "c") toggleOrSet("cwd");
     if (input === "m") toggleOrSet("command");
     if (input === "r") {
-      setRows(collectListeners());
-      setRefreshedAt(new Date().toLocaleTimeString());
+      refreshRows();
+      setStatus("");
     }
   });
-
-  const sorted = useMemo(() => sortRows(rows, sortKey, asc), [rows, sortKey, asc]);
 
   return (
     <Box flexDirection="column">
@@ -262,13 +397,24 @@ const App = ({ initialRows }: { initialRows: Listener[] }) => {
         <Text bold color="yellow">{sortKey}</Text>
         <Text> ({asc ? "asc" : "desc"})</Text>
         {refreshedAt ? <Text dimColor> · refreshed {refreshedAt}</Text> : null}
+        {terminatingPid !== null ? (
+          <Text color="yellow"> · terminating PID {terminatingPid}</Text>
+        ) : null}
       </Box>
       {sorted.length === 0 ? (
         <Text dimColor>No TCP servers found.</Text>
       ) : (
-        <ServerTable rows={sorted} />
+        <ServerTable rows={sorted} selectedIndex={selectedIndex} />
       )}
+      {status ? (
+        <Box marginTop={1}>
+          <Text color={status.startsWith("Failed") ? "red" : "yellow"}>{status}</Text>
+        </Box>
+      ) : null}
       <Box marginTop={1}>
+        <Text color="yellow">up/down</Text><Text dimColor>=select </Text>
+        <Text color="yellow">K</Text><Text dimColor>=kill </Text>
+        <Text dimColor>· </Text>
         <Text dimColor>Sort: </Text>
         <Text color="yellow">p</Text><Text dimColor>id </Text>
         <Text color="yellow">o</Text><Text dimColor>=port </Text>
@@ -316,6 +462,8 @@ Description:
     Works on Linux (via ss) and macOS (via lsof).
 
     Interactive when run in a terminal:
+      up/down select server
+      K       terminate selected server (SIGTERM, then SIGKILL if needed)
       p       sort by PID (toggle asc/desc)
       o       sort by PORT
       c       sort by CWD

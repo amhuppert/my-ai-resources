@@ -12,6 +12,7 @@ const result = await Bun.build({
   entrypoints: [entry],
   target: "bun",
   minify: true,
+  external: ["react-devtools-core"],
 });
 
 if (!result.success) {
