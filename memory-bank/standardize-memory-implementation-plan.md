@@ -345,7 +345,6 @@ document-map.md
 memory-bank
 project-brief.md
 memory-bank-plugin
-memory-bank-mcp
 /ai-resources:init-document-map
 /ai-resources:update-project-brief
 /memory-bank:add-feature

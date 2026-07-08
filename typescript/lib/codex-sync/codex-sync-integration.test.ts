@@ -117,10 +117,6 @@ function setupMockClaudeCodeStructure(rootDir: string) {
           args: ["--stdio"],
           env: { API_KEY: "test-key" },
         },
-        "memory-bank": {
-          command: "memory-bank-mcp",
-          args: [],
-        },
       },
     }),
   );
@@ -229,8 +225,6 @@ describe("codex-sync end-to-end integration", () => {
     expect(mcpServers["example-mcp"]!["command"]).toBe("example-mcp");
     expect(mcpServers["example-mcp"]!["args"]).toEqual(["--stdio"]);
     expect((mcpServers["example-mcp"]!["env"] as Record<string, string>)["API_KEY"]).toBe("test-key");
-    expect(mcpServers["memory-bank"]).toBeDefined();
-    expect(mcpServers["memory-bank"]!["command"]).toBe("memory-bank-mcp");
 
     // Verify default config was created
     expect(existsSync(configPath)).toBe(true);
@@ -344,7 +338,6 @@ describe("codex-sync end-to-end integration", () => {
 
     // Synced MCP servers present
     expect(mcpServers["example-mcp"]).toBeDefined();
-    expect(mcpServers["memory-bank"]).toBeDefined();
   });
 
   test("creates default config file when it does not exist", () => {
