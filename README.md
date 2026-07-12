@@ -9,7 +9,7 @@ My personal AI workflow, config, prompts, etc. for Claude Code.
 - `.kiro/` - Kiro SDD steering files for project context
 - `memory-bank/` - Session tracking (focus.md) for AI-assisted development
 - `prompts/` - Saved LLM prompts and prompt templates
-- `scripts/` - CLI utility scripts (lgit, code-tree, read-file, push-main)
+- `scripts/` - CLI utility scripts (including local skill installation)
 - `typescript/` - TypeScript tooling for installation and settings management
 - `.claude/` - Claude Code project-level configuration for this repository
 
@@ -28,6 +28,7 @@ Installs user-wide configurations that apply across all projects:
 - `scripts/code-tree` → `~/.local/bin/code-tree` - Directory visualizer with depth control (executable)
 - `scripts/read-file` → `~/.local/bin/read-file` - XML-formatted file reader for LLM context (executable)
 - `scripts/push-main` → `~/.local/bin/push-main` - Branch deployment utility (executable)
+- `scripts/install-skills` → `~/.local/bin/install-skills` - Local skill installer for Claude Code and Codex
 - `claude/settings.json` → Claude Code user settings (via TypeScript installer with deep merge)
 - MCP server registration for Claude Code:
   - `context7` (third-party library documentation)
@@ -63,4 +64,23 @@ ai install --scope user
 ai install --scope project
 # or simply (project is the default scope):
 ai install
+```
+
+### Local Skill Installation
+
+Point `LOCAL_SKILLS_REPO` at a local repository containing `skills/` and
+optional `presets/` directories. Each preset is a text file with one skill
+directory name per line.
+
+```bash
+export LOCAL_SKILLS_REPO="$HOME/path/to/local-skills"
+
+# Choose skills and scope with Gum
+install-skills
+
+# Install a preset and choose the scope with Gum
+install-skills --preset team.txt
+
+# Install a preset non-interactively at user scope
+install-skills --preset team.txt --scope global
 ```

@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+show_help() {
+  cat <<'EOF'
+Usage: install-skills [--preset <file>] [--scope <project|global>]
+
+Install local skills for Claude Code and Codex. Without --preset, Gum prompts
+for one or more skills. Gum prompts for the installation scope unless --scope
+is provided.
+
+Options:
+  --preset <file>  Install skills listed in $LOCAL_SKILLS_REPO/presets/<file>
+  --scope <scope>  Install to the current project or globally
+  -h, --help       Show this help
+
+Environment:
+  LOCAL_SKILLS_REPO  Local repository containing skills/ and presets/
+EOF
+}
+
+fail() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+PRESET=""
+SCOPE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --preset)
+      [[ $# -ge 2 ]] || fail "--preset requires a file name"
+      PRESET="$2"
+      shift 2
+      ;;
+    --scope)
+      [[ $# -ge 2 ]] || fail "--scope requires 'project' or 'global'"
+      SCOPE="$2"
+      shift 2
+      ;;
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    *)
+      fail "unknown argument '$1'"
+      ;;
+  esac
+done
+
+[[ -n "${LOCAL_SKILLS_REPO:-}" ]] || fail "LOCAL_SKILLS_REPO is not set"
+
+SKILLS_DIR="$LOCAL_SKILLS_REPO/skills"
+PRESETS_DIR="$LOCAL_SKILLS_REPO/presets"
+
+[[ -d "$SKILLS_DIR" ]] || fail "skills directory not found: $SKILLS_DIR"
+command_exists skills || fail "the skills CLI is not installed or not on PATH"
+
+AVAILABLE_SKILLS=()
+for skill_dir in "$SKILLS_DIR"/*; do
+  if [[ -d "$skill_dir" && -f "$skill_dir/SKILL.md" ]]; then
+    AVAILABLE_SKILLS+=("$(basename "$skill_dir")")
+  fi
+done
+
+[[ ${#AVAILABLE_SKILLS[@]} -gt 0 ]] || fail "no skills found in $SKILLS_DIR"
+
+skill_is_available() {
+  local requested="$1"
+  local available
+  for available in "${AVAILABLE_SKILLS[@]}"; do
+    if [[ "$requested" == "$available" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+SELECTED_SKILLS=()
+
+if [[ -n "$PRESET" ]]; then
+  [[ "$PRESET" != */* && "$PRESET" != "." && "$PRESET" != ".." ]] || \
+    fail "preset must be a file name within $PRESETS_DIR"
+
+  PRESET_PATH="$PRESETS_DIR/$PRESET"
+  [[ -f "$PRESET_PATH" ]] || fail "preset not found: $PRESET_PATH"
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    skill_name="$(printf '%s' "$line" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    [[ -n "$skill_name" ]] || continue
+
+    skill_is_available "$skill_name" || \
+      fail "preset '$PRESET' contains unavailable skill '$skill_name'"
+    SELECTED_SKILLS+=("$skill_name")
+  done < "$PRESET_PATH"
+
+  [[ ${#SELECTED_SKILLS[@]} -gt 0 ]] || fail "preset '$PRESET' contains no skills"
+else
+  command_exists gum || fail "gum is not installed or not on PATH"
+
+  while IFS= read -r skill_name; do
+    [[ -n "$skill_name" ]] && SELECTED_SKILLS+=("$skill_name")
+  done < <(
+    gum choose \
+      --no-limit \
+      --header "Select skills to install" \
+      "${AVAILABLE_SKILLS[@]}"
+  )
+
+  if [[ ${#SELECTED_SKILLS[@]} -eq 0 ]]; then
+    echo "No skills selected. Nothing to install."
+    exit 0
+  fi
+fi
+
+if [[ -z "$SCOPE" ]]; then
+  command_exists gum || fail "gum is not installed or not on PATH"
+  SCOPE="$(gum choose --header "Select installation scope" project global)"
+fi
+
+[[ "$SCOPE" == "project" || "$SCOPE" == "global" ]] || \
+  fail "invalid scope '$SCOPE'; expected 'project' or 'global'"
+
+SKILLS_ARGS=(add "$SKILLS_DIR")
+for skill_name in "${SELECTED_SKILLS[@]}"; do
+  SKILLS_ARGS+=(--skill "$skill_name")
+done
+SKILLS_ARGS+=(--agent claude-code --agent codex --yes)
+
+if [[ "$SCOPE" == "global" ]]; then
+  SKILLS_ARGS+=(--global)
+fi
+
+skills "${SKILLS_ARGS[@]}"
