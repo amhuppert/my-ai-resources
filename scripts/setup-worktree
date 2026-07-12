@@ -51,11 +51,6 @@ echo "Copying configuration files and directories..."
 copy_dir_if_exists "$ROOT_WORKTREE_PATH/dev-local" "$WORKTREE_DIR/dev-local" "dev-local"
 copy_dir_if_exists "$ROOT_WORKTREE_PATH/.claude" "$WORKTREE_DIR/.claude" ".claude"
 
-if [ -d "$ROOT_WORKTREE_PATH/memory-bank" ]; then
-  mkdir -p "$WORKTREE_DIR/memory-bank"
-  copy_file_if_exists "$ROOT_WORKTREE_PATH/memory-bank/focus.md" "$WORKTREE_DIR/memory-bank/" "memory-bank/focus.md"
-fi
-
 copy_file_if_exists "$ROOT_WORKTREE_PATH/.env.local" "$WORKTREE_DIR/" ".env.local"
 copy_file_if_exists "$ROOT_WORKTREE_PATH/.env" "$WORKTREE_DIR/" ".env"
 copy_file_if_exists "$ROOT_WORKTREE_PATH/CLAUDE.md" "$WORKTREE_DIR/" "CLAUDE.md"

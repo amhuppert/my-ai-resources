@@ -16,8 +16,14 @@
 - Use discriminated unions with literal `type` field for variant types
 - Use nominal types for IDs and semantic strings (e.g., `WithFlavor<string, "UserID">`)
 
+## Dependency Injection
+
+- `InstallConfig` (paths/commands) and `CommandExecutor` (shell execution) are created ONCE at entry points (CLI handlers, main functions)
+- Pass them down the call stack as required parameters — no defaults, no hidden object creation
+
 ## Testing
 
-- Run tests: `bun test` (or `AGENT=1 bun test` for AI-friendly output)
-- Co-locate unit tests: `lib/foo.ts` → `lib/foo.test.ts`
-- Use real APIs for pure functions; mock only external dependencies when necessary
+- Run tests: `bun test` (or `AGENT=1 bun test` for AI-friendly output); unit tests only: `bun test lib/ scripts/`
+- `bun test` does NOT type-check — run `bun run type-check` to catch type errors
+- Co-locate unit tests: `lib/foo.ts` → `lib/foo.test.ts`; integration tests live in `tests/integration/`
+- Use real APIs for pure functions; mock only external dependencies when necessary (use real filesystem ops with temp directories)

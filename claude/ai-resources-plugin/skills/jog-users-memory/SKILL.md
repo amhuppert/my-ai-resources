@@ -18,10 +18,6 @@ Quick memory jog for returning to work after being away.
 - Run `git log --oneline -15` to see recent commits
 - Run `git status --short` to see uncommitted work
 
-**From focus.md:**
-
-- Read `memory-bank/focus.md` 
-
 **From current conversation:**
 
 - Read the current conversation

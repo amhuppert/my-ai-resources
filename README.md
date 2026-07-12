@@ -7,7 +7,7 @@ My personal AI workflow, config, prompts, etc. for Claude Code.
 - `agent-docs/` - Documentation intended for consumption by AI agents (installed to `~/.claude/agent-docs/`)
 - `claude/` - Claude Code configuration files, plugin definition, and user/project CLAUDE.md templates
 - `.kiro/` - Kiro SDD steering files for project context
-- `memory-bank/` - Session tracking (focus.md) for AI-assisted development
+- `memory-bank/` - Working notes and implementation plans from AI-assisted development
 - `prompts/` - Saved LLM prompts and prompt templates
 - `scripts/` - CLI utility scripts (including local skill installation)
 - `typescript/` - TypeScript tooling for installation and settings management

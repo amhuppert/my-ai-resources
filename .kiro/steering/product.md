@@ -12,7 +12,7 @@ Operates as a "meta-repository" that installs AI development infrastructure to b
 
 - **Plugin-Based Slash Commands**: Extensible skill system for Claude Code with AI-aware git commits, code review, design workflows, and more
 - **TypeScript CLI Tooling**: Installation management, settings validation, and utility scripts compiled to standalone executables
-- **MCP Server Integration**: Tool integration via Model Context Protocol (memory bank management)
+- **MCP Server Integration**: Tool integration via Model Context Protocol (web app debugging)
 
 ## Target Use Cases
 

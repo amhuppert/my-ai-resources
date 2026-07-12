@@ -25,7 +25,6 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 
 - **CLAUDE.md** - Claude Code project instructions file; pronounced "Claude dot M-D" (not "cloud.md")
 - **MCP** - Model Context Protocol; standard for AI tool integration via stdio servers
-- **focus.md** - Session file tracking current work-in-progress
 - **steering files** - Kiro SDD project context files in .kiro/steering/ (product.md, tech.md, structure.md)
 - **CCSDD** - Claude Code SDD (Software Design Document); spec-driven design format
 - **SDD** - Software Design Document

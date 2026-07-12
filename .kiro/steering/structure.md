@@ -29,17 +29,11 @@ Library code (`lib/`) and CLI scripts (`scripts/`) compiled to standalone execut
 ### `scripts/` - Shell Utilities
 Standalone bash scripts installed to `~/.local/bin/`. Self-contained, no build step required.
 
-### `memory-bank-mcp/` - MCP Server
-TypeScript MCP server for structured memory bank management (objectives, features, tasks, tickets). Compiled to `bin/` and globally linked via `bun link`.
-
 ### `notes-for-humans/` - Reference Documentation
 Workflow guides, CLI cheat sheets, and skill pattern documentation for human consumption.
 
 ### `prompts/` - Prompt Templates
 Specialized prompt templates for AI instruction optimization and content generation.
-
-### `memory-bank/` - Session Tracking
-Contains `focus.md` (gitignored) for tracking current work-in-progress across AI sessions.
 
 ### `.kiro/steering/` - Project Context
 Kiro SDD steering files providing persistent project context for AI agents.

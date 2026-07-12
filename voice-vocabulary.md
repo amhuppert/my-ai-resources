@@ -17,7 +17,6 @@ PRD
 lgit
 code-tree
 read-file
-focus.md
 steering files
 YAGNI
 ConfigSchema
