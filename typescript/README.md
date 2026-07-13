@@ -37,6 +37,9 @@ This will make the following commands available globally:
 
 - `ai` - Unified CLI for AI workflow resources
 - `json-to-schema` - Convert JSON to JSON Schema via Zod
+- `notify` - Notify immediately or after a wrapped command finishes (installed by `ai install --scope user`)
+
+See the root `README.md` for `notify` invocation and audio fallback behavior.
 
 ## Usage
 

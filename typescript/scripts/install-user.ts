@@ -76,6 +76,20 @@ async function main(
     }
     if (buildResult.stdout) console.log(buildResult.stdout);
 
+    console.log("Building notify...");
+    const notifyBuildResult = await executor.exec(
+      "bun",
+      ["run", "build:notify"],
+      { cwd: join(SCRIPT_DIR, "typescript") },
+    );
+    if (!notifyBuildResult.success) {
+      console.error("Failed to build notify:");
+      if (notifyBuildResult.stdout) console.error(notifyBuildResult.stdout);
+      if (notifyBuildResult.stderr) console.error(notifyBuildResult.stderr);
+      throw new Error("notify build failed");
+    }
+    if (notifyBuildResult.stdout) console.log(notifyBuildResult.stdout);
+
     await installDirectoryFiles(
       join(SCRIPT_DIR, "scripts"),
       config.paths.userLocalBin,

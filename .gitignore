@@ -4,6 +4,7 @@ claude/ai-resources-plugin/servers
 PROMPT.md
 
 scripts/list-servers
+scripts/notify
 
 .worktrees
 .vscode/settings.json

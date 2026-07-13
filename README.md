@@ -29,6 +29,7 @@ Installs user-wide configurations that apply across all projects:
 - `scripts/read-file` → `~/.local/bin/read-file` - XML-formatted file reader for LLM context (executable)
 - `scripts/push-main` → `~/.local/bin/push-main` - Branch deployment utility (executable)
 - `scripts/install-skills` → `~/.local/bin/install-skills` - Local skill installer for Claude Code and Codex
+- `scripts/notify` → `~/.local/bin/notify` - Command-completion notifier for macOS and Linux
 - `claude/settings.json` → Claude Code user settings (via TypeScript installer with deep merge)
 - MCP server registration for Claude Code:
   - `context7` (third-party library documentation)
@@ -39,6 +40,10 @@ Installs user-wide configurations that apply across all projects:
 - `bun` runtime (for settings installation)
 - `claude` CLI (for MCP server registration and plugin installation)
 - `ffplay` (optional, for notification sounds in projects)
+
+The `notify` utility uses built-in notification, speech, and audio commands on
+macOS. On Linux, its optional backends are `notify-send`, `spd-say` or
+`espeak`, and `ffplay` or `mpv`.
 
 ### Project-level Installation
 
@@ -65,6 +70,25 @@ ai install --scope project
 # or simply (project is the default scope):
 ai install
 ```
+
+### Command Completion Notifications
+
+`notify` shows a native notification immediately, or after a wrapped command
+finishes. Commands must follow `--`; their arguments and terminal I/O are
+passed through unchanged.
+
+```bash
+notify
+notify -m "Ready"
+notify -- bun test
+notify -m "Build finished" -- bun run build
+```
+
+An explicit message is read with text-to-speech. Without one, `notify` plays
+the first working sound from `.claude/notification.mp3` in the current project
+or `~/.config/notify/notification.mp3`, then falls back to speaking the derived
+command result. Visual and audio delivery are best effort with warnings;
+wrapped commands retain their exit status, including signal-derived statuses.
 
 ### Local Skill Installation
 

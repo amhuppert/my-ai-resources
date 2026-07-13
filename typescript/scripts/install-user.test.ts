@@ -94,6 +94,13 @@ describe("install-user", () => {
         call.args.includes("build:list-servers"),
     );
     expect(builtListServers).toBe(false);
+    const builtNotify = mockExecutor.calls.some(
+      (call) =>
+        call.command === "bun" &&
+        call.args.includes("run") &&
+        call.args.includes("build:notify"),
+    );
+    expect(builtNotify).toBe(false);
 
     const copiedToLocalBin = mockExecutor.calls.some(
       (call) =>
@@ -101,6 +108,29 @@ describe("install-user", () => {
         call.args.some((arg) => arg.includes(mockConfig.paths.userLocalBin)),
     );
     expect(copiedToLocalBin).toBe(false);
+  });
+
+  test("builds all generated utilities before installing scripts", async () => {
+    const selected = new Set<InstallItem>(["utility-scripts"]);
+
+    await main(mockConfig, mockExecutor, selected);
+
+    const listServersBuildIndex = mockExecutor.calls.findIndex(
+      (call) =>
+        call.command === "bun" &&
+        call.args.join(" ") === "run build:list-servers",
+    );
+    const notifyBuildIndex = mockExecutor.calls.findIndex(
+      (call) =>
+        call.command === "bun" && call.args.join(" ") === "run build:notify",
+    );
+    const firstCopyIndex = mockExecutor.calls.findIndex(
+      (call) => call.command === "rsync",
+    );
+
+    expect(listServersBuildIndex).toBeGreaterThanOrEqual(0);
+    expect(notifyBuildIndex).toBeGreaterThan(listServersBuildIndex);
+    expect(firstCopyIndex).toBeGreaterThan(notifyBuildIndex);
   });
 
   test("skips agent-docs when not selected", async () => {
