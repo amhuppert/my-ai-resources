@@ -80,13 +80,18 @@ passed through unchanged.
 ```bash
 notify
 notify -m "Ready"
+notify -a ./sounds/complete.wav
 notify -- bun test
-notify -m "Build finished" -- bun run build
+notify -m "Build finished" -a ./sounds/complete.wav -- bun run build
 ```
 
-An explicit message is read with text-to-speech. Without one, `notify` plays
-the first working sound from `.claude/notification.mp3` in the current project
-or `~/.config/notify/notification.mp3`, then falls back to speaking the derived
+Use `-a FILE` or `--audio FILE` to play a specific audio file; relative paths
+are resolved from the current directory. A selected file takes precedence over
+text-to-speech and replaces the default MP3 lookup. If it cannot be played,
+`notify` speaks the notification body. Without an audio file, an explicit
+message is read with text-to-speech. Without either, `notify` plays the first
+working sound from `.claude/notification.mp3` in the current project or
+`~/.config/notify/notification.mp3`, then falls back to speaking the derived
 command result. Visual and audio delivery are best effort with warnings;
 wrapped commands retain their exit status, including signal-derived statuses.
 

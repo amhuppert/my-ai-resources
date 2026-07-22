@@ -1,11 +1,16 @@
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { constants as osConstants } from "node:os";
 
 export type NotifyRequest =
-  | { readonly type: "immediate"; readonly message?: string }
+  | {
+      readonly type: "immediate";
+      readonly message?: string;
+      readonly audioPath?: string;
+    }
   | {
       readonly type: "command";
       readonly message?: string;
+      readonly audioPath?: string;
       readonly command: string;
       readonly args: readonly string[];
     };
@@ -80,16 +85,80 @@ interface BackendCommand {
   readonly stdinText?: string;
 }
 
-export const HELP_TEXT = `Usage:
-  notify [-m MESSAGE]
-  notify [-m MESSAGE] -- COMMAND [ARG...]
+export const HELP_TEXT = `Send a native visual notification and an audio alert immediately or after a
+foreground command finishes. Supported on macOS and Linux.
+
+Usage:
+  notify [-m MESSAGE] [-a FILE]
+  notify [-m MESSAGE] [-a FILE] -- COMMAND [ARG...]
 
 Options:
   -m, --message MESSAGE  Notification message
-  -h, --help             Show this help`;
+  -a, --audio FILE       Play FILE instead of the default notification audio
+  -h, --help             Show this help and exit without notifying
+
+Command execution:
+  COMMAND must follow --. Options are parsed only before --; COMMAND and every
+  ARG after it are passed through unchanged. The command inherits notify's
+  working directory, environment, and terminal input/output/error streams.
+
+  SIGHUP, SIGINT, and SIGTERM received while the command is running are relayed
+  to it. Notify waits for the command, delivers the alerts, and then returns the
+  command's exit status or 128 plus the first relayed signal number.
+
+Notification content:
+  The visual notification is attempted first. Its title is "Notification" for
+  an immediate alert. For a wrapped command it is "Command succeeded",
+  "Command failed", or "Command terminated". MESSAGE, when supplied, is
+  trimmed and used as the body. It must not be blank.
+
+  Without MESSAGE, an immediate alert uses "Notification" as its body; a
+  wrapped alert describes the result using COMMAND's base name.
+
+Audio selection:
+  With -a or --audio, FILE is resolved relative to the current working
+  directory and is the only audio file attempted. It replaces the default MP3
+  lookup and takes precedence over speaking MESSAGE. If it cannot be played,
+  notify falls back to speaking the notification body.
+
+  Without FILE, MESSAGE is spoken with text-to-speech. Without either FILE or
+  MESSAGE, notify tries these MP3 files in order and uses the first one that
+  plays successfully:
+
+    .claude/notification.mp3
+    ~/.config/notify/notification.mp3
+
+  The project file is resolved only from the current working directory; parent
+  directories are not searched. If neither file plays, the derived body is
+  spoken with text-to-speech.
+
+Backends:
+  macOS  visual: osascript    speech: say                audio: afplay
+  Linux  visual: notify-send  speech: spd-say, espeak    audio: ffplay, mpv
+
+  For speech and audio playback, the first installed backend shown is selected;
+  failure does not switch to another program. Visual and audio delivery are
+  synchronous and best effort. Missing or failing backends and unusable audio
+  files produce "notify: warning:" messages but do not change the exit status.
+
+Exit status:
+  0       Immediate notification or successful command
+  1       Unsupported platform or unexpected notify failure
+  2       Invalid command-line syntax
+  127     COMMAND could not be started
+  N       COMMAND exited with nonzero status N
+  128+N   COMMAND ended by signal N, or notify relayed signal N
+
+Examples:
+  notify
+  notify -m "Ready"
+  notify -a ./sounds/complete.wav
+  notify -- bun test
+  notify -m "Build finished" -a ./sounds/complete.wav -- bun run build`;
 
 export function parseNotifyArgs(argv: readonly string[]): ParseResult {
   let message: string | undefined;
+  let audioPath: string | undefined;
   let index = 0;
 
   while (index < argv.length) {
@@ -109,6 +178,7 @@ export function parseNotifyArgs(argv: readonly string[]): ParseResult {
         command,
         args: argv.slice(index + 2),
         ...(message === undefined ? {} : { message }),
+        ...(audioPath === undefined ? {} : { audioPath }),
       };
       return { type: "run", request };
     }
@@ -139,6 +209,27 @@ export function parseNotifyArgs(argv: readonly string[]): ParseResult {
       continue;
     }
 
+    if (argument === "-a" || argument === "--audio") {
+      if (audioPath !== undefined) {
+        return {
+          type: "error",
+          message: "Audio option may only be specified once",
+        };
+      }
+
+      const value = argv[index + 1];
+      if (value === undefined || value === "--") {
+        return { type: "error", message: `Missing value for ${argument}` };
+      }
+      if (value.trim().length === 0) {
+        return { type: "error", message: "Audio path must not be blank" };
+      }
+
+      audioPath = value;
+      index += 2;
+      continue;
+    }
+
     if (argument?.startsWith("-")) {
       return { type: "error", message: `Unknown option: ${argument}` };
     }
@@ -149,6 +240,7 @@ export function parseNotifyArgs(argv: readonly string[]): ParseResult {
   const request: NotifyRequest = {
     type: "immediate",
     ...(message === undefined ? {} : { message }),
+    ...(audioPath === undefined ? {} : { audioPath }),
   };
   return { type: "run", request };
 }
@@ -256,7 +348,7 @@ function speechCommand(
   return undefined;
 }
 
-function mp3Command(
+function audioCommand(
   path: string,
   backend: { readonly name: string; readonly path: string },
 ): BackendCommand {
@@ -280,11 +372,11 @@ function mp3Command(
         argv: [backend.path, "--no-video", "--really-quiet", "--", path],
       };
     default:
-      throw new Error(`Unsupported MP3 backend: ${backend.name}`);
+      throw new Error(`Unsupported audio backend: ${backend.name}`);
   }
 }
 
-function mp3Backend(
+function audioBackend(
   runtime: NotifyRuntime,
 ): { readonly name: string; readonly path: string } | undefined {
   return runtime.platform === "darwin"
@@ -379,10 +471,10 @@ async function deliverDerivedAudio(
       continue;
     }
 
-    backend ??= mp3Backend(runtime);
+    backend ??= audioBackend(runtime);
     if (backend === undefined) {
       if (!reportedMissingPlayer) {
-        runtime.warn("audio: no supported MP3 player is installed");
+        runtime.warn("audio: no supported audio player is installed");
         reportedMissingPlayer = true;
       }
       break;
@@ -390,13 +482,46 @@ async function deliverDerivedAudio(
 
     const succeeded = await attemptBackend(
       "audio",
-      mp3Command(path, backend),
+      audioCommand(path, backend),
       runtime,
     );
     if (succeeded) return;
   }
 
   await deliverSpeech(body, runtime);
+}
+
+async function deliverRequestedAudio(
+  audioPath: string,
+  body: string,
+  runtime: NotifyRuntime,
+): Promise<void> {
+  const path = resolve(runtime.cwd, audioPath);
+  const probe = runtime.probeFile(path);
+  if (probe.type === "missing") {
+    runtime.warn(`audio: ${path}: file not found`);
+    await deliverSpeech(body, runtime);
+    return;
+  }
+  if (probe.type === "error") {
+    runtime.warn(`audio: ${probe.message}`);
+    await deliverSpeech(body, runtime);
+    return;
+  }
+
+  const backend = audioBackend(runtime);
+  if (backend === undefined) {
+    runtime.warn("audio: no supported audio player is installed");
+    await deliverSpeech(body, runtime);
+    return;
+  }
+
+  const succeeded = await attemptBackend(
+    "audio",
+    audioCommand(path, backend),
+    runtime,
+  );
+  if (!succeeded) await deliverSpeech(body, runtime);
 }
 
 const RELAYED_SIGNALS: readonly RelayedSignal[] = [
@@ -502,7 +627,9 @@ async function deliver(
   runtime: NotifyRuntime,
 ): Promise<void> {
   await deliverVisual(content, runtime);
-  if (request.message !== undefined) {
+  if (request.audioPath !== undefined) {
+    await deliverRequestedAudio(request.audioPath, content.body, runtime);
+  } else if (request.message !== undefined) {
     await deliverSpeech(content.body, runtime);
   } else {
     await deliverDerivedAudio(content.body, runtime);

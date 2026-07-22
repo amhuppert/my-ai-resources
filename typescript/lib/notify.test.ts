@@ -137,6 +137,16 @@ describe("parseNotifyArgs", () => {
     });
   });
 
+  test.each([
+    [["-a", "sounds/complete.wav"], "sounds/complete.wav"],
+    [["--audio", "/tmp/custom alert.ogg"], "/tmp/custom alert.ogg"],
+  ] as const)("parses a custom audio path", (argv, audioPath) => {
+    expect(parseNotifyArgs(argv)).toEqual({
+      type: "run",
+      request: { type: "immediate", audioPath },
+    });
+  });
+
   test("preserves every command argument after the delimiter", () => {
     expect(
       parseNotifyArgs([
@@ -171,13 +181,56 @@ describe("parseNotifyArgs", () => {
     });
   });
 
+  test("parses audio and message options before a wrapped command", () => {
+    expect(
+      parseNotifyArgs([
+        "--audio",
+        "sounds/complete.wav",
+        "-m",
+        " Tests done ",
+        "--",
+        "bun",
+        "test",
+      ]),
+    ).toEqual({
+      type: "run",
+      request: {
+        type: "command",
+        message: "Tests done",
+        audioPath: "sounds/complete.wav",
+        command: "bun",
+        args: ["test"],
+      },
+    });
+  });
+
   test.each([["-h"], ["--help"]])(
     "recognizes help before the delimiter",
     (...argv) => {
       expect(parseNotifyArgs(argv)).toEqual({ type: "help" });
-      expect(HELP_TEXT).toContain("notify [-m MESSAGE]");
     },
   );
+
+  test("help describes command, delivery, platform, and status behavior", () => {
+    for (const text of [
+      "notify [-m MESSAGE] [-a FILE] -- COMMAND [ARG...]",
+      "-a, --audio FILE",
+      "passed through unchanged",
+      "SIGHUP, SIGINT, and SIGTERM",
+      '"Command succeeded"',
+      "is the only audio file attempted",
+      ".claude/notification.mp3",
+      "~/.config/notify/notification.mp3",
+      "macOS  visual: osascript",
+      "Linux  visual: notify-send",
+      "failure does not switch to another program",
+      "synchronous and best effort",
+      "127     COMMAND could not be started",
+      "128+N   COMMAND ended by signal N, or notify relayed signal N",
+    ]) {
+      expect(HELP_TEXT).toContain(text);
+    }
+  });
 
   test("treats help after the delimiter as the command", () => {
     expect(parseNotifyArgs(["--", "--help"])).toEqual({
@@ -214,6 +267,22 @@ describe("parseNotifyArgs", () => {
     {
       argv: ["-m", "one", "--message", "two"],
       message: "Message option may only be specified once",
+    },
+    {
+      argv: ["-a"],
+      message: "Missing value for -a",
+    },
+    {
+      argv: ["--audio", "--", "echo"],
+      message: "Missing value for --audio",
+    },
+    {
+      argv: ["-a", "   "],
+      message: "Audio path must not be blank",
+    },
+    {
+      argv: ["-a", "one.wav", "--audio", "two.wav"],
+      message: "Audio option may only be specified once",
     },
     {
       argv: ["--"],
@@ -407,6 +476,75 @@ describe("runNotify delivery", () => {
     ]);
   });
 
+  test("plays a requested audio file instead of defaults or message speech", async () => {
+    const runtime = new FakeNotifyRuntime();
+    runtime.install("osascript", "afplay", "say");
+    const requestedAudio = "/work/project/sounds/custom alert.wav";
+    runtime.setFile(requestedAudio);
+    runtime.setFile("/work/project/.claude/notification.mp3");
+    runtime.setFile("/home/alex/.config/notify/notification.mp3");
+
+    await runNotify(
+      {
+        type: "immediate",
+        message: "Ready",
+        audioPath: "sounds/custom alert.wav",
+      },
+      runtime,
+    );
+
+    expect(runtime.probes).toEqual([requestedAudio]);
+    expect(runtime.spawns.map(({ argv }) => argv)).toEqual([
+      expect.arrayContaining(["/usr/bin/osascript"]),
+      ["/usr/bin/afplay", requestedAudio],
+    ]);
+    expect(runtime.warnings).toEqual([]);
+  });
+
+  test("speaks the body when a requested audio file cannot be found", async () => {
+    const runtime = new FakeNotifyRuntime();
+    runtime.install("osascript", "afplay", "say");
+    runtime.setFile("/work/project/.claude/notification.mp3");
+    const requestedAudio = "/work/project/sounds/missing.wav";
+
+    await runNotify(
+      { type: "immediate", audioPath: "sounds/missing.wav" },
+      runtime,
+    );
+
+    expect(runtime.probes).toEqual([requestedAudio]);
+    expect(runtime.spawns.at(-1)).toEqual({
+      argv: ["/usr/bin/say"],
+      options: {
+        cwd: "/work/project",
+        env: { TEST_ENV: "yes" },
+        io: { type: "capture", stdinText: "Notification" },
+      },
+    });
+    expect(runtime.warnings).toEqual([
+      `audio: ${requestedAudio}: file not found`,
+    ]);
+  });
+
+  test("speaks the body when requested audio playback fails", async () => {
+    const runtime = new FakeNotifyRuntime();
+    runtime.install("osascript", "afplay", "say");
+    const requestedAudio = "/work/project/custom.wav";
+    runtime.setFile(requestedAudio);
+    runtime.fail(["/usr/bin/afplay", requestedAudio], "corrupt audio");
+
+    await runNotify(
+      { type: "immediate", message: "Ready", audioPath: requestedAudio },
+      runtime,
+    );
+
+    expect(runtime.spawns.map(({ argv }) => argv).slice(1)).toEqual([
+      ["/usr/bin/afplay", requestedAudio],
+      ["/usr/bin/say"],
+    ]);
+    expect(runtime.warnings).toEqual(["audio: corrupt audio"]);
+  });
+
   test("warns and tries the global MP3 after project playback fails", async () => {
     const runtime = new FakeNotifyRuntime();
     runtime.install("osascript", "afplay", "say");
@@ -464,7 +602,7 @@ describe("runNotify delivery", () => {
       ["/usr/bin/say"],
     ]);
     expect(runtime.warnings).toEqual([
-      "audio: no supported MP3 player is installed",
+      "audio: no supported audio player is installed",
     ]);
   });
 

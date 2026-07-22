@@ -139,6 +139,20 @@ describe("notify CLI", () => {
     expect(backendLog()).toEqual(["visual", "speech:Ready"]);
   });
 
+  test("prints complete help without notifying", async () => {
+    const result = await runCli(["--help"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("Command execution:");
+    expect(result.stdout).toContain("Notification content:");
+    expect(result.stdout).toContain("-a, --audio FILE");
+    expect(result.stdout).toContain("Audio selection:");
+    expect(result.stdout).toContain("Backends:");
+    expect(result.stdout).toContain("Exit status:");
+    expect(backendLog()).toEqual([]);
+  });
+
   test("rejects a bare command before producing side effects", async () => {
     const result = await runCli(["echo", "hello"]);
 
@@ -190,6 +204,27 @@ describe("notify CLI", () => {
 
     expect(result.exitCode).toBe(0);
     expect(backendLog()).toEqual(["visual", `audio:${projectAudio}`]);
+  });
+
+  test("plays a requested relative audio file instead of defaults or speech", async () => {
+    const audioDir = join(projectDir, "sounds");
+    const requestedAudio = join(audioDir, "custom alert.wav");
+    const projectAudio = join(projectDir, ".claude", "notification.mp3");
+    mkdirSync(audioDir, { recursive: true });
+    mkdirSync(join(projectDir, ".claude"), { recursive: true });
+    writeFileSync(requestedAudio, "custom audio");
+    writeFileSync(projectAudio, "project audio");
+
+    const result = await runCli([
+      "-m",
+      "Ready",
+      "--audio",
+      "sounds/custom alert.wav",
+    ]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(backendLog()).toEqual(["visual", `audio:${requestedAudio}`]);
   });
 
   test("an explicit message suppresses configured MP3 files", async () => {
