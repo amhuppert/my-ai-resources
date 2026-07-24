@@ -1,0 +1,231 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+show_help() {
+  cat <<'EOF'
+Usage: sync-worktree-dir [--from-current] <directory>
+
+Synchronize a directory across all git worktrees of the current repository.
+
+By default, the version of <directory> in the root (main) worktree replaces
+that directory in every other worktree. The script may be run from any
+worktree; the root worktree is always the source in this mode.
+
+With --from-current (run from a non-root worktree), the current worktree's
+version replaces the directory in the root worktree and in every other
+worktree.
+
+<directory> is a path relative to the repository root, e.g. "config/shared".
+Destination directories are fully replaced: files that exist only in a
+destination are deleted.
+
+Destination worktrees with uncommitted changes (staged, unstaged, or
+untracked) inside <directory> are listed in an interactive multi-select
+menu (requires gum); only the ones confirmed there are overwritten, the
+rest are skipped. Clean worktrees are always synced without prompting.
+
+Options:
+  --from-current   Push the current worktree's copy to the root worktree,
+                   then to all other worktrees. Fails when run from the
+                   root worktree.
+  -h, --help       Show this help
+
+Exits non-zero when not inside a git repository, when <directory> is
+missing or invalid, or when --from-current is used from the root worktree.
+EOF
+}
+
+fail() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+FROM_CURRENT=false
+REL_DIR=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --from-current)
+      FROM_CURRENT=true
+      shift
+      ;;
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    -*)
+      fail "unknown option '$1'"
+      ;;
+    *)
+      [[ -z "$REL_DIR" ]] || fail "expected exactly one directory argument"
+      REL_DIR="$1"
+      shift
+      ;;
+  esac
+done
+
+[[ -n "$REL_DIR" ]] || fail "missing directory argument (see --help)"
+
+# Normalize: strip trailing slashes and a leading ./
+while [[ "$REL_DIR" == */ ]]; do REL_DIR="${REL_DIR%/}"; done
+while [[ "$REL_DIR" == ./* ]]; do REL_DIR="${REL_DIR#./}"; done
+
+[[ -n "$REL_DIR" && "$REL_DIR" != "." ]] || fail "directory must not be the repository root itself"
+[[ "$REL_DIR" != /* ]] || fail "directory must be relative to the repository root, not absolute"
+case "/$REL_DIR/" in
+  */../*|*/./*) fail "directory must not contain '.' or '..' components" ;;
+esac
+[[ "$REL_DIR" != .git && "$REL_DIR" != .git/* ]] || fail "refusing to sync '.git'"
+
+# Resolve the root (main) worktree even when run from another worktree.
+# --git-common-dir is ".git" (relative) from the main worktree and an
+# absolute path like "/path/to/main/.git" from a linked worktree.
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null) || \
+  fail "not inside a git repository"
+CURRENT_WT=$(realpath "$(git rev-parse --show-toplevel)")
+MAIN_REPO=$(dirname "$(cd "$CURRENT_WT" && realpath "$GIT_COMMON_DIR")")
+
+if $FROM_CURRENT; then
+  [[ "$CURRENT_WT" != "$MAIN_REPO" ]] || \
+    fail "--from-current must be run from a non-root worktree, but the current worktree is the root worktree ($MAIN_REPO)"
+  SOURCE_WT="$CURRENT_WT"
+else
+  SOURCE_WT="$MAIN_REPO"
+fi
+
+[[ -d "$SOURCE_WT/$REL_DIR" ]] || \
+  fail "'$REL_DIR' is not a directory in the source worktree ($SOURCE_WT)"
+
+WT_PATHS=()
+WT_BRANCHES=()
+current_path=""
+current_branch=""
+while IFS= read -r line; do
+  case "$line" in
+    "worktree "*)
+      current_path="${line#worktree }"
+      ;;
+    "branch refs/heads/"*)
+      current_branch="${line#branch refs/heads/}"
+      ;;
+    "")
+      if [[ -n "$current_path" ]]; then
+        WT_PATHS+=("$current_path")
+        WT_BRANCHES+=("${current_branch:-detached}")
+      fi
+      current_path=""
+      current_branch=""
+      ;;
+  esac
+done < <(git -C "$MAIN_REPO" worktree list --porcelain; echo "")
+
+replace_dir() {
+  local src="$1"
+  local dest="$2"
+  rm -rf "$dest"
+  mkdir -p "$(dirname "$dest")"
+  cp -R "$src" "$dest"
+}
+
+DEST_PATHS=()
+DEST_LABELS=()
+DEST_DIRTY=()
+DIRTY_LABELS=()
+DIRTY_STATUSES=()
+
+for i in "${!WT_PATHS[@]}"; do
+  wt_path="${WT_PATHS[$i]}"
+  wt_branch="${WT_BRANCHES[$i]}"
+
+  if [[ ! -d "$wt_path" ]]; then
+    echo "Warning: skipping missing worktree path: $wt_path" >&2
+    continue
+  fi
+
+  wt_path=$(realpath "$wt_path")
+  [[ "$wt_path" != "$SOURCE_WT" ]] || continue
+
+  if [[ "$wt_path" == "$MAIN_REPO" ]]; then
+    wt_label="root worktree: $wt_path [$wt_branch]"
+  else
+    wt_label="$wt_path [$wt_branch]"
+  fi
+
+  status_output=$(git -C "$wt_path" status --porcelain -- "$REL_DIR" 2>/dev/null || true)
+
+  DEST_PATHS+=("$wt_path")
+  DEST_LABELS+=("$wt_label")
+  if [[ -n "$status_output" ]]; then
+    DEST_DIRTY+=("true")
+    DIRTY_LABELS+=("$wt_label")
+    DIRTY_STATUSES+=("$status_output")
+  else
+    DEST_DIRTY+=("false")
+  fi
+done
+
+if $FROM_CURRENT; then
+  echo "Syncing '$REL_DIR' from current worktree: $CURRENT_WT"
+else
+  echo "Syncing '$REL_DIR' from root worktree: $MAIN_REPO"
+fi
+
+OVERWRITE_SELECTED=()
+if [[ ${#DIRTY_LABELS[@]} -gt 0 ]]; then
+  command_exists gum || \
+    fail "destination worktrees have uncommitted changes in '$REL_DIR' and gum is required to choose which to overwrite; install it with: brew install gum"
+
+  echo ""
+  echo "Worktrees with uncommitted changes in '$REL_DIR':"
+  for i in "${!DIRTY_LABELS[@]}"; do
+    echo "  → ${DIRTY_LABELS[$i]}"
+    sed 's/^/      /' <<<"${DIRTY_STATUSES[$i]}"
+  done
+  echo ""
+
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && OVERWRITE_SELECTED+=("$line")
+  done < <(printf '%s\n' "${DIRTY_LABELS[@]}" | \
+    gum choose --no-limit --selected='*' --header "Select worktrees to overwrite (space to toggle, enter to confirm)")
+fi
+
+overwrite_selected() {
+  local wt_label="$1"
+  local selected
+  [[ ${#OVERWRITE_SELECTED[@]} -gt 0 ]] || return 1
+  for selected in "${OVERWRITE_SELECTED[@]}"; do
+    if [[ "$selected" == "$wt_label" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+UPDATED=0
+SKIPPED=0
+
+if [[ ${#DEST_PATHS[@]} -gt 0 ]]; then
+  for i in "${!DEST_PATHS[@]}"; do
+    if [[ "${DEST_DIRTY[$i]}" == "true" ]] && ! overwrite_selected "${DEST_LABELS[$i]}"; then
+      echo "  - skipped (uncommitted changes): ${DEST_LABELS[$i]}"
+      SKIPPED=$((SKIPPED + 1))
+      continue
+    fi
+
+    replace_dir "$SOURCE_WT/$REL_DIR" "${DEST_PATHS[$i]}/$REL_DIR"
+    UPDATED=$((UPDATED + 1))
+    echo "  ✓ ${DEST_LABELS[$i]}"
+  done
+fi
+
+if [[ $((UPDATED + SKIPPED)) -eq 0 ]]; then
+  echo "No other worktrees found. Nothing to do."
+elif [[ $SKIPPED -gt 0 ]]; then
+  echo "Done. Replaced '$REL_DIR' in $UPDATED worktree(s); skipped $SKIPPED with uncommitted changes."
+else
+  echo "Done. Replaced '$REL_DIR' in $UPDATED worktree(s)."
+fi
