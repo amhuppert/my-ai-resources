@@ -2,7 +2,6 @@
 
 import { Command } from "commander";
 import { join } from "path";
-import { homedir } from "os";
 import { main as installUser } from "@/scripts/install-user.js";
 import { main as installProject } from "@/scripts/install-project.js";
 import {
@@ -22,7 +21,6 @@ import {
 import { initSkill, validateSkill } from "@/lib/skill-operations.js";
 import { runReplaceImportCodemod } from "@/lib/codemods/replace-import.js";
 import { installHook } from "@/scripts/install-hooks.js";
-import { runCodexSync } from "@/lib/codex-sync/codex-sync-cli.js";
 
 const program = new Command();
 
@@ -425,38 +423,6 @@ hooks
       );
       process.exit(1);
     }
-  });
-
-program
-  .command("codex-sync")
-  .description("Sync Claude Code configuration to OpenAI Codex CLI format")
-  .requiredOption(
-    "-s, --scope <type>",
-    "sync scope: user (home directory) or project (current directory)",
-  )
-  .action((options) => {
-    const scope = options.scope.toLowerCase();
-
-    if (scope !== "user" && scope !== "project") {
-      console.error(
-        `Invalid scope: ${scope}. Must be either 'user' or 'project'.`,
-      );
-      process.exit(1);
-    }
-
-    const configPath = join(
-      homedir(),
-      ".config",
-      "ai",
-      "codex-sync.json",
-    );
-
-    const exitCode = runCodexSync({
-      scope: scope as "user" | "project",
-      configPath,
-    });
-
-    process.exit(exitCode);
   });
 
 program.parse();

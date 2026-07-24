@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Tests"
+  short_description: "Use Write Tests workflows in Codex"
+  default_prompt: "Use $write-tests to write automated tests."

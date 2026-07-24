@@ -7,6 +7,7 @@
   "scripts": {
     "build": "bun build scripts/ai.ts --outdir=dist --target=bun && bun build scripts/json-to-zod-to-json-schema.ts --outdir=dist --target=bun && bun run build:list-servers && bun run build:notify && bun build scripts/ts-refactor.ts --outdir=dist --target=bun",
     "build:list-servers": "bun run scripts/build-list-servers.ts",
+    "build:codex-plugin": "bun run scripts/build-codex-plugin.ts",
     "build:notify": "bun run scripts/build-notify.ts",
     "install-user": "bun run scripts/ai.ts install --scope user",
     "install-project": "bun run scripts/ai.ts install --scope project",
@@ -52,7 +53,6 @@
     "json-to-zod": "^1.1.2",
     "prettier": "^3.6.2",
     "react": "^19.2.6",
-    "smol-toml": "^1.6.0",
     "ts-morph": "^28.0.0",
     "yaml": "^2.8.2",
     "zod": "^3.25.74",

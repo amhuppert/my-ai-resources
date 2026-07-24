@@ -1,0 +1,6 @@
+interface:
+  display_name: "Configure Editor Schema"
+  short_description: "Wire an existing JSON Schema into VS Code, Cursor, and/or..."
+  default_prompt: "Use $configure-editor-schema to wire an existing JSON Schema into VS Code, Cursor, and/or Zed so it provides validation and IntelliSense for matching JSON or YAML files."
+policy:
+  allow_implicit_invocation: false

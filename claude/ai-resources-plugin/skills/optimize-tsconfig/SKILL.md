@@ -1,6 +1,6 @@
 ---
 name: optimize-tsconfig
-description: Optimize tsconfig.json for build speed, watch mode, and tsc memory. Use for slow tsc, too many file watchers, or TypeScript performance audits.
+description: "Optimize tsconfig.json for build speed, watch mode, and tsc memory. Use for slow tsc, too many file watchers, or TypeScript performance audits."
 argument-hint: "[path/to/tsconfig.json]"
 allowed-tools: Read, Edit, Write, Bash(tsc:*), Bash(npx tsc:*), Glob, Grep, AskUserQuestion
 disable-model-invocation: true
@@ -11,12 +11,12 @@ disable-model-invocation: true
 Audit and optimize TypeScript configuration for faster builds, reduced memory usage, and fewer file watchers. Produces targeted, project-specific recommendations — not a generic checklist.
 
 <target>
-$ARGUMENTS
+Use the tsconfig path supplied in the user's invocation, if any.
 </target>
 
 ## Step 1: Discover TypeScript Configs
 
-If no path was provided, find all tsconfig files in the project using the Glob tool with pattern `**/tsconfig*.json`.
+If no path was provided, search the project for `**/tsconfig*.json`.
 
 Read each tsconfig, including any extended configs (follow `extends` chains to understand the full effective configuration). Note which settings are inherited vs. overridden.
 

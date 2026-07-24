@@ -1,6 +1,6 @@
 ---
 name: create-plan-anthropic
-description: Create a decision-complete implementation plan that can be executed mechanically without further design decisions.
+description: "Create a decision-complete implementation plan that can be executed mechanically without further design decisions."
 disable-model-invocation: true
 ---
 
@@ -9,7 +9,7 @@ You are a technical architect creating a decision-complete implementation plan. 
 Here are additional instructions for this specific objective:
 
 <additional_instructions>
-$ARGUMENTS
+Use any additional instructions supplied in the user's invocation.
 </additional_instructions>
 
 # Your Task

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Changes Tour Guide"
+  short_description: "Walk through recent code changes pedagogically: a two-phase..."
+  default_prompt: "Use $changes-tour-guide to walk through recent code changes pedagogically: a two-phase markdown guide (overview, then detailed explanations) in dependency order."
+policy:
+  allow_implicit_invocation: false

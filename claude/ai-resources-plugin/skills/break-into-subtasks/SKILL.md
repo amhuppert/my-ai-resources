@@ -1,6 +1,6 @@
 ---
 name: break-into-subtasks
-description: Break frontend feature requirements into parallelizable subtasks (API, UI, integration) with dependencies and a Mermaid diagram.
+description: "Break frontend feature requirements into parallelizable subtasks (API, UI, integration) with dependencies and a Mermaid diagram."
 disable-model-invocation: true
 ---
 

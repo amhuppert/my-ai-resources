@@ -1,0 +1,4 @@
+interface:
+  display_name: "Knowledge Base Ingest"
+  short_description: "This skill should be used when integrating source material..."
+  default_prompt: "Use $knowledge-base-ingest to apply the Knowledge Base Ingest workflow to this request."

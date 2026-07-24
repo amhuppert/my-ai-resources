@@ -1,0 +1,6 @@
+interface:
+  display_name: "KB Ingest"
+  short_description: "Delegate knowledge-base ingestion to the..."
+  default_prompt: "Use $kb-ingest to delegate knowledge-base ingestion to the `knowledge-base-ingester` sub-agent so the source document, primary/current trees, and ingest workflow stay out of the main conversation's context window."
+policy:
+  allow_implicit_invocation: false

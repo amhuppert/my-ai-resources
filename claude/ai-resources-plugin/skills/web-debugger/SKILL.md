@@ -1,6 +1,6 @@
 ---
 name: web-debugger
-description: Debug a running web app via the web-debugger SDK: app logs, application state, runtime snapshots, React state, query cache.
+description: "Debug a running web app via the web-debugger SDK: app logs, application state, runtime snapshots, React state, query cache."
 ---
 
 # Web App Debugger

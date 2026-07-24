@@ -1,6 +1,6 @@
 ---
 name: compare-reports
-description: Compare two reports written by different AI agents from the same prompt — score both across accuracy, prompt adherence, organization, readability, and usefulness, then produce a polished self-contained HTML comparison report that declares a winner. Use whenever the user wants to compare, judge, grade, rank, or pick between two AI-generated reports, answers, research outputs, or documents ("which of these is better?", "evaluate these two responses", "A/B test these reports", "grade these two drafts"), even if they don't mention HTML, scoring, or the word "report".
+description: "Compare two reports written by different AI agents from the same prompt — score both across accuracy, prompt adherence, organization, readability, and usefulness, then produce a polished self-contained HTML comparison report that declares a winner. Use whenever the user wants to compare, judge, grade, rank, or pick between two AI-generated reports, answers, research outputs, or documents (\"which of these is better?\", \"evaluate these two responses\", \"A/B test these reports\", \"grade these two drafts\"), even if they don't mention HTML, scoring, or the word \"report\"."
 ---
 
 # Compare Reports

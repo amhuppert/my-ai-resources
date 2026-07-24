@@ -1,6 +1,6 @@
 ---
 name: compress
-description: Compress and optimize AI instructions to be clearer, more concise, and more efficient.
+description: "Compress and optimize AI instructions to be clearer, more concise, and more efficient."
 disable-model-invocation: true
 ---
 
@@ -11,7 +11,7 @@ You are an AI instruction optimizer tasked with refining and improving instructi
 Here are the original instructions to optimize:
 
 <original_instructions>
-$ARGUMENTS
+Use the original instructions supplied in the user's invocation.
 </original_instructions>
 
 Analyze and optimize these instructions. Follow these steps:

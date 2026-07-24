@@ -1,8 +1,8 @@
 ---
 name: design
-description: Create or iterate on a software design via a multi-agent workflow with parallel research and review phases. Stores artifacts in memory-bank/planning/{name}/.
+description: "Create or iterate on a software design via a multi-agent workflow with parallel research and review phases. Stores artifacts in memory-bank/planning/{name}/."
 disable-model-invocation: true
-argument-hint: <name> [focus-area or "new"]
+argument-hint: "<name> [focus-area or \"new\"]"
 allowed-tools: Read, Grep, Glob, Write, Task, WebSearch, WebFetch, AskUserQuestion
 ---
 
@@ -10,10 +10,10 @@ Orchestrate a multi-agent design workflow to create or iterate on a design that 
 
 ## Arguments
 
-- `$1`: Design name (required) - Slug for the design subdirectory (e.g., "user-auth", "payment-flow")
+- Design name (required) - Slug for the design subdirectory (e.g., "user-auth", "payment-flow")
   - Creates/uses directory: `memory-bank/planning/{name}/`
   - If not provided, ask user for the design name or list existing designs
-- `$2`: Mode or focus area (optional)
+- Mode or focus area (optional)
   - `new` - Force creation of a new design from scratch (ignores existing design.md)
   - Any other text - Focus iteration on this specific area (e.g., "ux", "architecture", "types")
   - If not provided and design.md exists - Run general iteration to improve design
@@ -39,19 +39,20 @@ memory-bank/planning/{name}/
 First, validate the design name and determine which mode to run:
 
 ```
-if $1 is empty:
-    → Use Glob to find existing designs: memory-bank/planning/*/design.md
+Parse DESIGN_NAME and optional FOCUS_OR_MODE from the user's invocation.
+
+if DESIGN_NAME is empty:
+    → Search for existing designs: memory-bank/planning/*/design.md
     → If found, list them and ask user to select or provide a name
     → If none found, ask user for a new design name
     → Store selected/provided name as DESIGN_NAME
 
-DESIGN_NAME = $1
 DESIGN_DIR = memory-bank/planning/{DESIGN_NAME}
 
-if $2 == "new":
+if FOCUS_OR_MODE == "new":
     → Run NEW DESIGN WORKFLOW
 else if file_exists("{DESIGN_DIR}/design.md"):
-    → Run ITERATION WORKFLOW (with optional focus: $2)
+    → Run ITERATION WORKFLOW (with optional focus: FOCUS_OR_MODE)
 else:
     → Run NEW DESIGN WORKFLOW
 ```
@@ -112,7 +113,7 @@ Read these files to understand the project context:
 3. If design system configured, read the design system spec file
 4. Read any relevant source files referenced in requirements
 
-If requirements file cannot be found, use AskUserQuestion to ask for its location.
+If the requirements file cannot be found, ask the user for its location.
 
 ## Phase 2: Research Phase (Parallel Agents)
 
@@ -161,7 +162,7 @@ Create `{DESIGN_DIR}/design-draft.md` with:
 
 ## Phase 4: Design Review (Parallel Agents)
 
-Launch ALL review agents IN PARALLEL using the Task tool with multiple tool calls in a single message:
+Launch all review agents in parallel using the active client's agent-delegation mechanism:
 
 For each review agent (universal + conditional + project-specific), use this prompt:
 
@@ -224,7 +225,7 @@ Read these files:
 2. Requirements file (same logic as new design workflow)
 3. Any existing research files in `{DESIGN_DIR}/research-*.md`
 
-Note the focus area from `$2` if provided.
+Note `FOCUS_OR_MODE` as the focus area if provided.
 
 ## Phase I-2: Targeted Review (Parallel Agents)
 
@@ -293,7 +294,7 @@ Read all `{DESIGN_DIR}/iteration-review-*.md` files.
 3. **Identify conflicts** - Note where agents disagree
 4. **Determine scope** - What can be addressed in this iteration?
 
-If needed, use AskUserQuestion to:
+If needed, ask the user to:
 
 - Resolve conflicting recommendations
 - Clarify requirements ambiguities
@@ -360,7 +361,7 @@ Ask user if they want to:
 
 ## Agent Coordination Rules
 
-1. **Parallel execution**: Always launch independent agents in a SINGLE message with multiple Task tool calls
+1. **Parallel execution**: Always launch independent agents together with parallel delegation calls
 2. **Sequential dependencies**: Wait for research before synthesis, synthesis before review
 3. **Communication via files**: Agents write to `{DESIGN_DIR}/` directory
 4. **Context efficiency**: Agents read only files they need
@@ -382,7 +383,7 @@ memory-bank/planning/{DESIGN_NAME}/
 
 - **Missing design name**: List existing designs or ask user to provide a name
 - **Invalid design name**: Must be a valid slug (lowercase, alphanumeric, hyphens)
-- **Missing requirements file**: Ask user for location via AskUserQuestion
+- **Missing requirements file**: Ask the user for its location
 - **Missing DESIGN-AGENTS.md**: Proceed with only universal + auto-detected agents
 - **Agent failure**: Log error, continue with other agents, report at end
 - **No design.md for iteration**: Switch to NEW DESIGN mode automatically

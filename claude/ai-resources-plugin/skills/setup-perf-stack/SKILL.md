@@ -1,6 +1,6 @@
 ---
 name: setup-perf-stack
-description: Bootstrap web performance debugging tooling: install chrome-devtools-mcp and related MCP servers/skills.
+description: "Bootstrap web performance debugging tooling: install chrome-devtools-mcp and related MCP servers/skills."
 disable-model-invocation: true
 ---
 

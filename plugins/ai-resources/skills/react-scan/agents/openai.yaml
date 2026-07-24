@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Scan"
+  short_description: "This skill should be used when the user asks to \"set up..."
+  default_prompt: "Use $react-scan to apply the React Scan workflow to this request."

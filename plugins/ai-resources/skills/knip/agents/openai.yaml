@@ -1,0 +1,4 @@
+interface:
+  display_name: "Knip"
+  short_description: "Detect and remove dead code with knip."
+  default_prompt: "Use $knip to detect and remove dead code with knip."

@@ -1,6 +1,6 @@
 ---
 name: browser-automation
-description: Automate browser interaction with Playwright: open pages, take screenshots, verify UI, test flows, debug pages, inspect elements.
+description: "Automate browser interaction with Playwright: open pages, take screenshots, verify UI, test flows, debug pages, inspect elements."
 allowed-tools: Bash(playwright-cli:*), Bash(npx:*), Bash(npm:*), Bash(which:*), Bash(test:*), Bash(ls:*)
 ---
 

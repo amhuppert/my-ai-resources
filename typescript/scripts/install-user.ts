@@ -9,6 +9,7 @@ import {
   installDirectory,
   installDirectoryFiles,
   commandExists,
+  execCommand,
 } from "@/lib/installer-utils.js";
 import { installSettingsFromFile } from "@/scripts/install-settings.js";
 import {
@@ -123,6 +124,47 @@ async function main(
     }
   }
 
+  if (selectedItems.has("ai-resources-plugin")) {
+    console.log("Building the Codex plugin from the shared skill source...");
+    const buildResult = await executor.exec(
+      "bun",
+      ["run", "build:codex-plugin"],
+      { cwd: join(SCRIPT_DIR, "typescript") },
+    );
+    if (!buildResult.success) {
+      throw new Error(
+        `Codex plugin build failed: ${buildResult.stderr || buildResult.stdout}`,
+      );
+    }
+
+    await installMarketplacePlugin({
+      client: "Claude Code",
+      command: "claude",
+      marketplaceArgs: [
+        "plugin",
+        "marketplace",
+        "add",
+        join(SCRIPT_DIR, "claude"),
+      ],
+      installArgs: [
+        "plugin",
+        "install",
+        "ai-resources@ai-resources",
+        "--scope",
+        "user",
+      ],
+      executor,
+    });
+
+    await installMarketplacePlugin({
+      client: "Codex",
+      command: "codex",
+      marketplaceArgs: ["plugin", "marketplace", "add", SCRIPT_DIR],
+      installArgs: ["plugin", "add", "ai-resources@my-ai-resources"],
+      executor,
+    });
+  }
+
   if (selectedItems.has("worktree-schema")) {
     console.log("Installing worktree-files JSON schema...");
     try {
@@ -141,6 +183,49 @@ async function main(
 
   console.log("");
   console.log("user-level installation complete!");
+}
+
+interface MarketplacePluginInstall {
+  client: string;
+  command: string;
+  marketplaceArgs: string[];
+  installArgs: string[];
+  executor: CommandExecutor;
+}
+
+async function installMarketplacePlugin({
+  client,
+  command,
+  marketplaceArgs,
+  installArgs,
+  executor,
+}: MarketplacePluginInstall): Promise<void> {
+  if (!(await commandExists(command, executor))) {
+    console.log(
+      `Warning: ${command} not found, skipping ${client} plugin installation`,
+    );
+    return;
+  }
+
+  const marketplaceResult = await execCommand(
+    command,
+    marketplaceArgs,
+    executor,
+  );
+  if (!marketplaceResult.success) {
+    console.log(
+      `Note: ${client} marketplace registration did not change; attempting installation from existing configuration`,
+    );
+  }
+
+  const installResult = await execCommand(command, installArgs, executor);
+  if (!installResult.success) {
+    console.log(`Warning: Failed to install AI Resources for ${client}`);
+    if (installResult.stderr) console.error(installResult.stderr);
+    return;
+  }
+
+  console.log(`AI Resources installed for ${client}`);
 }
 
 // CLI interface

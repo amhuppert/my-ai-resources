@@ -73,11 +73,42 @@ describe("install-user", () => {
     }
   });
 
-  test("does not install ai-resources plugin", async () => {
+  test("builds and installs ai-resources plugin for Claude Code and Codex", async () => {
     await main(mockConfig, mockExecutor, allUserItems);
 
+    expect(
+      mockExecutor.calls.some(
+        (call) =>
+          call.command === "bun" &&
+          call.args.join(" ") === "run build:codex-plugin",
+      ),
+    ).toBe(true);
+
+    expect(
+      mockExecutor.calls.some(
+        (call) =>
+          call.command === "claude" &&
+          call.args.join(" ") ===
+            "plugin install ai-resources@ai-resources --scope user",
+      ),
+    ).toBe(true);
+    expect(
+      mockExecutor.calls.some(
+        (call) =>
+          call.command === "codex" &&
+          call.args.join(" ") === "plugin add ai-resources@my-ai-resources",
+      ),
+    ).toBe(true);
+  });
+
+  test("skips plugin installation when not selected", async () => {
+    const selected = new Set<InstallItem>(["agent-docs"]);
+    await main(mockConfig, mockExecutor, selected);
+
     const pluginCalls = mockExecutor.calls.filter(
-      (call) => call.command === "claude" && call.args[0] === "plugin",
+      (call) =>
+        (call.command === "claude" || call.command === "codex") &&
+        call.args[0] === "plugin",
     );
 
     expect(pluginCalls).toHaveLength(0);

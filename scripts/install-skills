@@ -3,19 +3,20 @@ set -euo pipefail
 
 show_help() {
   cat <<'EOF'
-Usage: install-skills [--preset <file>] [--scope <project|global>]
+Usage: install-skills [--repo <path>] [--preset <file>] [--scope <project|global>]
 
 Install local skills for Claude Code and Codex. Without --preset, Gum prompts
 for one or more skills. Gum prompts for the installation scope unless --scope
 is provided.
 
 Options:
+  --repo <path>    Repository or plugin root containing skills/ and presets/
   --preset <file>  Install skills listed in $LOCAL_SKILLS_REPO/presets/<file>
   --scope <scope>  Install to the current project or globally
   -h, --help       Show this help
 
 Environment:
-  LOCAL_SKILLS_REPO  Local repository containing skills/ and presets/
+  LOCAL_SKILLS_REPO  Default value for --repo
 EOF
 }
 
@@ -29,10 +30,16 @@ command_exists() {
 }
 
 PRESET=""
+SKILLS_REPO="${LOCAL_SKILLS_REPO:-}"
 SCOPE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --repo)
+      [[ $# -ge 2 ]] || fail "--repo requires a path"
+      SKILLS_REPO="$2"
+      shift 2
+      ;;
     --preset)
       [[ $# -ge 2 ]] || fail "--preset requires a file name"
       PRESET="$2"
@@ -53,10 +60,18 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n "${LOCAL_SKILLS_REPO:-}" ]] || fail "LOCAL_SKILLS_REPO is not set"
+if [[ -z "$SKILLS_REPO" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  REPO_SKILLS_ROOT="$SCRIPT_DIR/../claude/ai-resources-plugin"
+  if [[ -d "$REPO_SKILLS_ROOT/skills" ]]; then
+    SKILLS_REPO="$REPO_SKILLS_ROOT"
+  else
+    fail "no skills repository found; pass --repo or set LOCAL_SKILLS_REPO"
+  fi
+fi
 
-SKILLS_DIR="$LOCAL_SKILLS_REPO/skills"
-PRESETS_DIR="$LOCAL_SKILLS_REPO/presets"
+SKILLS_DIR="$SKILLS_REPO/skills"
+PRESETS_DIR="$SKILLS_REPO/presets"
 
 [[ -d "$SKILLS_DIR" ]] || fail "skills directory not found: $SKILLS_DIR"
 command_exists skills || fail "the skills CLI is not installed or not on PATH"

@@ -1,6 +1,6 @@
 ---
 name: knowledge-base-ingest
-description: This skill should be used when integrating source material into a knowledge base, including when the user asks to "integrate this document into the knowledge base", "add this transcript to the memory bank", "ingest this document", "update the knowledge base", "analyze a new source document", or "sync current-state docs with this source".
+description: "This skill should be used when integrating source material into a knowledge base, including when the user asks to \"integrate this document into the knowledge base\", \"add this transcript to the memory bank\", \"ingest this document\", \"update the knowledge base\", \"analyze a new source document\", or \"sync current-state docs with this source\"."
 ---
 
 # Knowledge Base Ingest

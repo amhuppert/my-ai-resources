@@ -1,6 +1,6 @@
 ---
 name: create-requirements
-description: Create a PRD / product requirements document with app summary, design principles, and detailed requirements.
+description: "Create a PRD / product requirements document with app summary, design principles, and detailed requirements."
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob
 ---
@@ -187,5 +187,5 @@ Before finalizing, verify:
 - [ ] Appropriate level of detail throughout
 
 <additional-instructions>
-$ARGUMENTS
+Use any additional instructions supplied in the user's invocation.
 </additional-instructions>

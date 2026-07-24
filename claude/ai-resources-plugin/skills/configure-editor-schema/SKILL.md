@@ -1,6 +1,6 @@
 ---
 name: configure-editor-schema
-description: Wire an existing JSON Schema into VS Code, Cursor, and/or Zed so it provides validation and IntelliSense for matching JSON or YAML files.
+description: "Wire an existing JSON Schema into VS Code, Cursor, and/or Zed so it provides validation and IntelliSense for matching JSON or YAML files."
 argument-hint: "[<schema-path-or-url>] [--type json|yaml] [--match <glob>] [--editor vscode|cursor|zed] [--scope user|project]"
 allowed-tools: Read, Edit, Write, Glob, AskUserQuestion, Bash(ls:*), Bash(mkdir:*)
 disable-model-invocation: true
@@ -11,12 +11,12 @@ disable-model-invocation: true
 Associate an existing JSON Schema with a file-match glob in one or more editors (VS Code, Cursor, Zed) for both JSON and YAML files. Authoring the schema itself is **out of scope** — the schema must already exist on disk or be reachable at an HTTPS URL.
 
 <arguments>
-$ARGUMENTS
+Use the arguments supplied in the user's invocation.
 </arguments>
 
 ## Step 1: Parse Inputs
 
-Extract these inputs from `$ARGUMENTS`. Anything missing is collected via `AskUserQuestion` in Step 2.
+Extract these inputs from the user's invocation. Collect anything missing in Step 2.
 
 - **Schema source**: a local file path (absolute or project-relative) OR an HTTPS URL.
 - **File type**: `json` or `yaml` — which file type the schema validates.
@@ -28,7 +28,7 @@ If the schema source is ambiguous (e.g., the user said "the schema for X" withou
 
 ## Step 2: Collect Missing Inputs
 
-Use `AskUserQuestion` to fill gaps. One question per missing input. Suggested prompts:
+Use the active client's user-question mechanism to fill gaps. One question per missing input. Suggested prompts:
 
 - **Schema source**: "Where is the schema? Provide an absolute path, a project-relative path, or an HTTPS URL."
 - **File type**: "Is this schema for JSON files or YAML files?" (options: `json`, `yaml`)
@@ -62,7 +62,7 @@ For each target settings file:
 
 "Overlap" means the new glob equals or is a string-identical match of an existing one. Don't try to compute true set-overlap — when in doubt, surface the candidate to the user.
 
-If conflicts exist, use `AskUserQuestion` per conflicting entry: "Overwrite the existing mapping `<existing>` with `<new>`?" Options: `overwrite`, `skip this editor`, `abort`.
+If conflicts exist, ask about each conflicting entry: "Overwrite the existing mapping `<existing>` with `<new>`?" Options: `overwrite`, `skip this editor`, `abort`.
 
 ## Step 5: Apply Additive Edits
 

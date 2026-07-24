@@ -1,6 +1,6 @@
 ---
-name: Save Current Context
-description: Save current session context to a handoff file so a future AI agent can continue with no prior context.
+name: save-current-context
+description: "Save current session context to a handoff file so a future AI agent can continue with no prior context."
 disable-model-invocation: true
 ---
 
@@ -18,7 +18,7 @@ If the user provided additional direction (e.g., "focus on the API design decisi
 
 Write the file to `context-{YYYY-MM-DD}.md` in the current working directory, using today's date, unless the user specifies a different path or filename.
 
-Use the Write tool to create the file.
+Create the file with the active client's file-writing capability.
 
 ## Process
 

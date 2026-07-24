@@ -1,0 +1,6 @@
+interface:
+  display_name: "Save Current Context"
+  short_description: "Save current session context to a handoff file so a future..."
+  default_prompt: "Use $save-current-context to save current session context to a handoff file so a future AI agent can continue with no prior context."
+policy:
+  allow_implicit_invocation: false

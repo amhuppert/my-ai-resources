@@ -1,6 +1,6 @@
 ---
 name: explainer-document
-description: Write a concise explainer / learning document / beginner guide that teaches a topic to someone unfamiliar with it.
+description: "Write a concise explainer / learning document / beginner guide that teaches a topic to someone unfamiliar with it."
 disable-model-invocation: true
 ---
 

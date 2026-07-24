@@ -1,0 +1,37 @@
+{
+  "name": "ai-resources",
+  "version": "1.43.0",
+  "description": "AI-enhanced git workflows, development utilities, and multi-agent design workflows",
+  "author": {
+    "name": "Alex Huppert",
+    "url": "https://github.com/amhuppert"
+  },
+  "homepage": "https://github.com/amhuppert/my-ai-resources",
+  "repository": "https://github.com/amhuppert/my-ai-resources",
+  "keywords": [
+    "agent-skills",
+    "development",
+    "git",
+    "testing",
+    "performance"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AI Resources",
+    "shortDescription": "Reusable software development workflows",
+    "longDescription": "Reusable skills for planning, implementation, testing, code review, debugging, documentation, and developer productivity.",
+    "developerName": "Alex Huppert",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Shell"
+    ],
+    "websiteURL": "https://github.com/amhuppert/my-ai-resources",
+    "defaultPrompt": [
+      "Review my current changes and recommend next steps.",
+      "Create a decision-complete implementation plan.",
+      "Help me debug and verify this project."
+    ]
+  }
+}

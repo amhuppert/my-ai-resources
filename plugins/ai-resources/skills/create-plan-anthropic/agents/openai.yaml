@@ -1,0 +1,6 @@
+interface:
+  display_name: "Create Plan Anthropic"
+  short_description: "Create a decision-complete implementation plan that can be..."
+  default_prompt: "Use $create-plan-anthropic to create a decision-complete implementation plan that can be executed mechanically without further design decisions."
+policy:
+  allow_implicit_invocation: false

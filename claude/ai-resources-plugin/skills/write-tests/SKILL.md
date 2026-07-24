@@ -1,6 +1,6 @@
 ---
 name: write-tests
-description: Write automated tests. Guides test selection, mocking strategy, and writing tests that verify behavior over implementation.
+description: "Write automated tests. Guides test selection, mocking strategy, and writing tests that verify behavior over implementation."
 ---
 
 # Write Tests

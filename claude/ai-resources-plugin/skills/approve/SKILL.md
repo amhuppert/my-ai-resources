@@ -1,6 +1,6 @@
 ---
 name: approve
-description: Approve and execute a previously created implementation plan with no deviation.
+description: "Approve and execute a previously created implementation plan with no deviation."
 disable-model-invocation: true
 ---
 

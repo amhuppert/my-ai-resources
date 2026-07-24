@@ -1,6 +1,6 @@
 ---
 name: fix-merge-conflicts
-description: Resolve git merge conflicts. Use when git status shows unmerged paths or files contain conflict markers (<<<<<<< / ======= / >>>>>>>).
+description: "Resolve git merge conflicts. Use when git status shows unmerged paths or files contain standard Git conflict markers."
 allowed-tools: Bash, Read, Edit, Glob, Grep
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Commit staged git changes after generating and approving a message.
+description: "Commit staged git changes after generating and approving a message."
 disable-model-invocation: true
 allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff --cached), Bash(git commit -m:*)
 ---
@@ -11,18 +11,13 @@ This skill helps create well-formatted git commit messages based on staged chang
 
 ## Context
 
-```
-% git status
-!`git status`
+Gather current context by running:
 
-% git diff --cached
-!`git diff --cached`
-
-% git branch --show-current
-!`git branch --show-current`
-
-% git log --oneline -10
-!`git log --oneline -10`
+```bash
+git status
+git diff --cached
+git branch --show-current
+git log --oneline -10
 ```
 
 ## Instructions:

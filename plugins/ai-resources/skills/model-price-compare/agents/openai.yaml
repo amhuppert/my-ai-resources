@@ -1,0 +1,6 @@
+interface:
+  display_name: "Model Price Compare"
+  short_description: "Compare AI model prices across Anthropic, OpenAI, and Google."
+  default_prompt: "Use $model-price-compare to compare AI model prices across Anthropic, OpenAI, and Google."
+policy:
+  allow_implicit_invocation: false

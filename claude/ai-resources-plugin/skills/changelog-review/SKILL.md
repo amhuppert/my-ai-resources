@@ -1,6 +1,6 @@
 ---
 name: changelog-review
-description: Review the Claude Code changelog and summarize recent changes and their significance.
+description: "Review the Claude Code changelog and summarize recent changes and their significance."
 disable-model-invocation: true
 argument-hint: "[--comprehensive] [--since <date>]"
 allowed-tools: Read, Write, WebFetch, WebSearch, Task, AskUserQuestion
@@ -11,7 +11,7 @@ allowed-tools: Read, Write, WebFetch, WebSearch, Task, AskUserQuestion
 Fetch the Claude Code changelog, analyze recent changes, and produce a report that explains the significance and implications of the most important updates.
 
 <arguments>
-$ARGUMENTS
+Use any flags or date range supplied in the user's invocation.
 </arguments>
 
 ## Step 1: Parse Arguments
@@ -30,7 +30,9 @@ Fetch the Claude Code changelog from:
 https://code.claude.com/docs/en/changelog
 ```
 
-Use WebFetch to retrieve the full page content. If the fetch fails, try WebSearch to locate the current changelog URL — it may have moved.
+Retrieve the full page with the active client's browsing capability. If the
+fetch fails, use web search to locate the current changelog URL — it may have
+moved.
 
 ## Step 3: Identify Changes in Scope
 
@@ -66,7 +68,9 @@ For each included change, determine whether additional research is needed to exp
 - **API or protocol changes**: Look up relevant specifications or migration guides
 - **Terminology**: Clarify any Claude Code-specific terms that may be unfamiliar
 
-Use WebSearch and WebFetch to gather this context. The goal is to provide enough background that the reader understands *why* a change matters, not just *what* changed.
+Use the active client's web search and browsing capabilities to gather this
+context. The goal is to provide enough background that the reader understands
+*why* a change matters, not just *what* changed.
 
 ## Step 6: Write the Report
 

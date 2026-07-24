@@ -141,13 +141,30 @@ fi
     expect(existsSync(capturePath)).toBe(false);
   });
 
-  test("requires LOCAL_SKILLS_REPO", async () => {
+  test("shows help without a source and rejects a missing repository", async () => {
     const result = await run(["--help"], { LOCAL_SKILLS_REPO: undefined });
 
     expect(result.exitCode).toBe(0);
 
-    const missingEnv = await run([], { LOCAL_SKILLS_REPO: undefined });
-    expect(missingEnv.exitCode).not.toBe(0);
-    expect(missingEnv.stderr).toContain("LOCAL_SKILLS_REPO");
+    const missingRepo = await run(
+      ["--repo", join(tempDir, "missing"), "--scope", "global"],
+      { LOCAL_SKILLS_REPO: undefined },
+    );
+    expect(missingRepo.exitCode).not.toBe(0);
+    expect(missingRepo.stderr).toContain("skills directory not found");
+  });
+
+  test("accepts an explicit repository source", async () => {
+    writeFileSync(join(repoDir, "presets", "team.txt"), "alpha\n");
+
+    const result = await run(
+      ["--repo", repoDir, "--preset", "team.txt", "--scope", "global"],
+      { LOCAL_SKILLS_REPO: undefined },
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(readFileSync(capturePath, "utf8")).toContain(
+      join(repoDir, "skills"),
+    );
   });
 });

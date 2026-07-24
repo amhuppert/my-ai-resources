@@ -1,6 +1,6 @@
 ---
 name: transcript-path
-description: Locate the on-disk Claude Code transcript file (.jsonl under ~/.claude/projects/) for the current or a specified conversation.
+description: "Locate the on-disk Claude Code transcript file (.jsonl under ~/.claude/projects/) for the current or a specified conversation."
 ---
 
 # Conversation Transcript Path

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Init Design Config"
+  short_description: "Initialize DESIGN-AGENTS.md config for the /design workflow,..."
+  default_prompt: "Use $init-design-config to initialize DESIGN-AGENTS.md config for the /design workflow, populated from project context."
+policy:
+  allow_implicit_invocation: false

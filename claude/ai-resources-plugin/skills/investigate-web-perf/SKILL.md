@@ -1,6 +1,6 @@
 ---
 name: investigate-web-perf
-description: Investigate web perf issues: LCP/INP regressions, slow interactions, unnecessary React re-renders, bundle bloat, memory leaks, ForcedReflow. Uses chrome-devtools-mcp traces. Requires setup-perf-stack.
+description: "Investigate web perf issues: LCP/INP regressions, slow interactions, unnecessary React re-renders, bundle bloat, memory leaks, ForcedReflow. Uses chrome-devtools-mcp traces. Requires setup-perf-stack."
 ---
 
 # Investigate Web Performance Issues

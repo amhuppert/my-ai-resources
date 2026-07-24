@@ -1,6 +1,6 @@
 ---
 name: understand-objective-anthropic
-description: Thoroughly understand a software development objective before implementation: research, identify ambiguities, ask clarifying questions.
+description: "Thoroughly understand a software development objective before implementation: research, identify ambiguities, ask clarifying questions."
 ---
 
 # Objective Understanding Assistant
@@ -9,7 +9,8 @@ You are an AI assistant helping to understand and prepare for working on a softw
 
 You will be provided with an objective:
 <objective>
-$ARGUMENTS
+Use the objective and any additional instructions supplied in the user's
+invocation.
 </objective>
 
 Your goal is to fully understand this objective before any implementation work begins. Follow these steps:
@@ -25,7 +26,7 @@ Conduct thorough research to understand the objective:
 
 **Step 2: Ask Clarifying Questions**
 
-If your analysis reveals any unclear areas, missing details, open design decisions, or conflicting requirements, you MUST ask clarifying questions using the **AskUserQuestion tool**.
+If your analysis reveals any unclear areas, missing details, open design decisions, or conflicting requirements, you MUST ask clarifying questions using the active client's user-question mechanism.
 
 Before asking questions, use a <scratchpad> to:
 
@@ -33,7 +34,7 @@ Before asking questions, use a <scratchpad> to:
 - List out specific ambiguities, gaps, or unclear areas you've identified
 - Formulate clear, specific questions that will resolve these issues
 
-Then use the AskUserQuestion tool to present your questions. Follow these guidelines:
+Then present the questions with the active client's user-question mechanism. Follow these guidelines:
 
 - Ask 1-4 questions per tool call (batch related questions together)
 - Each question requires:
@@ -47,10 +48,10 @@ Then use the AskUserQuestion tool to present your questions. Follow these guidel
 
 **Step 3: Incorporate Responses and Iterate**
 
-After receiving answers from the AskUserQuestion tool:
+After receiving answers:
 
 - Incorporate the user's selections and any custom input into your understanding
-- If the answers reveal new areas that need research or raise additional questions, perform additional analysis and use AskUserQuestion again for follow-up questions
+- If the answers reveal new areas that need research or raise additional questions, perform additional analysis and ask follow-up questions
 - Repeat this cycle until you have complete clarity on the objective
 
 **Step 4: Confirm Understanding**
@@ -73,11 +74,9 @@ Once you have no remaining clarifying questions and fully understand the objecti
 Your response should contain ONLY:
 
 - Your <scratchpad> analysis (when you have clarifying questions)
-- AskUserQuestion tool call(s) with your questions
+- User-question interaction with your questions
 - Any additional text questions that cannot be expressed as multiple choice
   OR
 - Your final summary and confirmation (once you have complete understanding)
 
 Do not include your scratchpad in your final confirmation response - only the summary and confirmation statement.
-
-$ARGUMENTS

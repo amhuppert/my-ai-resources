@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Debugger"
+  short_description: "Debug a running web app via the web-debugger SDK: app logs,..."
+  default_prompt: "Use $web-debugger to debug a running web app via the web-debugger SDK: app logs, application state, runtime snapshots, React state, query cache."

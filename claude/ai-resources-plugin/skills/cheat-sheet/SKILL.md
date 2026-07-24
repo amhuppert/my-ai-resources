@@ -1,6 +1,6 @@
 ---
 name: cheat-sheet
-description: Create a 1-2 page cheat sheet / quick reference for a tool, language, or framework.
+description: "Create a 1-2 page cheat sheet / quick reference for a tool, language, or framework."
 argument-hint: "<topic> [--pdf] [--output <path>]"
 allowed-tools: Read, Write, WebSearch, WebFetch, Task, AskUserQuestion, Skill
 disable-model-invocation: true
@@ -11,7 +11,7 @@ disable-model-invocation: true
 Create concise, high-quality cheat sheets for any tool, technology, language, framework, or concept. Output a practical 1-2 page reference document focusing on the most commonly used commands, features, and key information users look up repeatedly.
 
 <topic>
-$ARGUMENTS
+Use the topic and output preferences supplied in the user's invocation.
 </topic>
 
 ## Step 1: Parse the Request
@@ -22,7 +22,7 @@ Extract from the arguments:
 - **Format**: Markdown file (default) or PDF (if `--pdf` flag or user requests PDF)
 - **Output path**: Custom save location (if `--output` specified), otherwise save to the current working directory
 
-If the topic is ambiguous or too broad, use AskUserQuestion to clarify scope. For example, "Git" could mean basic commands, advanced workflows, or configuration — ask which aspect to focus on.
+If the topic is ambiguous or too broad, ask the user to clarify scope. For example, "Git" could mean basic commands, advanced workflows, or configuration — ask which aspect to focus on.
 
 ## Step 2: Research the Topic
 
@@ -31,7 +31,7 @@ Conduct focused research to identify the most practical, commonly-referenced inf
 1. **Search for official documentation**: Quick-start guides, command references, API summaries
 2. **Search for existing cheat sheets**: Find what others consider essential for this topic
 3. **Search for common usage patterns**: Tutorials, Stack Overflow answers, blog posts showing frequent use cases
-4. **Fetch key pages**: Read 2-3 authoritative sources in full using WebFetch for precise syntax, flags, and options
+4. **Fetch key pages**: Read 2-3 authoritative sources in full with the active client's browsing capability for precise syntax, flags, and options
 
 Prioritize sources that reveal the most commonly used features, typical workflows, and critical gotchas.
 

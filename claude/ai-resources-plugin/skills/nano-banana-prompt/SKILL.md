@@ -1,6 +1,6 @@
 ---
 name: nano-banana-prompt
-description: Create a high-quality image generation prompt for Google's Nano Banana 2 (NB2) model on Gemini.
+description: "Create a high-quality image generation prompt for Google's Nano Banana 2 (NB2) model on Gemini."
 argument-hint: "<image description or concept>"
 allowed-tools: Read, AskUserQuestion
 ---
@@ -10,7 +10,7 @@ allowed-tools: Read, AskUserQuestion
 Generate optimized prompts for Google's Nano Banana 2 (Gemini 3.1 Flash Image) model. Transform user concepts into detailed, well-structured prompts that leverage NB2's strengths: natural language understanding, thinking mode, text rendering, character consistency, and image search grounding.
 
 <user-request>
-$ARGUMENTS
+Use the image concept and constraints supplied in the user's invocation.
 </user-request>
 
 ## Step 1: Understand the User's Intent
@@ -23,7 +23,7 @@ Extract from the user's request:
 - **Use case**: What the image is for (social media, print, product mockup, etc.)
 - **Special requirements**: Text rendering, character consistency, specific aspect ratio, etc.
 
-If the request is too vague to produce a quality prompt (e.g., just "a cat"), use AskUserQuestion to clarify intent. Ask about style preference, mood, and intended use — but only ask what's genuinely ambiguous. A request like "a cyberpunk cityscape at night" has enough to work with.
+If the request is too vague to produce a quality prompt (e.g., just "a cat"), ask the user to clarify intent. Ask about style preference, mood, and intended use — but only ask what's genuinely ambiguous. A request like "a cyberpunk cityscape at night" has enough to work with.
 
 ## Step 2: Compose the Prompt
 

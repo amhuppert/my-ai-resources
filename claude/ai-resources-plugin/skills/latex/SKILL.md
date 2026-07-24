@@ -1,6 +1,6 @@
 ---
 name: latex
-description: Generate LaTeX documents (or convert markdown to LaTeX) with professional typography. Optionally compile to PDF.
+description: "Generate LaTeX documents (or convert markdown to LaTeX) with professional typography. Optionally compile to PDF."
 allowed-tools: Read, Write, Bash(pdflatex:*), Bash(xelatex:*), Bash(lualatex:*), Bash(latexmk:*), Bash(biber:*), Bash(bibtex:*), Bash(which:*), Bash(uname:*)
 ---
 

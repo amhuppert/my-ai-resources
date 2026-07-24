@@ -1,0 +1,6 @@
+interface:
+  display_name: "Setup Perf Stack"
+  short_description: "Bootstrap web performance debugging tooling: install..."
+  default_prompt: "Use $setup-perf-stack to bootstrap web performance debugging tooling: install chrome-devtools-mcp and related MCP servers/skills."
+policy:
+  allow_implicit_invocation: false

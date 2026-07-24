@@ -1,0 +1,4 @@
+interface:
+  display_name: "Investigate Web Perf"
+  short_description: "Investigate web perf issues: LCP/INP regressions, slow..."
+  default_prompt: "Use $investigate-web-perf to investigate web perf issues: LCP/INP regressions, slow interactions, unnecessary React re-renders, bundle bloat, memory leaks, ForcedReflow."

@@ -1,6 +1,6 @@
 ---
 name: code-standards-review
-description: Review a codebase for adherence to code standards. Uses specialized agents with progressive disclosure to determine which standards apply.
+description: "Review a codebase for adherence to code standards. Uses specialized agents with progressive disclosure to determine which standards apply."
 ---
 
 # Code Standards Review Skill

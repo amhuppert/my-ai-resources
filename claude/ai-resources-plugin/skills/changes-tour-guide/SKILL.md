@@ -1,6 +1,6 @@
 ---
 name: changes-tour-guide
-description: Walk through recent code changes pedagogically: a two-phase markdown guide (overview, then detailed explanations) in dependency order.
+description: "Walk through recent code changes pedagogically: a two-phase markdown guide (overview, then detailed explanations) in dependency order."
 allowed-tools: Read, Write, Bash(git diff:*), Bash(git log:*), Bash(git status:*), Bash(git show:*)
 disable-model-invocation: true
 ---
@@ -12,23 +12,19 @@ Create a structured markdown document that walks a reader through code changes i
 ## User Scope
 
 <user_scope>
-$ARGUMENTS
+Use any scope or direction supplied with the user's invocation. If none was
+supplied, infer the scope from the conversation and repository state.
 </user_scope>
 
 ## Git Context
 
-```
-% git log --oneline -20
-!`git log --oneline -20`
+Gather current context by running:
 
-% git status --short
-!`git status --short`
-
-% git diff --stat
-!`git diff --stat`
-
-% git diff --cached --stat
-!`git diff --cached --stat`
+```bash
+git log --oneline -20
+git status --short
+git diff --stat
+git diff --cached --stat
 ```
 
 ## Determining What to Review

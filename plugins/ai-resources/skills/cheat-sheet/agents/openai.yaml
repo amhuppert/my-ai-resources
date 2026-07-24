@@ -1,0 +1,6 @@
+interface:
+  display_name: "Cheat Sheet"
+  short_description: "Create a 1-2 page cheat sheet / quick reference for a tool,..."
+  default_prompt: "Use $cheat-sheet to create a 1-2 page cheat sheet / quick reference for a tool, language, or framework."
+policy:
+  allow_implicit_invocation: false

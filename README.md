@@ -1,11 +1,13 @@
 # My AI Resources
 
-My personal AI workflow, config, prompts, etc. for Claude Code.
+My personal AI workflow, config, prompts, etc. for Claude Code and Codex.
 
 ## File Structure
 
 - `agent-docs/` - Documentation intended for consumption by AI agents (installed to `~/.claude/agent-docs/`)
-- `claude/` - Claude Code configuration files, plugin definition, and user/project CLAUDE.md templates
+- `claude/ai-resources-plugin/` - Canonical skills and Claude Code plugin
+- `plugins/ai-resources/` - Generated Codex plugin
+- `.agents/plugins/marketplace.json` - Codex marketplace metadata
 - `.kiro/` - Kiro SDD steering files for project context
 - `memory-bank/` - Working notes and implementation plans from AI-assisted development
 - `prompts/` - Saved LLM prompts and prompt templates
@@ -33,12 +35,13 @@ Installs user-wide configurations that apply across all projects:
 - `claude/settings.json` → Claude Code user settings (via TypeScript installer with deep merge)
 - MCP server registration for Claude Code:
   - `context7` (third-party library documentation)
-- `ai-resources` plugin - Installed via Claude Code plugin system from local marketplace
+- `ai-resources` plugins - Installed for Claude Code and Codex from local marketplaces
 
 **Requirements:**
 
 - `bun` runtime (for settings installation)
 - `claude` CLI (for MCP server registration and plugin installation)
+- `codex` CLI (optional; required for Codex plugin installation)
 - `ffplay` (optional, for notification sounds in projects)
 
 The `notify` utility uses built-in notification, speech, and audio commands on
@@ -95,14 +98,35 @@ working sound from `.claude/notification.mp3` in the current project or
 command result. Visual and audio delivery are best effort with warnings;
 wrapped commands retain their exit status, including signal-derived statuses.
 
-### Local Skill Installation
+### Shared Claude Code and Codex skills
 
-Point `LOCAL_SKILLS_REPO` at a local repository containing `skills/` and
-optional `presets/` directories. Each preset is a text file with one skill
-directory name per line.
+Skills are authored once under `claude/ai-resources-plugin/skills/`. That
+directory is also the Claude Code plugin source. Regenerate the Codex package
+after changing a skill:
 
 ```bash
-export LOCAL_SKILLS_REPO="$HOME/path/to/local-skills"
+cd typescript
+bun run build:codex-plugin
+```
+
+The generator removes Claude-only frontmatter, adds Codex
+`agents/openai.yaml` metadata, and writes the result to
+`plugins/ai-resources/skills/`. Do not edit those generated skill copies
+directly.
+
+`ai install --scope user` installs `ai-resources@ai-resources` for Claude Code
+and `ai-resources@my-ai-resources` for Codex.
+
+### Local Skill Installation
+
+From this repository, the installer discovers the canonical skills
+automatically. For another checkout, pass its Claude plugin directory:
+
+```bash
+install-skills --repo /path/to/repo/claude/ai-resources-plugin
+
+# Or configure a default source for subsequent commands
+export LOCAL_SKILLS_REPO=/path/to/repo/claude/ai-resources-plugin
 
 # Choose skills and scope with Gum
 install-skills
@@ -113,3 +137,5 @@ install-skills --preset team.txt
 # Install a preset non-interactively at user scope
 install-skills --preset team.txt --scope global
 ```
+
+`LOCAL_SKILLS_REPO` remains available as an environment-variable alternative.

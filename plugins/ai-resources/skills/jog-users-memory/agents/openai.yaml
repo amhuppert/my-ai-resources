@@ -1,0 +1,6 @@
+interface:
+  display_name: "Jog Users Memory"
+  short_description: "Jog the user's memory after they've been away: a brief,..."
+  default_prompt: "Use $jog-users-memory to jog the user's memory after they've been away: a brief, scannable summary of progress, next steps, and open questions."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Explainer Document"
+  short_description: "Write a concise explainer / learning document / beginner..."
+  default_prompt: "Use $explainer-document to write a concise explainer / learning document / beginner guide that teaches a topic to someone unfamiliar with it."
+policy:
+  allow_implicit_invocation: false

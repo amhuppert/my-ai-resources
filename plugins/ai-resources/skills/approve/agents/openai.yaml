@@ -1,0 +1,6 @@
+interface:
+  display_name: "Approve"
+  short_description: "Approve and execute a previously created implementation plan..."
+  default_prompt: "Use $approve to approve and execute a previously created implementation plan with no deviation."
+policy:
+  allow_implicit_invocation: false

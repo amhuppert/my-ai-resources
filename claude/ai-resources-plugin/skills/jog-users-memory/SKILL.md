@@ -1,6 +1,6 @@
 ---
 name: jog-users-memory
-description: Jog the user's memory after they've been away: a brief, scannable summary of progress, next steps, and open questions.
+description: "Jog the user's memory after they've been away: a brief, scannable summary of progress, next steps, and open questions."
 disable-model-invocation: true
 allowed-tools: Read, Bash(git log:*), Bash(git status:*), Bash(git diff:*)
 ---

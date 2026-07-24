@@ -1,6 +1,6 @@
 ---
 name: create-reference
-description: Create or update an AI-optimized reference document for a tool, library, framework, or API via thorough research.
+description: "Create or update an AI-optimized reference document for a tool, library, framework, or API via thorough research."
 argument-hint: "<subject> [--update <existing-file>] [--language <language>]"
 allowed-tools: Read, Write, Glob, Grep, WebSearch, WebFetch, Task, AskUserQuestion, Bash(ls:*)
 disable-model-invocation: true
@@ -11,7 +11,7 @@ disable-model-invocation: true
 Create or update reference documents that provide AI agents with comprehensive knowledge of a tool, technology, library, framework, or API. The resulting document enables an AI agent to work effectively with the subject without prior knowledge.
 
 <subject>
-$ARGUMENTS
+Use the subject and options supplied in the user's invocation.
 </subject>
 
 ## Step 1: Parse the Request
@@ -27,7 +27,7 @@ Determine the subject source:
 - **Local codebase/tool**: Subject is a local directory or file path. Explore the codebase.
 - **Both**: Some subjects benefit from combining web research with local codebase analysis.
 
-If the subject or scope is ambiguous, use AskUserQuestion to clarify:
+If the subject or scope is ambiguous, ask the user to clarify:
 
 - What specific aspects to cover (full API, specific module, common patterns)
 - Target language if the tool supports multiple (e.g., BAML supports TypeScript and Python)
@@ -42,12 +42,12 @@ Conduct thorough research to build comprehensive understanding. Adapt approach b
 1. **Search for official documentation**: Look for API references, getting started guides, and configuration docs
 2. **Search for guides and tutorials**: Find practical usage patterns, common recipes, and best practices
 3. **Search for changelogs and migration guides**: Identify recent breaking changes or important version-specific behavior
-4. **Fetch key documentation pages**: Read official docs pages in full using WebFetch to extract precise API details, function signatures, configuration options, and examples
+4. **Fetch key documentation pages**: Read official docs pages in full with the active client's browsing capability to extract precise API details, function signatures, configuration options, and examples
 5. **Search for common pitfalls**: Look for known gotchas, common mistakes, and debugging tips
 
 ### For Local Codebases
 
-1. **Explore the project structure**: Use Glob and directory listing to understand organization
+1. **Explore the project structure**: Search files and list directories to understand organization
 2. **Read key files**: Entry points, configuration files, READMEs, type definitions, and public API surfaces
 3. **Identify the public API**: Exported functions, classes, types, CLI commands, and configuration options
 4. **Find usage examples**: Tests, examples directories, and README snippets

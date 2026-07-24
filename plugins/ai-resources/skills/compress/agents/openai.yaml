@@ -1,0 +1,6 @@
+interface:
+  display_name: "Compress"
+  short_description: "Compress and optimize AI instructions to be clearer, more..."
+  default_prompt: "Use $compress to compress and optimize AI instructions to be clearer, more concise, and more efficient."
+policy:
+  allow_implicit_invocation: false

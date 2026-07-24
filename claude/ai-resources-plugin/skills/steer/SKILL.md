@@ -1,8 +1,8 @@
 ---
 name: steer
-description: Reflect on codebase navigation effectiveness at end of conversation. Surfaces dead ends, inefficiencies, missing context. Does not write files — pair with /kiro:steering-custom to persist.
+description: "Reflect on codebase navigation effectiveness at end of conversation. Surfaces dead ends, inefficiencies, missing context. Does not write files — pair with /kiro:steering-custom to persist."
 disable-model-invocation: true
-argument-hint: [topic-name]
+argument-hint: "[topic-name]"
 allowed-tools: Read, Glob, Grep
 ---
 
@@ -12,7 +12,7 @@ Reflect on the current conversation to evaluate codebase navigation effectivenes
 
 ## Arguments
 
-Topic name: $ARGUMENTS
+Topic name: use the topic supplied in the user's invocation.
 
 If no topic name provided, derive one from the conversation's primary task using kebab-case (e.g., `api-client`, `installer-scripts`, `mcp-server`).
 

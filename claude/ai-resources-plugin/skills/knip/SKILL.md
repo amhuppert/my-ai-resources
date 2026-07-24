@@ -1,6 +1,6 @@
 ---
 name: knip
-description: Detect and remove dead code with knip. Use when the user asks to "run knip", "find unused files", "find unused exports", "find unused dependencies", "clean up dead code", "remove dead code", "set up knip", "configure knip", "knip.json", "knip false positive", "knip CI", or mentions a `knip` config, dependency bloat, bundle bloat from unused imports, or tree-shaking unused exports. Covers the configuration-first workflow, confidence-gated deletion, framework-specific gotchas (Next.js 15+, Tailwind, Storybook, Jest, Bun's test runner and `bun build --compile`), monorepos, CI integration, and performance tuning.
+description: "Detect and remove dead code with knip. Use when the user asks to \"run knip\", \"find unused files\", \"find unused exports\", \"find unused dependencies\", \"clean up dead code\", \"remove dead code\", \"set up knip\", \"configure knip\", \"knip.json\", \"knip false positive\", \"knip CI\", or mentions a `knip` config, dependency bloat, bundle bloat from unused imports, or tree-shaking unused exports. Covers the configuration-first workflow, confidence-gated deletion, framework-specific gotchas (Next.js 15+, Tailwind, Storybook, Jest, Bun's test runner and `bun build --compile`), monorepos, CI integration, and performance tuning."
 ---
 
 # Knip: Find and Remove Dead Code
@@ -82,7 +82,7 @@ Removing unused files frequently exposes newly-unused exports and dependencies. 
 - **Published package** (no `"private": true` in package.json, OR has a real `version` published on npm): `lib/`, `src/index.*`, `exports`/`main` targets are *real* external API. Treat them as load-bearing — get user confirmation before deleting.
 - **Private package** (`"private": true`, no npm publishing): "exports" are just module-graph wiring within the repo. If knip + grep agree nothing imports them, they're internal dead code — verify with grep, then act. The `lib/` directory has no external consumers in this case.
 
-**Do not auto-delete anything in these categories. Use AskUserQuestion to confirm first:**
+**Do not auto-delete anything in these categories. Ask the user to confirm first:**
 
 - **(Published packages only)** Files in `src/index.{ts,tsx,js}`, `lib/`, or paths containing `public`, `api`, or matching the `exports`/`main` field of `package.json` — these are likely public API surface.
 - Files that could be **dynamically imported** (`await import(...)`), referenced by runtime mechanisms (Next.js routing, Storybook story discovery), or named to suggest plugin-style loading (`plugins/*.ts`, `routes/*.ts`).

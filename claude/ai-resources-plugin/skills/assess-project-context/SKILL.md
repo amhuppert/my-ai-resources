@@ -1,6 +1,6 @@
 ---
 name: assess-project-context
-description: Assess / rate the default project context (CLAUDE.md, onboarding). Scores how well it conveys the project to AI across six dimensions, with improvement recommendations.
+description: "Assess / rate the default project context (CLAUDE.md, onboarding). Scores how well it conveys the project to AI across six dimensions, with improvement recommendations."
 disable-model-invocation: true
 allowed-tools: Read, Glob, Grep
 ---

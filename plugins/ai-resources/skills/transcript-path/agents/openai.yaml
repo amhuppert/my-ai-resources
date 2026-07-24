@@ -1,0 +1,4 @@
+interface:
+  display_name: "Transcript Path"
+  short_description: "Locate the on-disk Claude Code transcript file (.jsonl under..."
+  default_prompt: "Use $transcript-path to locate the on-disk Claude Code transcript file (.jsonl under ~/.claude/projects/) for the current or a specified conversation."

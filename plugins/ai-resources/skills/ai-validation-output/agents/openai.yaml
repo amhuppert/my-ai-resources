@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Validation Output"
+  short_description: "Configure AI-optimal validation: pre-commit hooks,..."
+  default_prompt: "Use $ai-validation-output to configure AI-optimal validation: pre-commit hooks, CommandCenter.json, and low-noise linter/test/typecheck output for AI agents."

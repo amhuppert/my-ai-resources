@@ -1,32 +1,28 @@
 ---
 name: reflection
-description: Reflect on the conversation and propose improvements to CLAUDE.md configuration files.
+description: "Reflect on the conversation and propose improvements to durable AI-agent instruction files such as CLAUDE.md and AGENTS.md."
 disable-model-invocation: true
 ---
 
-# Claude Instructions Optimizer
+# Agent Instructions Optimizer
 
-You are an expert in prompt engineering, specializing in optimizing AI code assistant instructions. Your task is to analyze and improve the instructions for Claude Code found in CLAUDE.md/CLAUDE.local.md. Follow these steps carefully:
+Analyze and improve the durable instructions for the active AI coding client. Follow these steps carefully:
 
 1. Analysis Phase:
    Review the chat history in your context window.
 
-Then, examine the current Claude instructions:
-User-level CLAUDE.md:
-!`read-file ~/.claude/CLAUDE.md "User-level Claude instructions"`
+Then locate and read the instruction files that exist for the active client:
 
-Project-level CLAUDE.md:
-!`read-file ./CLAUDE.md "Project-level Claude instructions"`
-
-Project-level CLAUDE.local.md:
-!`read-file ./CLAUDE.local.md "Local project-level Claude instructions"`
+- User-level instructions such as `~/.claude/CLAUDE.md` or `~/.codex/AGENTS.override.md`
+- Project-level `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`, or `AGENTS.override.md`
+- Any closer nested instruction files relevant to the files discussed in the conversation
 
 Analyze the chat history and instructions to identify areas that could be improved. Look for:
 
-- Inconsistencies in Claude's responses
+- Inconsistencies in the agent's responses
 - Misunderstandings of user requests
 - Areas where Claude could provide more detailed or accurate information
-- Opportunities to enhance Claude's ability to handle specific types of queries or tasks
+- Opportunities to enhance the agent's ability to handle specific types of queries or tasks
 
 2. Interaction Phase:
    Present your findings and improvement ideas to the human. For each suggestion:
@@ -60,4 +56,4 @@ Wait for feedback from the human on each suggestion before proceeding. If the hu
 [Present the complete, updated set of instructions for Claude, incorporating all approved changes]
 </final_instructions>
 
-Remember, your goal is to enhance Claude's performance and consistency while maintaining the core functionality and purpose of the AI assistant. Be thorough in your analysis, clear in your explanations, and precise in your implementations.
+Remember, your goal is to enhance the agent's performance and consistency while maintaining the core functionality and purpose of the AI assistant. Be thorough in your analysis, clear in your explanations, and precise in your implementations.

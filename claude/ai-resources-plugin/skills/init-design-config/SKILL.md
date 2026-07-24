@@ -1,6 +1,6 @@
 ---
 name: init-design-config
-description: Initialize DESIGN-AGENTS.md config for the /design workflow, populated from project context.
+description: "Initialize DESIGN-AGENTS.md config for the /design workflow, populated from project context."
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Write
 ---

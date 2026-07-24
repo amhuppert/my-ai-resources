@@ -1,6 +1,6 @@
 ---
 name: model-price-compare
-description: Compare AI model prices across Anthropic, OpenAI, and Google. Generates pages-per-dollar / cost-per-token visualizations.
+description: "Compare AI model prices across Anthropic, OpenAI, and Google. Generates pages-per-dollar / cost-per-token visualizations."
 disable-model-invocation: true
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: shama-init-config
-description: Initialize Shama voice-to-text config for the project — create voice.json, voice-vocabulary.md, voice-context.md, and register the project in Shama's registry.toml.
+description: "Initialize Shama voice-to-text config for the project — create voice.json, voice-vocabulary.md, voice-context.md, and register the project in Shama's registry.toml."
 disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---

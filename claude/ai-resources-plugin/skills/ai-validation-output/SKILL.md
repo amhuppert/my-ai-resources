@@ -1,6 +1,6 @@
 ---
 name: ai-validation-output
-description: Configure AI-optimal validation: pre-commit hooks, CommandCenter.json, and low-noise linter/test/typecheck output for AI agents.
+description: "Configure AI-optimal validation: pre-commit hooks, CommandCenter.json, and low-noise linter/test/typecheck output for AI agents."
 ---
 
 # AI-Optimal Validation Output

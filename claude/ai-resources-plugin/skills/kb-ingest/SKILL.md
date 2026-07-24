@@ -1,7 +1,6 @@
 ---
 name: kb-ingest
-description: Delegate knowledge-base ingestion to the `knowledge-base-ingester` sub-agent so the source document, primary/current trees, and ingest workflow stay out of the main conversation's context window. Run this when the user explicitly invokes `/ai-resources:kb-ingest`; do not auto-trigger from natural-language ingestion requests (those should use the `knowledge-base-ingest` skill directly).
-disable-agent
+description: "Delegate knowledge-base ingestion to the `knowledge-base-ingester` sub-agent so the source document, primary/current trees, and ingest workflow stay out of the main conversation's context window. Run this when the user explicitly invokes `/ai-resources:kb-ingest`; do not auto-trigger from natural-language ingestion requests (those should use the `knowledge-base-ingest` skill directly)."
 disable-model-invocation: true
 ---
 
@@ -18,7 +17,9 @@ Only when the user runs `/ai-resources:kb-ingest` (with or without arguments). D
 ## What the skill does
 
 1. Parse the user's invocation for ingest inputs.
-2. Delegate the actual ingestion to the `knowledge-base-ingester` sub-agent via the Agent tool.
+2. Delegate the actual ingestion to the `knowledge-base-ingester` sub-agent
+   when that custom agent is available. Otherwise invoke the
+   `knowledge-base-ingest` skill directly.
 3. Surface the agent's compact report to the user.
 4. Do not re-do the agent's work inline.
 
@@ -37,7 +38,9 @@ If the user gave instructions but no source path, ask which document they want i
 
 ## Step 2: Delegate to the sub-agent
 
-Invoke the `knowledge-base-ingester` sub-agent via the Agent tool with `subagent_type: "knowledge-base-ingester"`. The prompt to the agent must be self-contained (the agent does not see the parent conversation) and must include:
+Invoke the `knowledge-base-ingester` sub-agent with the active client's
+agent-delegation mechanism when available. The prompt must be self-contained
+(the agent does not see the parent conversation) and must include:
 
 - The exact source document path.
 - The knowledge-base destination if the user specified one, or a note that destination should be inferred per the skill's discovery rules.
