@@ -1,4 +1,4 @@
 interface:
   display_name: "Investigate Web Perf"
-  short_description: "Investigate web perf issues: LCP/INP regressions, slow..."
-  default_prompt: "Use $investigate-web-perf to investigate web perf issues: LCP/INP regressions, slow interactions, unnecessary React re-renders, bundle bloat, memory leaks, ForcedReflow."
+  short_description: "Trace-based triage of web performance issues via..."
+  default_prompt: "Use $investigate-web-perf to trace-based triage of web performance issues via chrome-devtools-mcp: LCP/INP regressions, slow page loads and interactions, ForcedReflow/layout thrashing, CLS, bundle bloat, memory leaks."

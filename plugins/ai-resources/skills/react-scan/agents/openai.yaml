@@ -1,4 +1,4 @@
 interface:
   display_name: "React Scan"
-  short_description: "This skill should be used when the user asks to \"set up..."
-  default_prompt: "Use $react-scan to apply the React Scan workflow to this request."
+  short_description: "Install and use react-scan tooling for component-level React..."
+  default_prompt: "Use $react-scan to install and use react-scan tooling for component-level React render attribution: \"set up react-scan\", \"diagnose React re-renders\", \"find unnecessary renders\", \"find unstable props\", \"measure component renders programmatically\", or automated render checks with Playwright (react-scan + playwright, lite headless API for CI)."

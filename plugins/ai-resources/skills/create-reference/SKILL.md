@@ -17,7 +17,7 @@ Use the subject and options supplied in the user's invocation.
 Determine the mode and subject from the arguments:
 
 - **Create mode** (default): Generate a new reference document
-- **Update mode**: If `--update <path>` is specified or the user asks to update an existing document, read the existing document first and extend/revise it
+- **Update mode**: If `--update <path>` is specified or the user asks to update an existing document, read the existing document in full first, then research only the new topic areas and integrate them into the existing structure. Where old and new content contradict, new content takes precedence; remove outdated information. Preserve the overall structure unless the user requests restructuring.
 
 Determine the subject source:
 
@@ -33,31 +33,27 @@ If the subject or scope is ambiguous, ask the user to clarify:
 
 ## Step 2: Research the Subject
 
-Conduct thorough research to build comprehensive understanding. Adapt approach based on subject source.
+Conduct thorough research to build comprehensive understanding.
 
 ### For Public Tools/Libraries
 
-1. **Search for official documentation**: Look for API references, getting started guides, and configuration docs
-2. **Search for guides and tutorials**: Find practical usage patterns, common recipes, and best practices
-3. **Search for changelogs and migration guides**: Identify recent breaking changes or important version-specific behavior
+1. **Search for official documentation**: API references, getting started guides, configuration docs
+2. **Search for guides and tutorials**: Practical usage patterns, common recipes, best practices
+3. **Search for changelogs and migration guides**: Recent breaking changes or important version-specific behavior
 4. **Fetch key documentation pages**: Read official docs pages in full with the active client's browsing capability to extract precise API details, function signatures, configuration options, and examples
-5. **Search for common pitfalls**: Look for known gotchas, common mistakes, and debugging tips
+5. **Search for common pitfalls**: Known gotchas, common mistakes, debugging tips
 
 ### For Local Codebases
 
 1. **Explore the project structure**: Search files and list directories to understand organization
-2. **Read key files**: Entry points, configuration files, READMEs, type definitions, and public API surfaces
-3. **Identify the public API**: Exported functions, classes, types, CLI commands, and configuration options
-4. **Find usage examples**: Tests, examples directories, and README snippets
+2. **Read key files**: Entry points, configuration files, READMEs, type definitions, public API surfaces
+3. **Identify the public API**: Exported functions, classes, types, CLI commands, configuration options
+4. **Find usage examples**: Tests, examples directories, README snippets
 5. **Check for existing documentation**: Internal docs, JSDoc comments, docstrings
 
-### For Both
-
-Combine findings from web and local sources. Local code takes precedence when web documentation contradicts actual implementation.
+When combining both sources, local code takes precedence where web documentation contradicts the actual implementation.
 
 ## Step 3: Organize and Draft the Reference
-
-Structure the reference document following these principles.
 
 ### Document Structure Template
 
@@ -99,31 +95,29 @@ Structure the reference document following these principles.
 [Common pitfalls and their solutions]
 ```
 
-Adapt this structure to the subject. Not all sections apply to every tool. Add or remove sections as needed. The structure should follow the natural workflow of using the tool.
+Adapt this structure to the subject — not all sections apply to every tool, and the structure should follow the natural workflow of using it.
 
 ### Writing Standards
 
-**Format rules:**
+Format:
 
-- Use bulleted lists over prose
-- One concept per bullet
+- Use bulleted lists over prose, one concept per bullet
 - Imperative form for instructions ("Run `npm install`", not "You should run `npm install`")
 - Include code blocks for all commands, API calls, and configuration examples
 - Use tables for reference data (options, flags, type mappings)
 - Use Mermaid diagrams for architectural concepts or workflows when clearer than text
 - Use XML tags (`<Overview>`, `<critical>`, `<example>`) for structural clarity where appropriate
 
-**Content rules:**
+Content:
 
-- Optimize for AI agent consumption: high information density, minimal tokens
-- Include precise API signatures with types (not just descriptions)
-- Show concrete code examples, not abstract descriptions
+- Optimize for AI agent consumption: high information density, minimal tokens, no redundancy between sections
+- Include precise API signatures with types, and concrete code examples rather than abstract descriptions
 - Specify versions when version-specific behavior exists
 - Include the "why" only when it prevents common misuse
-- Omit obvious information that any LLM would already know
+- Omit information any LLM would already know
 - Focus on actionable knowledge: what to do, how to do it, what to avoid
 
-**Code examples:**
+Code examples:
 
 - Keep examples minimal but complete (runnable when possible)
 - Show the most common usage first, then variations
@@ -132,44 +126,20 @@ Adapt this structure to the subject. Not all sections apply to every tool. Add o
 
 ## Step 4: Validate the Document
 
-Before saving, verify the document against this checklist:
+Before saving, verify:
 
-- [ ] Covers installation/setup
-- [ ] Core concepts are explained concisely
-- [ ] All major API surfaces are documented with signatures
-- [ ] Code examples are included for each major feature
-- [ ] Common patterns section addresses real-world usage
-- [ ] No redundancy between sections
-- [ ] No prose explanations where a code example would suffice
-- [ ] No information an LLM would already know (e.g., "JavaScript is a programming language")
-- [ ] All code examples use correct syntax for the documented version
+- [ ] Covers installation/setup, core concepts, all major API surfaces with signatures, and common real-world patterns
+- [ ] Code examples exist for each major feature and use correct syntax for the documented version
 - [ ] Document enables an agent to start using the tool without any other resources
 
 ## Step 5: Save the Document
 
-**For new documents:**
+For new documents:
 
 - Save to `agent-docs/` directory in the project root
-- Filename: `<subject-name>-reference.md` (kebab-case)
-- If language-specific variants exist, use: `<subject-name>-reference-<language>.md`
+- Filename: `<subject-name>-reference.md` (kebab-case), or `<subject-name>-reference-<language>.md` for language-specific variants
 - If the subject warrants multiple files, create a subdirectory: `agent-docs/<subject-name>/`
 
-**For updates:**
-
-- Edit the existing file in place
-- Preserve the overall structure unless the user requests restructuring
-- Add new sections or expand existing ones as needed
-- Remove outdated information
+For updates, edit the existing file in place.
 
 After saving, report the file path and a brief summary of what the document covers.
-
-## Update Mode Details
-
-When updating an existing reference document:
-
-1. Read the existing document in full
-2. Identify what new information the user wants to add
-3. Research the new topic areas using Step 2
-4. Integrate new content into the existing structure
-5. Resolve any contradictions between old and new content (new takes precedence)
-6. Verify the updated document passes the validation checklist

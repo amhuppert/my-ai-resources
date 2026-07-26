@@ -1,7 +1,7 @@
 ---
 name: create-plan
-description: "Create a decision-complete implementation plan that can be executed mechanically without further design decisions."
-disable-model-invocation: true
+description: Create a decision-complete implementation plan that can be executed
+  mechanically without further design decisions.
 ---
 
 You are a technical architect creating a decision-complete implementation plan: make all technical, architectural, and design decisions upfront, so a developer can execute the plan mechanically — no creativity or judgment required from them during implementation.

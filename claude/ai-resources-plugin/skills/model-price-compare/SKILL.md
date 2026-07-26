@@ -6,19 +6,22 @@ disable-model-invocation: true
 
 # Model Price Comparison
 
-Generate an interactive HTML visualization comparing pricing and capabilities of frontier AI models across major providers. Always research live pricing data — never rely on training knowledge.
+Generate an interactive HTML visualization comparing pricing and capabilities of frontier AI models across major providers.
 
 ## Target Models
 
 Research the current pricing for these frontier model families:
 
-| Provider | Models |
-|----------|--------|
-| **Anthropic** | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5 |
-| **OpenAI** | GPT-5.4 family (GPT-5.4, GPT-5.4-mini, GPT-5.4-nano) |
-| **Google** | Latest Gemini models (Gemini 2.5 Pro, Gemini 2.5 Flash, etc.) |
+| Provider | Model | Baseline price (per 1M tokens, as of July 2026) |
+|----------|-------|--------------------------------------------------|
+| **Anthropic** | Claude Fable 5 (`claude-fable-5`) | $10 input / $50 output |
+| **Anthropic** | Claude Opus 5 (`claude-opus-5`) | $5 input / $25 output |
+| **Anthropic** | Claude Sonnet 5 (`claude-sonnet-5`) | $3 input / $15 output ($2 / $10 intro through 2026-08-31) |
+| **Anthropic** | Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) | $1 input / $5 output |
+| **OpenAI** | GPT-5.6 family (Sol, Terra, Luna) | Sol $5 / $30; Terra $2.50 / $15; Luna $1 / $6 |
+| **Google** | Latest Gemini models (Gemini 2.5 Pro, Gemini 2.5 Flash, etc.) | verify at research time |
 
-The models listed above are baseline targets. If newer versions exist (e.g., a model listed as 4.6 is now 5.0), use the current versions. Include additional frontier models discovered during research that belong to these product lines. Exclude deprecated, preview, or fine-tuning-only variants.
+The models listed above are baseline targets as of July 2026, and the baseline prices exist only to sanity-check research results. If newer versions exist, use the current versions. Include additional frontier models discovered during research that belong to these product lines. Exclude deprecated, preview, or fine-tuning-only variants.
 
 ## Workflow
 
@@ -33,7 +36,7 @@ Search for the official API pricing page of each provider. For each model, colle
 | Field | Description |
 |-------|-------------|
 | `provider` | Anthropic, OpenAI, or Google |
-| `model` | Display name (e.g., "Claude Sonnet 4.6") |
+| `model` | Display name (e.g., "Claude Sonnet 5") |
 | `inputPrice` | USD per 1M input tokens |
 | `outputPrice` | USD per 1M output tokens |
 | `contextWindow` | Maximum context window in tokens |

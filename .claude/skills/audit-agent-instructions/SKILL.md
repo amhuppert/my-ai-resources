@@ -1,6 +1,6 @@
 ---
 name: audit-agent-instructions
-description: Audit all agent instructions against the latest context-engineering best practices
+description: Audit agent instruction and context files (CLAUDE.md, AGENTS.md, steering files, skills) against current context-engineering best practices. Use when asked to audit, review, or modernize agent instructions.
 ---
 
 Review the instructions or context files for agents specified by the user. If the user doesn't specify any specifics, ask if they want to audit all agent instructions in the project, as well as instructions and skills installed at the user level.
@@ -33,5 +33,7 @@ Output:
 
 - [The new rules of context engineering for Claude 5 generation models](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models) – July 24, 2026
   - "How to apply the lessons we (Anthropic) learned to your own context engineering in Claude Code and with your own agents."
-- [A field guide tot Claude Fable 5: Finding your unknowns](https://claude.com/blog/a-field-guide-to-claude-fable-finding-your-unknowns) – July 6, 2026
+- [A field guide to Claude Fable 5: Finding your unknowns](https://claude.com/blog/a-field-guide-to-claude-fable-finding-your-unknowns) – July 6, 2026
 - [OpenAI Model guidance](https://developers.openai.com/api/docs/guides/latest-model) – See guidance for GPT-5.6 Sol, particularly the "Prompting best practices" section
+
+These resources reflect the July 2026 model generation. If newer models or newer official guidance have shipped since, supplement them with a web search before auditing.

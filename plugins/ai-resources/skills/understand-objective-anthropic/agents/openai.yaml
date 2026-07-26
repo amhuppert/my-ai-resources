@@ -1,4 +1,0 @@
-interface:
-  display_name: "Understand Objective Anthropic"
-  short_description: "Thoroughly understand a software development objective..."
-  default_prompt: "Use $understand-objective-anthropic to thoroughly understand a software development objective before implementation: research, identify ambiguities, ask clarifying questions."

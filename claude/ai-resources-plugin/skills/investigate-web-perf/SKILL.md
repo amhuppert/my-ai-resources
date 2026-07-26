@@ -1,6 +1,6 @@
 ---
 name: investigate-web-perf
-description: "Investigate web perf issues: LCP/INP regressions, slow interactions, unnecessary React re-renders, bundle bloat, memory leaks, ForcedReflow. Uses chrome-devtools-mcp traces. Requires setup-perf-stack."
+description: "Trace-based triage of web performance issues via chrome-devtools-mcp: LCP/INP regressions, slow page loads and interactions, ForcedReflow/layout thrashing, CLS, bundle bloat, memory leaks. Captures Chrome performance traces and analyzes them with performance insights. Requires setup-perf-stack. For installing react-scan, component-level React render attribution (unnecessary re-renders, unstable props), or automated render checks with Playwright, use react-scan instead."
 ---
 
 # Investigate Web Performance Issues
@@ -33,7 +33,7 @@ Tighten only if the user explicitly wants a desktop-class target (e.g., `cpuThro
 
 ## The 18-Insight Vocabulary
 
-The agent MUST pass one of these as `insightName` to `performance_analyze_insight`. Do not invent names. Do not hand-roll `performance.getEntriesByType(...)` calls before exhausting insights.
+Pass one of these as `insightName` to `performance_analyze_insight`. Do not invent names.
 
 Load / paint / rendering:
 - `DocumentLatency`, `LCPBreakdown`, `LCPDiscovery`, `RenderBlocking`

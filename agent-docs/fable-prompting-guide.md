@@ -1,6 +1,6 @@
 # Prompting Guide: Claude Fable 5
 
-Concise prompting reference for Anthropic's Claude Fable 5 (`claude-fable-5`), distilled from Anthropic's official docs (June 2026 launch). Fable 5 is Anthropic's most capable widely released model, built for long-horizon agentic work — tasks that take a person hours, days, or weeks.
+Concise prompting reference for Anthropic's Claude Fable 5 (`claude-fable-5`), distilled from Anthropic's official docs (June 2026 launch) and July 2026 context-engineering guidance. Fable 5 is Anthropic's most capable widely released model, built for long-horizon agentic work — tasks that take a person hours, days, or weeks.
 
 ## Model facts
 
@@ -83,6 +83,18 @@ After many tool calls, output can drift into dense shorthand. Instruct: working 
 
 A client-side tool whose input is rendered verbatim in the UI lets the agent surface deliverables/progress mid-turn (tool inputs are never summarized). The tool alone isn't enough — pair it with: *"Between tool calls, when you have content the user must read verbatim, call send_to_user. Use it only for user-facing content, not narration."*
 
+## Context engineering (July 2026)
+
+From Anthropic's context-engineering rules for Claude 5-generation models and the Fable 5 field guide (both in Sources):
+
+- **Rules → judgment.** Anthropic removed over 80% of Claude Code's system prompt for Opus 5/Fable 5 with no measurable eval loss. Replace prohibition lists with intent plus context ("match the surrounding code's comment density" beats "never write comments").
+- **Repetition → single authoritative source.** State each instruction once, in the one place that owns it — tool usage belongs in tool descriptions, not also in the system prompt.
+- **Upfront loading → progressive disclosure.** Keep entry-point files lean; split detail into skills and reference files loaded on demand.
+- **Examples → interface design.** Expressive tool and parameter design (enums, typed fields) beats usage examples; keep an example only when it encodes a real requirement.
+- **CLAUDE.md stays lightweight:** a brief repo description plus non-obvious gotchas — not every known practice, and not a memory repository (auto-memory handles that).
+- **Specs → rich references.** Prefer code (test suites, reference implementations), HTML artifacts, and rubrics over prose descriptions — source code over screenshots.
+- **Instruction-sensitivity balance:** too specific and Fable 5 follows instructions even when a pivot would be better; too vague and it defaults to generic industry practice. Close the gap by surfacing unknowns: blind-spot passes on unfamiliar domains, one-question-at-a-time interviews prioritizing architecture-changing answers, implementation plans that lead with the decisions most likely to be tweaked, and a running deviations log during execution.
+
 ## Pitfalls
 
 - **Never instruct Fable 5 to echo/transcribe its internal reasoning as response text** — this triggers the `reasoning_extraction` refusal classifier and elevates fallbacks. Read structured `thinking` blocks (with `display: "summarized"`) instead. Audit skills/prompts for "show your thinking" language when migrating.
@@ -95,3 +107,5 @@ A client-side tool whose input is rendered verbatim in the UI lets the agent sur
 - [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) (official, primary source)
 - [Introducing Claude Fable 5 and Claude Mythos 5](https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5) (API changes, refusals/fallback)
 - [Models overview](https://platform.claude.com/docs/en/about-claude/models/overview) (specs)
+- [The new rules of context engineering for Claude 5 generation models](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models) (Jul 24, 2026)
+- [A field guide to Claude Fable 5: Finding your unknowns](https://claude.com/blog/a-field-guide-to-claude-fable-finding-your-unknowns) (Jul 6, 2026)

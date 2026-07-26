@@ -1,6 +1,0 @@
-interface:
-  display_name: "Commit"
-  short_description: "Commit staged git changes after generating and approving a..."
-  default_prompt: "Use $commit to commit staged git changes after generating and approving a message."
-policy:
-  allow_implicit_invocation: false

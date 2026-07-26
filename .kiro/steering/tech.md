@@ -6,44 +6,16 @@ inclusion: always
 
 ## Architecture
 
-Hybrid plugin + installation architecture. Slash commands distributed via Claude Code plugin system for easy sharing, while installation scripts handle the broader tooling ecosystem (binary utilities, agent-docs, hooks).
+Hybrid plugin + installation architecture: slash commands ship via the Claude Code plugin system, while installation scripts handle the broader tooling ecosystem (binary utilities, agent-docs, hooks). TypeScript and Bash on the Bun runtime, compiled to standalone executables in `dist/`.
 
-## Core Technologies
+## Common Commands
 
-- **Languages**: TypeScript, Bash
-- **Runtime**: Bun (compilation and execution)
-- **Build**: Bun compiler (standalone executables in `dist/`)
-
-## Key Libraries
-
-- **Zod** - Runtime validation and type safety
-- **@modelcontextprotocol/sdk** - MCP protocol implementation
-- **openai** - Responses API integration
-- **Commander.js** - CLI argument parsing
-- **Eta** - Template rendering
-- **glob** - File pattern matching
-- **prettier** - Code formatting
-- **zod-to-json-schema** / **json-to-zod** - Schema conversion utilities
-
-## Development Standards
-
-### Type Safety
-TypeScript strict mode. No `any` types or `@ts-ignore`. Plain functions over classes unless explicitly directed.
-
-### Code Quality
-Early returns over nested conditionals. YAGNI principle. Comments only for non-obvious constraints.
-
-## Development Environment
-
-### Required Tools
-- Bun runtime
-- Claude CLI (`claude`)
-- Git
-
-### Common Commands
 ```bash
 # Build: compile TypeScript to standalone executables
 cd typescript && bun run build
+
+# Regenerate the Codex plugin from the shared skills
+cd typescript && bun run build:codex-plugin
 
 # Install user-level: agent-docs, scripts
 ai install --scope user

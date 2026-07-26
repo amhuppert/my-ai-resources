@@ -3,7 +3,7 @@ name: changelog-review
 description: "Review the Claude Code changelog and summarize recent changes and their significance."
 disable-model-invocation: true
 argument-hint: "[--comprehensive] [--since <date>]"
-allowed-tools: Read, Write, WebFetch, WebSearch, Task, AskUserQuestion
+allowed-tools: Read, Write, WebFetch, WebSearch, Agent, AskUserQuestion
 ---
 
 # Claude Code Changelog Review

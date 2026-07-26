@@ -85,7 +85,7 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **/ai-resources:reflection** - Reflect on conversation to suggest CLAUDE.md improvements
 - **/ai-resources:skill-creator** - Create or update a Claude Code skill
 - **/ai-resources:steer** - Create a navigation steering document from codebase exploration
-- **/ai-resources:understand-objective-anthropic** - Research and clarify a development objective
+- **/ai-resources:understand-objective** - Research and clarify a development objective
 - **/ai-resources:worktree** - Create a git worktree for parallel Claude Code sessions
 
 ### Agents (ai-resources Plugin)

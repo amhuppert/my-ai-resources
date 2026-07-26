@@ -1,17 +1,10 @@
 # Progressive Disclosure Reference Guide for AI Agents
 
 <Overview>
-Progressive disclosure is an information architecture pattern that reveals complexity gradually rather than all at once, minimizing context window bloat while keeping comprehensive information accessible on-demand. In AI/LLM contexts, it means limiting what enters the context to the minimum necessary amount and adding detail over time as needed. This pattern is essential for building token-efficient agents and skills that can access large knowledge bases without overwhelming the LLM.
+Progressive disclosure limits what enters the context window to the minimum necessary, revealing detail on-demand as the agent needs it. Lightweight metadata stays always visible; full documentation and resources load only when relevant.
 </Overview>
 
 ## Core Concepts
-
-### The Problem It Solves
-
-- **Context bloat**: Loading entire knowledge bases upfront wastes tokens on irrelevant information
-- **Cognitive overload**: Large amounts of information confuse models and increase hallucination risk
-- **Cost inefficiency**: Every token in the context costs money; unnecessary context is expensive
-- **Poor agent performance**: Models struggle to prioritize when everything is equally visible
 
 ### The Three-Layer Model
 
@@ -33,16 +26,6 @@ Progressive disclosure is an information architecture pattern that reveals compl
 - Loaded only when referenced by Layer 2 content
 - Can be dozens of files organized by topic
 
-### Key Mental Model
-
-Think of progressive disclosure as a **filesystem-based information retrieval system**:
-
-- The agent is a user navigating your knowledge base
-- Metadata is the directory listing and README
-- Skill documentation is the main guide file
-- Reference files are detailed topic files the agent discovers and reads selectively
-- Script output never loads into context—only results
-
 ## Design Patterns
 
 ### Pattern 1: Filesystem Navigation
@@ -55,40 +38,31 @@ skill-name/
 ├── reference/
 │   ├── api.md              # Detailed API reference
 │   ├── patterns.md         # Common usage patterns
-│   ├── troubleshooting.md  # Known issues and solutions
-│   └── examples/
-│       ├── basic.md
-│       ├── advanced.md
-│       └── edge-cases.md
+│   └── troubleshooting.md  # Known issues and solutions
 └── scripts/
     └── helper.sh           # Output loaded, code never loaded
 ```
 
 **Implementation**:
 
-- SKILL.md frontmatter lists available references as inline links or mentions
-- Agent reads SKILL.md, discovers relevant references by name/description
-- Agent uses `read-file` or `cat` to load only needed reference files
+- SKILL.md lists available references as inline links or mentions
+- Agent reads SKILL.md, discovers relevant references by name/description, and loads only the files it needs
 - No file loads into context unless explicitly referenced
 
 ### Pattern 2: Tiered Documentation
 
-Create explicit documentation tiers that match layer model:
+Create explicit documentation tiers that match the layer model:
 
 ```markdown
 # Skill Name
 
 ## Quick Start (50 lines)
 
-- One command to get started
-- Basic usage example
-- When to use this skill
+One command to get started, basic usage example, when to use this skill
 
 ## Core Features (300 lines)
 
-- Main API reference
-- Common patterns
-- Configuration options
+Main API reference, common patterns, configuration options
 
 ## See also
 
@@ -107,11 +81,6 @@ Use metadata sections that help agents understand what exists without loading it
 ---
 name: Data Processing
 description: Transform and validate data with JSON schema
-features:
-  - Basic validation
-  - Schema generation
-  - Transformation pipelines
-  - Performance optimization (see reference/performance.md)
 references:
   api: Contains full API signatures for all functions
   patterns: Common data transformation recipes
@@ -144,113 +113,18 @@ references:
    ```
 
 3. **Use scripts for complex operations**
-   - Script code never loads into context
-   - Only output enters context window
-   - Script can reference separate documentation without bloating context
-   - Example: `read-file reference/generated-api.md` in script output
+   - Script code never loads into context—only output enters the context window
+   - Scripts can reference separate documentation without bloating context
 
 4. **Link liberally but load sparingly**
-   - Reference files are cheap—create them freely
-   - The agent pays for them only if they're loaded
-   - Use clear naming that signals content ("api-reference", "troubleshooting")
-   - Add brief descriptions in metadata/frontmatter
+   - Reference files are cheap—create them freely; they cost tokens only when loaded
+   - Use clear naming that signals content ("api-reference", "troubleshooting") and add brief descriptions in metadata/frontmatter
 
 ### For Agent Instructions and System Prompts
 
-1. **Minimal baseline**
-   - Include only what agent needs to understand its role
-   - Brief descriptions of available tools/skills
-   - Where to find detailed information
-
-2. **Discovery-oriented**
-   - Tell agents how to explore available resources
-   - Example: "See `reference/available-skills.md` for complete skill list"
-   - Agents can request detailed information as needed
-
-3. **Context-aware examples**
-   - Don't include all possible examples upfront
-   - Example snippets in main instructions
-   - Comprehensive examples in reference files
-
-### For Large Knowledge Bases (RAG Systems)
-
-1. **Metadata layer**: Indexable summaries with retrieval keys
-2. **Retrieval mechanism**: Agent uses metadata to decide what to fetch
-3. **Loading strategy**: Only matching documents enter context
-4. **Query refinement**: Agent can adjust queries if results don't match
-
-## Token Efficiency Metrics
-
-| Approach                         | Baseline        | With Progressive Disclosure | Savings |
-| -------------------------------- | --------------- | --------------------------- | ------- |
-| Full skill content always loaded | 5,000+ tokens   | 100 tokens metadata         | 98%     |
-| 10 skills in context             | 50,000+ tokens  | 1,000 tokens metadata       | 98%     |
-| Monolithic documentation         | 150,000+ tokens | Progressive loading         | 90-98%  |
-
-**Practical example**: A project with 10 Claude Code skills
-
-- **Without PD**: 5k tokens per skill × 10 = 50,000 tokens always
-- **With PD**: 100 tokens metadata × 10 = 1,000 tokens, load full skill (5k) only when relevant
-- **Result**: 49,000 tokens saved per interaction if only 1-2 skills needed
-
-## Common Patterns
-
-### Pattern: Nested Reference Navigation
-
-For deep topics, use nested references that agents discover progressively:
-
-```markdown
-# API Reference
-
-Core functions (keep this section brief)
-
-**For advanced usage patterns, see [reference/advanced-patterns.md](reference/advanced-patterns.md)**
-
-Advanced Patterns file then contains:
-
-- Complex configurations
-- With links to [reference/advanced-patterns/performance.md](reference/advanced-patterns/performance.md)
-- And [reference/advanced-patterns/edge-cases.md](reference/advanced-patterns/edge-cases.md)
-```
-
-Agent discovers each layer only when exploring that topic.
-
-### Pattern: Task-Oriented Organization
-
-Organize references by common tasks rather than technical categories:
-
-```
-reference/
-├── "How do I validate data?"
-├── "How do I transform data?"
-├── "How do I debug validation errors?"
-├── "How do I optimize performance?"
-```
-
-Instead of:
-
-```
-reference/
-├── api/
-├── types/
-├── configuration/
-├── examples/
-```
-
-### Pattern: Searchable Metadata Index
-
-Create a lightweight index that helps agents discover what exists:
-
-```markdown
-# Available References
-
-| Topic           | File                                               | Use When                            |
-| --------------- | -------------------------------------------------- | ----------------------------------- |
-| API Signatures  | [api.md](reference/api.md)                         | You need exact function signatures  |
-| Common Patterns | [patterns.md](reference/patterns.md)               | You need to implement a common task |
-| Performance     | [performance.md](reference/performance.md)         | Your code is running slowly         |
-| Troubleshooting | [troubleshooting.md](reference/troubleshooting.md) | Something isn't working             |
-```
+- **Minimal baseline**: only what the agent needs to understand its role, brief descriptions of available tools/skills, and where to find detailed information
+- **Discovery-oriented**: tell agents how to explore available resources (e.g., "See `reference/available-skills.md` for complete skill list")
+- **Context-aware examples**: example snippets in main instructions, comprehensive examples in reference files
 
 ## Gotchas and Anti-Patterns
 
@@ -282,10 +156,7 @@ Create a lightweight index that helps agents discover what exists:
 ```markdown
 # Implementation Details
 
-Here's the source code for the internal function...
-[2,000 lines of source code]
-
-Here's how to use it...
+[2,000 lines of source code, followed by usage instructions]
 ```
 
 **Problem**: Code that agents never need loads every time
@@ -299,7 +170,6 @@ reference/
 │   ├── performance/
 │   │   ├── optimization/
 │   │   │   └── caching/
-│   │   │       └── redis/
 ```
 
 **Problem**: Agents have trouble navigating deep hierarchies
@@ -311,8 +181,7 @@ reference/
 **Solution**:
 
 - Always link from main documentation
-- Use clear, descriptive filenames
-- Include metadata/index files
+- Use clear, descriptive filenames and metadata/index files
 - Test that agents can find needed information
 
 ## Implementation Checklist
@@ -330,20 +199,12 @@ reference/
 
 ## Decision Framework
 
-| Scenario                                          | Decision                           |
-| ------------------------------------------------- | ---------------------------------- |
-| Agents ask for something → you point them to docs | ✅ Good—docs are discoverable      |
-| Something might be needed but probably isn't      | ✅ Move to reference file          |
-| Information needed for every interaction          | ✅ Keep in main documentation      |
-| Detailed examples for advanced use                | ✅ Move to reference file          |
-| Information contradicts what's in reference       | ❌ Fix—local code takes precedence |
-| Agents can't find something they need             | ❌ Add metadata or link            |
-| Main document keeps growing                       | ❌ Extract to reference files      |
-
-## Related Concepts
-
-- **Retrieval-Augmented Generation (RAG)**: Progressive disclosure at scale using vector databases
-- **Filesystem-based knowledge**: Using directory structure as information architecture
-- **Metadata-driven systems**: Using summaries to guide retrieval
-- **Lazy loading**: Loading resources only when needed
-- **Information scent**: Making information discoverable through naming and linking
+| Scenario                                          | Decision                                                      |
+| ------------------------------------------------- | ------------------------------------------------------------- |
+| Agents ask for something → you point them to docs | ✅ Good—docs are discoverable                                 |
+| Something might be needed but probably isn't      | ✅ Move to reference file                                     |
+| Information needed for every interaction          | ✅ Keep in main documentation                                 |
+| Detailed examples for advanced use                | ✅ Move to reference file                                     |
+| Doc layers contradict each other                  | ❌ Fix at the source—the more specific layer is authoritative |
+| Agents can't find something they need             | ❌ Add metadata or link                                       |
+| Main document keeps growing                       | ❌ Extract to reference files                                 |

@@ -4,56 +4,24 @@ inclusion: always
 
 # Project Structure
 
-## Organization Philosophy
-
-Feature-grouped directories at the top level, with shared TypeScript tooling compiled by Bun. Installation splits between user-level (home directory) and project-level (current directory) targets. Claude Code configurations live in their own directories, compiled and installed separately.
-
 ## Directory Patterns
 
-### `claude/` - Claude Code Plugin Source
-Plugin definitions with standardized internal structure. Each plugin contains:
-- `.claude-plugin/plugin.json` - Plugin manifest
-- `skills/<skill-name>/SKILL.md` - Skill definitions
-- `hooks/` - Event-driven shell scripts (optional)
-- `agents/` - Agent definitions (optional)
-- `scripts/` - Supporting TypeScript utilities (optional)
-
-Primary plugin: `ai-resources-plugin/` (installed via `claude` CLI plugin system).
-
-### `agent-docs/` - AI Agent Reference Documentation
-Markdown reference docs installed to `~/.claude/agent-docs/`. Includes code standards, workflow documentation, and tool references.
-
-### `typescript/` - Core TypeScript Tooling
-Library code (`lib/`) and CLI scripts (`scripts/`) compiled to standalone executables in `dist/`. Entry point: `scripts/ai.ts` providing the `ai` CLI.
-
-### `scripts/` - Shell Utilities
-Standalone bash scripts installed to `~/.local/bin/`. Self-contained, no build step required.
-
-### `notes-for-humans/` - Reference Documentation
-Workflow guides, CLI cheat sheets, and skill pattern documentation for human consumption.
-
-### `prompts/` - Prompt Templates
-Specialized prompt templates for AI instruction optimization and content generation.
-
-### `.kiro/steering/` - Project Context
-Kiro SDD steering files providing persistent project context for AI agents.
+- `claude/` - Claude Code plugin source. Primary plugin: `ai-resources-plugin/`, with `.claude-plugin/plugin.json` manifest, `skills/<skill-name>/SKILL.md`, and optional `hooks/`, `agents/`, `scripts/`.
+- `agent-docs/` - AI agent reference docs (code standards, workflows, tool references), installed to `~/.claude/agent-docs/`.
+- `typescript/` - Core tooling: `lib/` and `scripts/` compiled to standalone executables in `dist/`. Entry point `scripts/ai.ts` provides the `ai` CLI.
+- `scripts/` - Standalone bash utilities installed to `~/.local/bin/`; self-contained, no build step.
+- `memory-bank/` - Working artifacts (design docs, implementation plans, notes) written by AI workflow skills. Intentional artifacts directory; not installed anywhere.
+- `notes-for-humans/`, `prompts/` - Human-facing guides and prompt templates.
+- `.kiro/steering/` - Kiro SDD steering files: persistent project context for AI agents.
 
 ## Naming Conventions
 
-- **Files**: kebab-case (`install-user.ts`, `setup-worktree`)
-- **TypeScript**: camelCase functions, PascalCase types/Zod schemas
-- **Skills**: `namespace:kebab-case` (`ai-resources:commit`)
-- **CLI commands**: kebab-case subcommands (`ai install`, `ai worktree`)
+- Files: kebab-case (`install-user.ts`); TypeScript: camelCase functions, PascalCase types/Zod schemas
+- Skills: `namespace:kebab-case` (`ai-resources:fix-merge-conflicts`); CLI: kebab-case subcommands (`ai install`)
 
 ## Key Interfaces
 
-### Installation Pipeline
-- `typescript/lib/installer-utils.ts` - File sync, CLAUDE.md merging with comment markers
-- `typescript/scripts/install-user.ts` - User-level installation (home directory)
-- `typescript/scripts/install-project.ts` - Project-level installation (current directory)
-
-### Settings Management
+- `typescript/lib/installer-utils.ts` - File sync; CLAUDE.md comment-marker merging
+- `typescript/scripts/install-user.ts` / `install-project.ts` - User-level vs project-level installation
 - `typescript/lib/claude-code-settings.ts` - Zod schemas for Claude Code settings validation
-
-### CLAUDE.md Template
-- `claude/CLAUDE-project.md` - Standard instructions template merged between `<!-- Begin standard instructions -->` / `<!-- End of standard instructions -->` comment markers
+- `claude/CLAUDE-project.md` - Standard-instructions template merged between `<!-- Begin standard instructions -->` / `<!-- End of standard instructions -->` markers

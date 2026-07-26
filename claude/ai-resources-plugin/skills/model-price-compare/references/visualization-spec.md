@@ -163,7 +163,7 @@ Grouped bar chart with two bars per model — input price and output price.
 new Chart(ctx, {
   type: 'bar',
   data: {
-    labels: modelNames,   // e.g., ['Claude Sonnet 4.6', 'GPT-4o', ...]
+    labels: modelNames,   // e.g., ['Claude Sonnet 5', 'GPT-5.6 Sol', ...]
     datasets: [
       {
         label: 'Input (per 1M tokens)',
@@ -359,10 +359,10 @@ Table columns in order:
     <!-- Example row — populate from researched data -->
     <tr>
       <td class="provider-anthropic">Anthropic</td>
-      <td>Claude Sonnet 4.6</td>
+      <td>Claude Sonnet 5</td>
       <td>$3.00</td>
       <td>$15.00</td>
-      <td>200K</td>
+      <td>1M</td>
       <td>417</td>
       <td>83</td>
     </tr>
@@ -380,10 +380,10 @@ Structure pricing data as a JavaScript array for use across all charts:
 const models = [
   {
     provider: 'Anthropic',
-    model: 'Claude Sonnet 4.6',
+    model: 'Claude Sonnet 5',
     inputPrice: 3.00,      // USD per 1M tokens — use researched value
     outputPrice: 15.00,    // USD per 1M tokens — use researched value
-    contextWindow: 200000, // tokens — use researched value
+    contextWindow: 1000000, // tokens — use researched value
   },
   // ... more models
 ];

@@ -1,6 +1,0 @@
-interface:
-  display_name: "Worktree"
-  short_description: "Create a git worktree for parallel Claude Code sessions."
-  default_prompt: "Use $worktree to create a git worktree for parallel Claude Code sessions."
-policy:
-  allow_implicit_invocation: false

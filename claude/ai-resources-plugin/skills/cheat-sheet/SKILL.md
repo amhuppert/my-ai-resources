@@ -2,7 +2,7 @@
 name: cheat-sheet
 description: "Create a 1-2 page cheat sheet / quick reference for a tool, language, or framework."
 argument-hint: "<topic> [--pdf] [--output <path>]"
-allowed-tools: Read, Write, WebSearch, WebFetch, Task, AskUserQuestion, Skill
+allowed-tools: Read, Write, WebSearch, WebFetch, Agent, AskUserQuestion, Skill
 disable-model-invocation: true
 ---
 

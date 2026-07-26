@@ -1,6 +1,0 @@
-interface:
-  display_name: "Break Into Subtasks"
-  short_description: "Break frontend feature requirements into parallelizable..."
-  default_prompt: "Use $break-into-subtasks to break frontend feature requirements into parallelizable subtasks (API, UI, integration) with dependencies and a Mermaid diagram."
-policy:
-  allow_implicit_invocation: false

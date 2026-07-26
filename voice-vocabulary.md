@@ -47,7 +47,7 @@ modelcontextprotocol
 /ai-resources:reflection
 /ai-resources:skill-creator
 /ai-resources:steer
-/ai-resources:understand-objective-anthropic
+/ai-resources:understand-objective
 /ai-resources:worktree
 code-reviewer
 requirements-validation-agent
