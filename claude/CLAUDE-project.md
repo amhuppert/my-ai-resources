@@ -57,12 +57,4 @@ await new Promise(resolve => setTimeout(resolve, 2000));
 - Work to reduce code duplication, even when the refactoring takes extra effort.
 - Get Alex's explicit approval before throwing away or rewriting an implementation, and before adding any backward compatibility.
 
-## Steering Context
-
-Project context via Kiro steering files in `.kiro/steering/`.
-
-- @.kiro/steering/product.md - Product vision and use cases
-- @.kiro/steering/tech.md - Tech stack, architecture, key commands
-- @.kiro/steering/structure.md - Codebase structure and conventions
-
 <!-- End of standard instructions -->

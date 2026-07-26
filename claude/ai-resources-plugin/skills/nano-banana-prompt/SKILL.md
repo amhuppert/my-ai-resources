@@ -3,6 +3,7 @@ name: nano-banana-prompt
 description: "Create a high-quality image generation prompt for Google's Nano Banana 2 (NB2) model on Gemini."
 argument-hint: "<image description or concept>"
 allowed-tools: Read, AskUserQuestion
+disable-model-invocation: true
 ---
 
 # Nano Banana 2 Prompt Generator

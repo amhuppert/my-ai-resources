@@ -2,6 +2,7 @@
 name: shama-add-context
 description: "Add terms, context, or instructions to Shama voice-to-text files for clipboard mode (Ctrl+Opt+Space) or shell-command mode (Ctrl+Opt+S), at project or global level."
 allowed-tools: Read, Glob, Edit, Write
+disable-model-invocation: true
 ---
 
 # Add Shama Context

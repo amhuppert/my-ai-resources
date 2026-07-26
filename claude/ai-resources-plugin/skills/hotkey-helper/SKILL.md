@@ -1,6 +1,7 @@
 ---
 name: hotkey-helper
 description: "Use when picking or vetting a keyboard shortcut on macOS. Triggers include \"what hotkey should I use for X\", \"is this combo available\", \"does this shortcut conflict\", \"recommend a keybinding\", \"check this combo against my setup\", or any mention of choosing, binding, or changing a shortcut in WezTerm, tmux, Zed, Chrome, Claude Code, or macOS. Determines whether a proposed combo collides with OS-reserved bindings, app defaults, or the user's customizations, and recommends ergonomic alternatives when needed."
+disable-model-invocation: true
 ---
 
 # Hotkey Helper (macOS)

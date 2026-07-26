@@ -1,6 +1,7 @@
 ---
 name: transcript-path
 description: "Locate the on-disk Claude Code transcript file (.jsonl under ~/.claude/projects/) for the current or a specified conversation."
+disable-model-invocation: true
 ---
 
 # Conversation Transcript Path

@@ -1,6 +1,7 @@
 ---
 name: knip
 description: "Detect and remove dead code with knip. Use when the user asks to \"run knip\", \"find unused files\", \"find unused exports\", \"find unused dependencies\", \"clean up dead code\", \"remove dead code\", \"set up knip\", \"configure knip\", \"knip.json\", \"knip false positive\", \"knip CI\", or mentions a `knip` config, dependency bloat, bundle bloat from unused imports, or tree-shaking unused exports. Covers the configuration-first workflow, confidence-gated deletion, framework-specific gotchas (Next.js 15+, Tailwind, Storybook, Jest, Bun's test runner and `bun build --compile`), monorepos, CI integration, and performance tuning."
+disable-model-invocation: true
 ---
 
 # Knip: Find and Remove Dead Code

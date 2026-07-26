@@ -1,6 +1,7 @@
 ---
 name: web-debugger
 description: "Debug a running web app via the web-debugger SDK: app logs, application state, runtime snapshots, React state, query cache."
+disable-model-invocation: true
 ---
 
 # Web App Debugger
