@@ -1,0 +1,9 @@
+{
+  "name": "agentic-engineering-principles",
+  "description": "Principles for reliable agent workflows, tooling, verification, debugging, and guardrails",
+  "version": "1.0.0",
+  "author": {
+    "name": "Alex Huppert",
+    "url": "https://github.com/amhuppert/my-ai-resources"
+  }
+}

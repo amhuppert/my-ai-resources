@@ -5,8 +5,8 @@ My personal AI workflow, config, prompts, etc. for Claude Code and Codex.
 ## File Structure
 
 - `agent-docs/` - Documentation intended for consumption by AI agents (installed to `~/.claude/agent-docs/`)
-- `claude/ai-resources-plugin/` - Canonical skills and Claude Code plugin
-- `plugins/ai-resources/` - Generated Codex plugin
+- `claude/*-plugin/` - Canonical skills and Claude Code plugins
+- `plugins/` - Generated Codex plugins
 - `.agents/plugins/marketplace.json` - Codex marketplace metadata
 - `.kiro/` - Kiro SDD steering files for project context
 - `memory-bank/` - Working notes and implementation plans from AI-assisted development
@@ -35,7 +35,7 @@ Installs user-wide configurations that apply across all projects:
 - `claude/settings.json` → Claude Code user settings (via TypeScript installer with deep merge)
 - MCP server registration for Claude Code:
   - `context7` (third-party library documentation)
-- `ai-resources` plugins - Installed for Claude Code and Codex from local marketplaces
+- `ai-resources` and `agentic-engineering-principles` plugins - Installed for Claude Code and Codex from local marketplaces
 
 **Requirements:**
 
@@ -100,9 +100,9 @@ wrapped commands retain their exit status, including signal-derived statuses.
 
 ### Shared Claude Code and Codex skills
 
-Skills are authored once under `claude/ai-resources-plugin/skills/`. That
-directory is also the Claude Code plugin source. Regenerate the Codex package
-after changing a skill:
+Skills are authored once in each plugin's `skills/` directory under `claude/`.
+Those directories are also the Claude Code plugin sources. Regenerate the
+Codex packages after changing a skill:
 
 ```bash
 cd typescript
@@ -110,12 +110,12 @@ bun run build:codex-plugin
 ```
 
 The generator removes Claude-only frontmatter, adds Codex
-`agents/openai.yaml` metadata, and writes the result to
-`plugins/ai-resources/skills/`. Do not edit those generated skill copies
+`agents/openai.yaml` metadata, and writes the results to the matching
+directories under `plugins/`. Do not edit those generated skill copies
 directly.
 
-`ai install --scope user` installs `ai-resources@ai-resources` for Claude Code
-and `ai-resources@my-ai-resources` for Codex.
+`ai install --scope user` can install both `ai-resources` and
+`agentic-engineering-principles` for Claude Code and Codex.
 
 ### Local Skill Installation
 

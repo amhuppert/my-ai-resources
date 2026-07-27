@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Retrospectives"
+  short_description: "Run structured retrospectives on any agent setup —..."
+  default_prompt: "Use $agent-retrospectives to run structured retrospectives on any agent setup — instructions (AGENTS.md, CLAUDE.md, system prompts), skills, slash commands, workflows, processes, and tooling — after real use, mining finished runs for durable improvements."

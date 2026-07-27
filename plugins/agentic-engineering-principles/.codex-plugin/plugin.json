@@ -1,0 +1,37 @@
+{
+  "name": "agentic-engineering-principles",
+  "version": "1.0.0",
+  "description": "Principles for reliable agent workflows, tooling, verification, debugging, and guardrails",
+  "author": {
+    "name": "Alex Huppert",
+    "url": "https://github.com/amhuppert"
+  },
+  "homepage": "https://github.com/amhuppert/my-ai-resources",
+  "repository": "https://github.com/amhuppert/my-ai-resources",
+  "keywords": [
+    "agent-skills",
+    "agentic-engineering",
+    "tooling",
+    "verification",
+    "guardrails"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agentic Engineering Principles",
+    "shortDescription": "Principles for reliable agentic engineering",
+    "longDescription": "Skills for designing reliable agent workflows, agent-facing tools, structured output, verification, debugging, documentation, and mechanical guardrails.",
+    "developerName": "Alex Huppert",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Shell"
+    ],
+    "websiteURL": "https://github.com/amhuppert/my-ai-resources",
+    "defaultPrompt": [
+      "Design this workflow using agentic engineering principles.",
+      "Review this tool surface for agent reliability and context efficiency.",
+      "Recommend verification and guardrails for this agent-driven feature."
+    ]
+  }
+}

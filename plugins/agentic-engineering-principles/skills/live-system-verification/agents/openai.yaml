@@ -1,0 +1,4 @@
+interface:
+  display_name: "Live System Verification"
+  short_description: "Verify features against the live running system — real user..."
+  default_prompt: "Use $live-system-verification to verify features against the live running system — real user flows, real API and model calls, and durable backend state — before calling them done."

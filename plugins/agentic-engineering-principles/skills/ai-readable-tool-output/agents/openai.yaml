@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Readable Tool Output"
+  short_description: "Covers configuring development tooling — linters, type..."
+  default_prompt: "Use $ai-readable-tool-output to covers configuring development tooling — linters, type checkers, test runners, formatters — so AI agents can consume their output efficiently: suppress success output, preserve every failure detail, strip colors, bail early, and truncate huge diffs."

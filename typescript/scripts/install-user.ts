@@ -124,8 +124,13 @@ async function main(
     }
   }
 
-  if (selectedItems.has("ai-resources-plugin")) {
-    console.log("Building the Codex plugin from the shared skill source...");
+  const installsAiResources = selectedItems.has("ai-resources-plugin");
+  const installsAgenticEngineeringPrinciples = selectedItems.has(
+    "agentic-engineering-principles-plugin",
+  );
+
+  if (installsAiResources || installsAgenticEngineeringPrinciples) {
+    console.log("Building Codex plugins from the shared skill sources...");
     const buildResult = await executor.exec(
       "bun",
       ["run", "build:codex-plugin"],
@@ -136,9 +141,12 @@ async function main(
         `Codex plugin build failed: ${buildResult.stderr || buildResult.stdout}`,
       );
     }
+  }
 
+  if (installsAiResources) {
     await installMarketplacePlugin({
       client: "Claude Code",
+      displayName: "AI Resources",
       command: "claude",
       marketplaceArgs: [
         "plugin",
@@ -158,9 +166,45 @@ async function main(
 
     await installMarketplacePlugin({
       client: "Codex",
+      displayName: "AI Resources",
       command: "codex",
       marketplaceArgs: ["plugin", "marketplace", "add", SCRIPT_DIR],
       installArgs: ["plugin", "add", "ai-resources@my-ai-resources"],
+      executor,
+    });
+  }
+
+  if (installsAgenticEngineeringPrinciples) {
+    await installMarketplacePlugin({
+      client: "Claude Code",
+      displayName: "Agentic Engineering Principles",
+      command: "claude",
+      marketplaceArgs: [
+        "plugin",
+        "marketplace",
+        "add",
+        join(SCRIPT_DIR, "claude"),
+      ],
+      installArgs: [
+        "plugin",
+        "install",
+        "agentic-engineering-principles@ai-resources",
+        "--scope",
+        "user",
+      ],
+      executor,
+    });
+
+    await installMarketplacePlugin({
+      client: "Codex",
+      displayName: "Agentic Engineering Principles",
+      command: "codex",
+      marketplaceArgs: ["plugin", "marketplace", "add", SCRIPT_DIR],
+      installArgs: [
+        "plugin",
+        "add",
+        "agentic-engineering-principles@my-ai-resources",
+      ],
       executor,
     });
   }
@@ -187,6 +231,7 @@ async function main(
 
 interface MarketplacePluginInstall {
   client: string;
+  displayName: string;
   command: string;
   marketplaceArgs: string[];
   installArgs: string[];
@@ -195,6 +240,7 @@ interface MarketplacePluginInstall {
 
 async function installMarketplacePlugin({
   client,
+  displayName,
   command,
   marketplaceArgs,
   installArgs,
@@ -220,12 +266,12 @@ async function installMarketplacePlugin({
 
   const installResult = await execCommand(command, installArgs, executor);
   if (!installResult.success) {
-    console.log(`Warning: Failed to install AI Resources for ${client}`);
+    console.log(`Warning: Failed to install ${displayName} for ${client}`);
     if (installResult.stderr) console.error(installResult.stderr);
     return;
   }
 
-  console.log(`AI Resources installed for ${client}`);
+  console.log(`${displayName} installed for ${client}`);
 }
 
 // CLI interface

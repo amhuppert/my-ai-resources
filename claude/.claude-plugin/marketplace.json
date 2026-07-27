@@ -1,5 +1,6 @@
 {
   "name": "ai-resources",
+  "description": "AI development skills and workflow plugins for Claude Code",
   "owner": {
     "name": "Alex Huppert"
   },
@@ -8,6 +9,11 @@
       "name": "ai-resources",
       "source": "./ai-resources-plugin",
       "description": "AI-enhanced git workflows and development utilities"
+    },
+    {
+      "name": "agentic-engineering-principles",
+      "source": "./agentic-engineering-principles-plugin",
+      "description": "Principles for building reliable agent workflows and tools"
     },
     {
       "name": "memory-bank",

@@ -5,6 +5,7 @@ export const InstallItemSchema = z.enum([
   "utility-scripts",
   "claude-settings",
   "ai-resources-plugin",
+  "agentic-engineering-principles-plugin",
   "worktree-schema",
   "claude-md",
 ]);
@@ -22,6 +23,7 @@ export const ITEMS_BY_SCOPE: Record<Scope, readonly InstallItem[]> = {
     "utility-scripts",
     "claude-settings",
     "ai-resources-plugin",
+    "agentic-engineering-principles-plugin",
     "worktree-schema",
   ],
   project: ["claude-md"],
@@ -32,6 +34,8 @@ export const ITEM_LABELS: Record<InstallItem, string> = {
   "utility-scripts": "Utility scripts",
   "claude-settings": "Claude Code settings",
   "ai-resources-plugin": "AI Resources plugin for Claude Code and Codex",
+  "agentic-engineering-principles-plugin":
+    "Agentic Engineering Principles plugin for Claude Code and Codex",
   "worktree-schema": "Worktree-files JSON schema",
   "claude-md": "Project CLAUDE.md",
 };

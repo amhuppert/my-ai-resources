@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Offloading"
+  short_description: "Covers the agent-offloading principle for AI-assisted..."
+  default_prompt: "Use $agent-offloading to covers the agent-offloading principle for AI-assisted development — offload everything deterministic (git operations, validation commands, iteration accounting, output parsing, message routing) from the agent onto code, and reserve the agent for judgment, language understanding, and code synthesis."

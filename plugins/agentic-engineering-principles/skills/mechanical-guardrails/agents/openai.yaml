@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mechanical Guardrails"
+  short_description: "Converts recurring \"please don't\" guidance into structural..."
+  default_prompt: "Use $mechanical-guardrails to converts recurring \"please don't\" guidance into structural enforcement agents cannot drift past — deleting the foot-gun API, making illegal states unrepresentable in types, shrink-only ratchets, coverage assertions, checked-in budgets, declare-or-fail registries, derived artifacts, and round-trip contract tests."

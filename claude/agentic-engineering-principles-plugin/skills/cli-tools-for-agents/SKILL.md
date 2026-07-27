@@ -1,0 +1,127 @@
+---
+name: cli-tools-for-agents
+description: Design a purpose-built project CLI as the primary tool surface for AI coding agents, instead of in-process tool or MCP servers. Covers the exit-code taxonomy, structured errors, file-based payloads with a validate verb, job-shaped long operations, identity resolution, a doctor self-check, and build-parity stamps. Use when building a CLI for agents, migrating away from in-process tool servers, designing tool output and error contracts, or deciding how agents should invoke project actions.
+---
+
+# CLI Tools for Agents
+
+A custom CLI invoked through the shell is the most reliable and portable way to give agents tools. In-process tool servers need a babysitting subsystem (rebinds, keepalives, kill escalation); a CLI has no binding to break — failures become ordinary non-zero exits with readable errors, which agents recover from well. Design the CLI for a calling agent, not a human, and every downstream decision (exit codes, error shape, payload format) falls out of that inversion.
+
+## Why a CLI beats in-process tool/MCP servers
+
+Ranked motivation:
+
+1. **Reliability.** In-process tool servers require dedicated recovery machinery: pre-turn rebinds, rebind-on-stream-close, kill escalation, keepalive ticks. A shell-invoked CLI has no persistent binding to break. Failures become ordinary non-zero exits — the failure mode agents handle best — and the entire recovery subsystem becomes deletable.
+2. **Portability.** In-process tool servers exist per-provider. A CLI works for any agent backend that can run shell commands — and for agents running entirely outside your platform, who just pass flags or export env vars themselves.
+3. **Ergonomics.** Huge nested tool schemas force agents to emit entire payloads as inline tool arguments, where one escaping error wastes the whole attempt. `--file payload.json` plus a `validate` verb inverts this: payloads become files the agent writes, validates, and iterates on cheaply.
+4. **Token efficiency.** Real but modest for most tools; the savings concentrate in the big-schema tools. Measure rather than assume — capture tool-schema tokens per fresh context window and invocation failure rates before and after migrating.
+
+## Design for the calling agent, not a human
+
+The primary consumer is a program that must branch on results, not a person reading a terminal. That inverts the human-CLI defaults. State this design target explicitly at the top of the tool's docs.
+
+- Machine-checkable exit codes over prose.
+- Terse one-line errors over paragraphs; errors to stderr, single actionable line first, detail after.
+- Non-interactive always: no prompts, no TTY-detection surprises, no paging.
+- No color dependence.
+- A structured `--json` envelope available on every command.
+
+## The exit-code taxonomy
+
+Reserve a small, stable set of exit codes that answer "whose fault is it?" from `$?` alone, without parsing text. Publish the table in the tool's help and skill doc so recovery advice can key off it.
+
+| Code | Meaning | Whose fault |
+|---|---|---|
+| 0 | Success | — |
+| 1 | Operation failed (the server said no) | The request's semantics |
+| 2 | Usage or validation error (bad flags, invalid payload) | The caller — fixable in one edit |
+| 3 | Connection or auth failure (server unreachable, bad token) | The environment |
+| 4 | Version mismatch (reserved; normally warn-only) | The deployment |
+
+Every exit-3 error message points at the `doctor` command (below) — one recovery entry point, not scattered advice.
+
+## Validate locally before any network round-trip
+
+Everything checkable without the network — flag names, file readability, payload parse, identity resolution — fails locally and fast with a distinct exit code (2), before any request is sent. The agent gets a stable, reproducible failure fixable in one edit, instead of an ambiguous server error that may be transient.
+
+Server-side validation remains the source of truth for semantics: schema validation at the route boundary produces the real errors. The CLI's local checks are the cheap deterministic layer in front of it.
+
+## Structured errors: never flatten computed detail into prose
+
+When the server has computed per-field validation issues, it returns them as structured data (`{ error, code?, issues? }`) — never concatenated into one sentence. The CLI forwards `code` and `issues` into its `--json` envelope rather than flattening them.
+
+- Text mode renders one issue per line (`  <path>: <message>`).
+- JSON mode carries the same detail structurally.
+- **Structured detail is never text-mode-only.** If the text output shows per-field issues, the JSON envelope must carry them as data.
+
+In one real audit, structured issues were being extracted by the error classifier and then dropped at the rendering seam — JSON callers got less information than text callers. Treat that class as a defect.
+
+## File payloads and the validate verb
+
+Any payload beyond a couple of scalars is passed as a file (`--file <path>`, `-` for stdin), not a proliferation of flags. Agents are good at writing JSON with an editor tool and iterating against validation errors; they are bad at long shell quoting.
+
+Pair every complex `create`/`replace` verb with a persist-nothing `validate` verb that runs the full server-side validation without creating anything. This turns a complex command into an author → validate → retry loop with a persistent artifact:
+
+1. Agent writes `payload.json` with its editor tool.
+2. `yourcli thing validate --file payload.json` — exit 2 lists issues one per line.
+3. Agent edits the file and re-validates until clean.
+4. `yourcli thing create --file payload.json`.
+
+## Long operations are job-shaped
+
+Operations that outlive a comfortable shell-tool timeout are server-side jobs:
+
+- The CLI offers `--wait [--timeout <dur>]` long-polling and a separate `status <id>` verb.
+- If the agent's shell call is killed mid-wait, the work continues server-side; `status <id>` resumes observation.
+- Never fire-and-forget: flags that detach and hide failures make errors invisible to the agent.
+- If the agent harness has a shell timeout ceiling, raise it via the injected environment so `--wait` flows aren't truncated by a default.
+
+## Identity by contract
+
+Give the agent's environment its ambient identity via injected env vars, with a documented resolution order: **explicit flags > env vars > file**.
+
+- Missing identity fails with a usage error (exit 2) naming the exact missing variable — not a generic "not configured".
+- Any operation targeting a *different* scope than the ambient identity (another project, session, or workspace) requires explicit flags. The tool never silently acts on a neighbor.
+- The flags-over-env order keeps the CLI usable by agents outside your platform: they pass flags or export the env themselves.
+
+**Do not name the binary something already on PATH.** If the environment contract prepends your bin directory to PATH, a name collision silently shadows the existing tool for every agent session (a two-letter name collided with the system C compiler in one real design; the longer `-ctl` style name avoided it).
+
+## The doctor self-check
+
+Ship one self-diagnostic command — `doctor` — that reports connectivity, auth, identity resolution, and version parity in one pass. It is the single recovery entry point:
+
+- Every connection-class error (exit 3) points at it by name.
+- It is the acceptance test for the tool's installation: an agent in a fresh session runs `doctor` and gets a green handshake.
+
+## Version and build parity
+
+When the CLI talks to a long-running service and agents work in per-branch worktrees, a client built from worktree code silently drifts from the service's API. Make the *service* the single source of the binary:
+
+- The service publishes the client binary at startup (atomic write: temp file + rename).
+- A build stamp (git SHA + build time) is compiled into both server and CLI; every request carries it.
+- Mismatch produces a one-line stderr warning (the CLI proceeds — mismatch should be transient across a restart); `doctor` surfaces it explicitly.
+
+## Keep the core a pure function
+
+Structure the CLI core as a pure function of `(argv, env, injectedClient) → { exitCode, stdout, stderr }`, with the HTTP client injected. Behavior is then testable without a server; a thin contract-test layer runs the real CLI against real route handlers in-process.
+
+## Break contracts cleanly
+
+When the only consumers of an output shape are agents plus a skill doc updated in the same change, prefer clean replacement over dual-shape back-compat. A dual shape doubles the surface and teaches agents that two formats exist. Update the output contract and its skill doc atomically; rollback is a revert.
+
+## Anti-patterns
+
+- **Prose-only errors.** An error the agent must parse with regex to branch on is a defect; give it an exit code and a `code` field.
+- **Inline mega-payloads.** Requiring a large JSON document as a quoted shell argument; one escaping error wastes the attempt.
+- **Fire-and-forget flags.** Detached operations whose failures nothing observes.
+- **Silent scope widening.** Falling back to a different project/session than the ambient identity without explicit flags.
+- **Interactive fallbacks.** Prompting on a TTY "for convenience" — agents hang on prompts.
+- **Dual-shape output for back-compat.** When consumers are agents plus a doc you control, replace cleanly.
+- **Ambiguous network errors for local mistakes.** A bad flag should never require a network round-trip to discover.
+
+## Related skills
+
+- `progressive-disclosure-tooling` — help as a navigable disclosure graph derived from one typed registry
+- `agent-feedback-tiers` — hint/reminder/instruction output tiers and the reminder admission rule
+- `ai-readable-tool-output` — configure linters, compilers, and test runners for low-noise agent consumption
+- `agent-offloading` — offload deterministic work from agents onto code; reserve agents for judgment

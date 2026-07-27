@@ -1,0 +1,4 @@
+interface:
+  display_name: "Earned Guidance Docs"
+  short_description: "Applies an evidence-earned discipline to agent-facing..."
+  default_prompt: "Use $earned-guidance-docs to applies an evidence-earned discipline to agent-facing documentation — a durable rule is written down only after it has bitten, and historical rationale lives in a dated lessons log rather than in code comments."
