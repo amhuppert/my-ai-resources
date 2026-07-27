@@ -139,3 +139,22 @@ install-skills --preset team.txt --scope global
 ```
 
 `LOCAL_SKILLS_REPO` remains available as an environment-variable alternative.
+
+A source repository needs a `skills/<name>/SKILL.md` directory per skill —
+exactly one level below `skills/` — and, for `--preset`, a `presets/` directory
+whose files list one skill name per line.
+
+#### Keeping installed copies out of git
+
+`--local` adds each installed skill's directory and `skills-lock.json` to the
+consuming repository's `.git/info/exclude`, so project-scope installs do not
+show up in `git status`:
+
+```bash
+install-skills --preset team.txt --scope project --local
+```
+
+Because exclude patterns containing a slash are anchored to the repository
+root, `--local` installs at the repository root even when invoked from a
+subdirectory. It requires project scope and a git repository, and skips any
+skill directory that already contains git-tracked files.

@@ -4,6 +4,7 @@ set -euo pipefail
 show_help() {
   cat <<'EOF'
 Usage: install-skills [--repo <path>] [--preset <file>] [--scope <project|global>]
+                      [--local]
 
 Install local skills for Claude Code and Codex. Without --preset, Gum prompts
 for one or more skills. Gum prompts for the installation scope unless --scope
@@ -13,6 +14,10 @@ Options:
   --repo <path>    Repository or plugin root containing skills/ and presets/
   --preset <file>  Install skills listed in $LOCAL_SKILLS_REPO/presets/<file>
   --scope <scope>  Install to the current project or globally
+  --local          Add each installed skill's directory and skills-lock.json to
+                   the repository's .git/info/exclude so the copies stay out of
+                   git status. Installs at the repository root and requires
+                   project scope.
   -h, --help       Show this help
 
 Environment:
@@ -32,6 +37,10 @@ command_exists() {
 PRESET=""
 SKILLS_REPO="${LOCAL_SKILLS_REPO:-}"
 SCOPE=""
+LOCAL_EXCLUDE=false
+
+# Skill directories the `skills` CLI writes for the agents installed below.
+AGENT_SKILL_DIRS=(.claude/skills .agents/skills)
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -49,6 +58,10 @@ while [[ $# -gt 0 ]]; do
       [[ $# -ge 2 ]] || fail "--scope requires 'project' or 'global'"
       SCOPE="$2"
       shift 2
+      ;;
+    --local)
+      LOCAL_EXCLUDE=true
+      shift
       ;;
     -h|--help)
       show_help
@@ -74,6 +87,10 @@ SKILLS_DIR="$SKILLS_REPO/skills"
 PRESETS_DIR="$SKILLS_REPO/presets"
 
 [[ -d "$SKILLS_DIR" ]] || fail "skills directory not found: $SKILLS_DIR"
+
+# --local changes directory to the repository root before installing, which
+# would otherwise invalidate a relative --repo path.
+[[ "$SKILLS_DIR" == /* ]] || SKILLS_DIR="$(cd "$SKILLS_DIR" && pwd)"
 command_exists skills || fail "the skills CLI is not installed or not on PATH"
 
 AVAILABLE_SKILLS=()
@@ -142,14 +159,65 @@ fi
 [[ "$SCOPE" == "project" || "$SCOPE" == "global" ]] || \
   fail "invalid scope '$SCOPE'; expected 'project' or 'global'"
 
+if [[ "$LOCAL_EXCLUDE" == true ]]; then
+  [[ "$SCOPE" == "project" ]] || \
+    fail "--local requires project scope; exclude entries are per-repository"
+
+  # Resolve the exclude file up front so --local fails before installing.
+  GIT_COMMON_DIR="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || \
+    fail "--local requires the current directory to be inside a git repository"
+  EXCLUDE_FILE="$GIT_COMMON_DIR/info/exclude"
+
+  # Exclude patterns containing a slash are anchored to the repository root, so
+  # the skills have to land there for the entries to match.
+  GIT_TOPLEVEL="$(git rev-parse --show-toplevel)"
+  cd "$GIT_TOPLEVEL"
+fi
+
 SKILLS_ARGS=(add "$SKILLS_DIR")
 for skill_name in "${SELECTED_SKILLS[@]}"; do
   SKILLS_ARGS+=(--skill "$skill_name")
 done
-SKILLS_ARGS+=(--agent claude-code --agent codex --yes)
+# --copy gives every agent directory real content. Without it the skills CLI
+# writes only the universal Codex directory and the Claude Code symlink it
+# reports in its summary is never created.
+SKILLS_ARGS+=(--agent claude-code --agent codex --copy --yes)
 
 if [[ "$SCOPE" == "global" ]]; then
   SKILLS_ARGS+=(--global)
 fi
 
 skills "${SKILLS_ARGS[@]}"
+
+[[ "$LOCAL_EXCLUDE" == true ]] || exit 0
+
+mkdir -p "$(dirname "$EXCLUDE_FILE")"
+ADDED_ENTRIES=()
+
+add_exclude_entry() {
+  local entry="$1"
+  if ! grep -qxF "$entry" "$EXCLUDE_FILE" 2>/dev/null; then
+    printf '%s\n' "$entry" >>"$EXCLUDE_FILE"
+    ADDED_ENTRIES+=("$entry")
+  fi
+}
+
+# The skills CLI writes this lock file on every install.
+add_exclude_entry "skills-lock.json"
+
+for skill_name in "${SELECTED_SKILLS[@]}"; do
+  for agent_dir in "${AGENT_SKILL_DIRS[@]}"; do
+    if [[ -n "$(git ls-files -- "$agent_dir/$skill_name" 2>/dev/null)" ]]; then
+      echo "Skipping exclude entry for $agent_dir/$skill_name/: contains git-tracked files" >&2
+      continue
+    fi
+    add_exclude_entry "$agent_dir/$skill_name/"
+  done
+done
+
+if [[ ${#ADDED_ENTRIES[@]} -gt 0 ]]; then
+  echo "Added to $EXCLUDE_FILE:"
+  printf '  %s\n' "${ADDED_ENTRIES[@]}"
+else
+  echo "All exclude entries already present in $EXCLUDE_FILE"
+fi

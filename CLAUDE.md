@@ -2,6 +2,19 @@
 
 - When writing TypeScript code, follow all TypeScript standards in 'agent-docs/code-standards/typescript/typescript-general.md'
 
+## Steering Context
+
+Project context via Kiro steering files in `.kiro/steering/`.
+
+- @.kiro/steering/product.md - Product overview and use cases
+- @.kiro/steering/tech.md - Tech stack, architecture, key commands
+- @.kiro/steering/structure.md - Codebase structure and conventions
+
+# Spec-Driven Development
+
+Kiro-style SDD: specs live in `.kiro/specs/`, steering (persistent project context) in `.kiro/steering/`. Drive the requirements → design → tasks → implementation workflow with the `/kiro:*` commands; each phase needs human approval (`-y` fast-tracks intentionally). Check progress anytime with `/kiro:spec-status {feature}`.
+
+
 <!-- Begin standard instructions -->
 
 ## Role
@@ -50,15 +63,3 @@ await new Promise(resolve => setTimeout(resolve, 2000));
 - Get Alex's explicit approval before throwing away or rewriting an implementation, and before adding any backward compatibility.
 
 <!-- End of standard instructions -->
-
-## Steering Context
-
-Project context via Kiro steering files in `.kiro/steering/`.
-
-- @.kiro/steering/product.md - Product overview and use cases
-- @.kiro/steering/tech.md - Tech stack, architecture, key commands
-- @.kiro/steering/structure.md - Codebase structure and conventions
-
-# Spec-Driven Development
-
-Kiro-style SDD: specs live in `.kiro/specs/`, steering (persistent project context) in `.kiro/steering/`. Drive the requirements → design → tasks → implementation workflow with the `/kiro:*` commands; each phase needs human approval (`-y` fast-tracks intentionally). Check progress anytime with `/kiro:spec-status {feature}`.
