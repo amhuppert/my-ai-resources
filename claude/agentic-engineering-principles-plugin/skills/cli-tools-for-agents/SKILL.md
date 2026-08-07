@@ -1,6 +1,6 @@
 ---
 name: cli-tools-for-agents
-description: Design a purpose-built project CLI as the primary tool surface for AI coding agents, instead of in-process tool or MCP servers. Covers the exit-code taxonomy, structured errors, file-based payloads with a validate verb, job-shaped long operations, identity resolution, a doctor self-check, and build-parity stamps. Use when building a CLI for agents, migrating away from in-process tool servers, designing tool output and error contracts, or deciding how agents should invoke project actions.
+description: Design a purpose-built project CLI as the primary tool surface for AI coding agents, instead of in-process tool or MCP servers. Covers text-by-default output with opt-in --json (format follows the consumer), the exit-code taxonomy, structured errors, file-based payloads with a validate verb, job-shaped long operations, identity resolution, a doctor self-check, and build-parity stamps. Use when building a CLI for agents, migrating away from in-process tool servers, designing tool output and error contracts, deciding between text and JSON output for an agent-facing tool, or deciding how agents should invoke project actions.
 ---
 
 # CLI Tools for Agents
@@ -25,6 +25,12 @@ The primary consumer is a program that must branch on results, not a person read
 - Non-interactive always: no prompts, no TTY-detection surprises, no paging.
 - No color dependence.
 - A structured `--json` envelope available on every command.
+
+**Format follows the consumer.** "The caller is a program" does not mean "output JSON": the agent branches on exit codes and *reads* the output, and an LLM reads compact line-oriented text more cheaply than JSON — structural keys and string-escaping cost tokens without adding meaning, and escaped multi-line content (stack traces, diffs) is harder to read, not easier. So:
+
+- **Default output is terse, line-oriented text** with stable shapes (`<path>: <message>`, one fact per line) — not narrative prose, which is neither parseable nor skimmable.
+- **`--json` is opt-in, for output that feeds code** — a script, an orchestrator, a `jq` pipeline — never for the agent's own reading.
+- **Input payloads are the mirror image.** They are parsed by code, so they are structured: schema-validated files, not text the server must interpret (see file payloads below).
 
 ## The exit-code taxonomy
 
@@ -53,6 +59,8 @@ When the server has computed per-field validation issues, it returns them as str
 - Text mode renders one issue per line (`  <path>: <message>`).
 - JSON mode carries the same detail structurally.
 - **Structured detail is never text-mode-only.** If the text output shows per-field issues, the JSON envelope must carry them as data.
+
+This coexists with text-by-default output: the *data* stays structured internally and in the `--json` envelope, while text mode renders the same issues as keyed lines. Neither mode flattens computed detail into a sentence.
 
 In one real audit, structured issues were being extracted by the error classifier and then dropped at the rendering seam — JSON callers got less information than text callers. Treat that class as a defect.
 
@@ -112,6 +120,7 @@ When the only consumers of an output shape are agents plus a skill doc updated i
 ## Anti-patterns
 
 - **Prose-only errors.** An error the agent must parse with regex to branch on is a defect; give it an exit code and a `code` field.
+- **JSON-by-default output.** Defaulting the envelope on because "the caller is a program" — the agent branches on exit codes and reads text; JSON is for output that feeds code.
 - **Inline mega-payloads.** Requiring a large JSON document as a quoted shell argument; one escaping error wastes the attempt.
 - **Fire-and-forget flags.** Detached operations whose failures nothing observes.
 - **Silent scope widening.** Falling back to a different project/session than the ambient identity without explicit flags.
