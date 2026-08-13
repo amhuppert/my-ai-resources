@@ -32,6 +32,16 @@ The primary consumer is a program that must branch on results, not a person read
 - **`--json` is opt-in, for output that feeds code** — a script, an orchestrator, a `jq` pipeline — never for the agent's own reading.
 - **Input payloads are the mirror image.** They are parsed by code, so they are structured: schema-validated files, not text the server must interpret (see file payloads below).
 
+## Query output is bounded by default
+
+Format discipline alone is not enough: a read verb with perfect line-oriented text can still dump the whole dataset into the agent's context. Volume is part of the output contract.
+
+- A query command's default output is a bounded digest — a summary or outline with stable zoom-in handles — whose size stays roughly constant as the underlying data grows.
+- Deeper detail is pull-based: drill-down verbs and flags, with the full form opt-in only and written to a file past a size threshold.
+- Omission is explicit: output that leaves things out says so and names the exact command that reveals more.
+
+`query-output-disclosure` covers the escalation ladder and the pattern menu (detail levels, field selection, filtering, pagination, aggregation).
+
 ## The exit-code taxonomy
 
 Reserve a small, stable set of exit codes that answer "whose fault is it?" from `$?` alone, without parsing text. Publish the table in the tool's help and skill doc so recovery advice can key off it.
@@ -121,6 +131,7 @@ When the only consumers of an output shape are agents plus a skill doc updated i
 
 - **Prose-only errors.** An error the agent must parse with regex to branch on is a defect; give it an exit code and a `code` field.
 - **JSON-by-default output.** Defaulting the envelope on because "the caller is a program" — the agent branches on exit codes and reads text; JSON is for output that feeds code.
+- **Dump-by-default query output.** A read verb that returns every record in full; the default is a bounded digest with drill-down, not the dataset.
 - **Inline mega-payloads.** Requiring a large JSON document as a quoted shell argument; one escaping error wastes the attempt.
 - **Fire-and-forget flags.** Detached operations whose failures nothing observes.
 - **Silent scope widening.** Falling back to a different project/session than the ambient identity without explicit flags.
@@ -131,6 +142,7 @@ When the only consumers of an output shape are agents plus a skill doc updated i
 ## Related skills
 
 - `progressive-disclosure-tooling` — help as a navigable disclosure graph derived from one typed registry
+- `query-output-disclosure` — bounded digest defaults, zoom-in handles, and the disclosure pattern menu for query output
 - `agent-feedback-tiers` — hint/reminder/instruction output tiers and the reminder admission rule
 - `ai-readable-tool-output` — configure linters, compilers, and test runners for low-noise agent consumption
 - `agent-offloading` — offload deterministic work from agents onto code; reserve agents for judgment

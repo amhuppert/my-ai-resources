@@ -53,6 +53,7 @@ A one-line hint at the end of output turns a multi-step flow into a self-chainin
 - `validate` succeeds → "valid — create it with `yourcli thing create --file payload.json`"
 - `create` succeeds → "created <id> — start it with `yourcli thing start <id>`"
 - read commands remind the agent of sibling verbs (list → how to register/delete)
+- query commands chain the zoom-in: a `list` that omitted detail hints the drill-down (`show <id>`) or the narrowing flag (`--status failed`) — see `query-output-disclosure`
 
 Discipline for hint authorship:
 
@@ -104,4 +105,5 @@ It is also the reason the channel must be rationed: the same recency that makes 
 
 - `cli-tools-for-agents` — design a project CLI as the agent tool surface: exit codes, file payloads, jobs, doctor
 - `progressive-disclosure-tooling` — help as a navigable disclosure graph derived from one typed registry
+- `query-output-disclosure` — bounded query output whose zoom-in suggestions ride the hint tier
 - `earned-guidance-docs` — write agent guidance only when earned by real failures; root contract plus read-on-demand docs

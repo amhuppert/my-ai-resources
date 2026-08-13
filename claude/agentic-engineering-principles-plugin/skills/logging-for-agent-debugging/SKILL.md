@@ -152,5 +152,6 @@ Design rules:
 ## Related skills
 
 - `ai-readable-tool-output` — configure linters, compilers, and test runners for low-noise agent consumption
+- `query-output-disclosure` — the general query-output contract the log-analysis CLI instantiates: bounded defaults, ranked digests, explicit omission
 - `live-system-verification` — verify features against the running system and durable state, not fakes or UI
 - `agent-retrospectives` — reflect on agent instructions, skills, process, and tooling after real runs

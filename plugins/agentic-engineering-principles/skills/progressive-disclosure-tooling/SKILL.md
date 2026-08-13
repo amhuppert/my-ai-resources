@@ -12,6 +12,8 @@ description: Structure a CLI or tool surface as a progressive-disclosure graph
 
 Agents should discover a tool surface pull-based, node by node, instead of front-loading one large document. Make every subcommand a node in a disclosure graph whose `--help` is a self-contained mini-skill, and make every guidance surface — help text, flag allowlists, parser sets, usage, skill-doc references — a derivation from one typed registry. Hand-synced copies of the same facts will drift, and drift in agent-facing docs is worse than absence: it trains distrust.
 
+Help is the instruction side of a larger principle. The data real commands return follows the same pull-based rule — bounded digests with zoom-in handles instead of full dumps (`query-output-disclosure`) — and instruction disclosure is not confined to help: hints, usage errors, and omission lines in real command output are edges of the same graph.
+
 ## The tool surface is a disclosure graph
 
 Every subcommand is a node. A node's `--help` is a mini-skill containing:
@@ -128,6 +130,7 @@ Unpredictable help is worse for agents than static help. Every provider adds a d
 ## Related skills
 
 - `cli-tools-for-agents` — design a project CLI as the agent tool surface: exit codes, file payloads, jobs, doctor
+- `query-output-disclosure` — the data side of disclosure: bounded query output, zoom-in handles, explicit omission
 - `agent-feedback-tiers` — hint/reminder/instruction output tiers and the reminder admission rule
 - `mechanical-guardrails` — enforce conventions structurally with ratchets, tripwires, contract tests, and derived artifacts
 - `earned-guidance-docs` — write agent guidance only when earned by real failures; root contract plus read-on-demand docs

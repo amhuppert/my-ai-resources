@@ -1,0 +1,4 @@
+interface:
+  display_name: "Query Output Disclosure"
+  short_description: "Design progressive disclosure for the data agent-facing..."
+  default_prompt: "Use $query-output-disclosure to design progressive disclosure for the data agent-facing query commands return — bounded summary/outline defaults with stable zoom-in handles, explicit omission lines naming the exact follow-up command, and an escalation ladder from counts to scoped detail to file spillover."
