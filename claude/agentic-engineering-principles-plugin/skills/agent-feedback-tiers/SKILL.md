@@ -85,6 +85,8 @@ Whichever layer can see runtime state computes the guidance; the layer the agent
 
 It is also the reason the channel must be rationed: the same recency that makes it powerful makes it easy to abuse into ambient noise. Every unearned reminder taxes every future reminder's credibility. Scarcity is not a style preference; it is what keeps the channel working.
 
+The same scarcity rule governs explanatory text. A one-line rationale attached to a **refusal** is well spent — it lands where the agent is forming a belief about whether your constraint is worth respecting (`designed-friction`). The identical sentence printed on **success** is noise, and noise trains skimming: an agent that learns your output contains skippable text starts skipping, including the refusal text you needed it to read. Rationale earns its place at the moment a restriction is encountered, nowhere else.
+
 ## Anti-patterns
 
 - **Protocol in a hint.** "hint: remember to end your turn" — the agent is contractually allowed to ignore it, and eventually will.
@@ -102,3 +104,4 @@ It is also the reason the channel must be rationed: the same recency that makes 
 - `progressive-disclosure-tooling` — help as a navigable disclosure graph derived from one typed registry
 - `query-output-disclosure` — bounded query output whose zoom-in suggestions ride the hint tier
 - `earned-guidance-docs` — write agent guidance only when earned by real failures; root contract plus read-on-demand docs
+- `designed-friction` — one-line rationale at the point of refusal, and why the same sentence on success is noise

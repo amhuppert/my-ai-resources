@@ -1,6 +1,18 @@
 ---
 name: cli-tools-for-agents
-description: Design a purpose-built project CLI as the primary tool surface for AI coding agents, instead of in-process tool or MCP servers. Covers text-by-default output with opt-in --json (format follows the consumer), the exit-code taxonomy, structured errors, file-based payloads with a validate verb, job-shaped long operations, identity resolution, a doctor self-check, and build-parity stamps. Use when building a CLI for agents, migrating away from in-process tool servers, designing tool output and error contracts, deciding between text and JSON output for an agent-facing tool, or deciding how agents should invoke project actions.
+description: >-
+  Design a purpose-built project CLI as the primary tool surface for AI
+  coding agents, instead of in-process tool or MCP servers. Covers text-by-
+  default output with opt-in --json (format follows the consumer), the exit-
+  code taxonomy, structured errors, file-based payloads with a validate
+  verb, preflight verbs for gated transitions with findings named by the
+  transition they block, job-shaped long operations, identity resolution, a
+  doctor self-check, and build-parity stamps. Use when building a CLI for
+  agents, migrating away from in-process tool servers, designing tool output
+  and error contracts, deciding between text and JSON output for an agent-
+  facing tool, designing a lint or check command that runs ahead of a gate,
+  choosing severity levels for findings, or deciding how agents should
+  invoke project actions.
 ---
 
 # CLI Tools for Agents
@@ -85,6 +97,48 @@ Pair every complex `create`/`replace` verb with a persist-nothing `validate` ver
 3. Agent edits the file and re-validates until clean.
 4. `yourcli thing create --file payload.json`.
 
+## Preflight gated transitions
+
+The validate verb above is payload-scoped: one document, checked before one call. Its generalization is state-scoped. Wherever a command **gates a transition** — publish, merge, submit, promote, release, deploy — expose a read-only verb answering *what would refuse this right now*, callable at any point during the work rather than only at the moment of the attempt.
+
+Refusal is the worst possible discovery channel for a rule. The agent has already committed to the transition; the failure arrives as a list of conditions it must reverse-engineer into edits; and a rule it never trips is a rule it never learns. A preflight verb converts all of that into information available beforehand.
+
+Three properties make one trustworthy:
+
+- **Parity with the gate.** The preflight runs the *identical* rule set the transition runs — not a reimplementation, not a subset. A preflight that diverges is worse than none: it grants confidence the gate then contradicts, and agents stop consulting it.
+- **Callable at any time.** A standalone verb, not a flag on the transition. `--dry-run` is the weaker form, because it still frames checking as part of attempting; a separate verb lets the agent poll cheaply mid-work and steer toward a legal state.
+- **An explicit clean verdict.** When nothing would refuse, say so and name the transition now unblocked. Silence is ambiguous between "clean", "did not run", and "matched nothing because the target was wrong".
+
+### Findings name the transition they block
+
+A finding's severity says *which transition it blocks* — `blocks_publish`, `blocks_merge`, `advisory` (for example) — never an abstract intensity. `error`/`warning`/`info` forces the agent to guess the consequence and re-derive it per rule; naming the blocked transition makes the next action readable from the finding alone, and lets one command serve several gates by grouping findings under each.
+
+This is the finding-level counterpart to the obligation-based vocabulary in `agent-feedback-tiers`: define the levels by what the consumer must *do*, never by how bad the thing is.
+
+### Mutations report their effect on the gate
+
+A write that changes gated state returns the blocking-finding count before and after it — `{ blockingBefore, blockingAfter }` in the envelope, a short line in text mode. The agent gets a closed feedback loop on every edit instead of a mutate → re-check → compare cycle, and an edit that silently makes things worse surfaces at the edit rather than at the transition.
+
+### Report both sides of the ledger, not just the deficit
+
+A gate that reports only what remains outstanding — `11 pending of 18` — is read as **7 lost**, not 7 banked. Where progress accumulates across attempts, report the satisfied count and the reason for the remainder alongside the outstanding one:
+
+```
+approvals: 12 carried, 6 pending (content changed since last approval)
+```
+
+Deficit-only output systematically under-reports progress to an agent, and an agent that believes it is losing ground behaves differently from one that knows it is nearly done.
+
+### Accurate output can still teach a false mechanism
+
+Output is where an agent builds its model of your system, and a message can be entirely true while foregrounding the wrong thing. In one real design, a gate refusal read *"item R5 needs a valid approval for `<revision-id>`"* — correct, but naming the revision an approval was bound to taught the agent that approvals were per-revision and destroyed by reopening the document. They were per-element and carried forward. The agent operated on the inverted model for an entire session and avoided a cheap, sanctioned action because it had mis-priced it.
+
+State the mechanism where the wrong inference is invited, not only where it is catalogued — the agent is reading the refusal at the moment it forms the belief, not your reference doc. `designed-friction` covers this failure class, mis-priced sanctioned actions, and rationale placement in refusals.
+
+### Publish the rule catalogue offline
+
+Ship the full set of rule identifiers with their severities as a readable document, not only as findings emitted when tripped. An agent that can enumerate the rules authors toward them; an agent that can only meet them by violation authors blind and learns the rule space one refusal at a time. Rule identifiers are stable and greppable, so a finding, the catalogue entry, and any prose about it all name the same string.
+
 ## Long operations are job-shaped
 
 Operations that outlive a comfortable shell-tool timeout are server-side jobs:
@@ -134,6 +188,9 @@ When the only consumers of an output shape are agents plus a skill doc updated i
 - **Dump-by-default query output.** A read verb that returns every record in full; the default is a bounded digest with drill-down, not the dataset.
 - **Inline mega-payloads.** Requiring a large JSON document as a quoted shell argument; one escaping error wastes the attempt.
 - **Fire-and-forget flags.** Detached operations whose failures nothing observes.
+- **Refusal as the discovery channel.** A gated transition with no way to ask what would refuse it beforehand; the agent learns the rules by tripping them, one attempt at a time.
+- **A preflight that diverges from its gate.** A check that approximates the real rules rather than running them — the one failure mode that makes a preflight worse than not shipping one.
+- **Abstract severity levels on findings.** `error`/`warning`/`info` where the consequence differs per rule; name the transition each finding blocks instead.
 - **Silent scope widening.** Falling back to a different project/session than the ambient identity without explicit flags.
 - **Interactive fallbacks.** Prompting on a TTY "for convenience" — agents hang on prompts.
 - **Dual-shape output for back-compat.** When consumers are agents plus a doc you control, replace cleanly.
@@ -146,3 +203,4 @@ When the only consumers of an output shape are agents plus a skill doc updated i
 - `agent-feedback-tiers` — hint/reminder/instruction output tiers and the reminder admission rule
 - `ai-readable-tool-output` — configure linters, compilers, and test runners for low-noise agent consumption
 - `agent-offloading` — offload deterministic work from agents onto code; reserve agents for judgment
+- `designed-friction` — refusal rationale, ledger framing, and the designed-versus-defect taxonomy for agent-facing tools

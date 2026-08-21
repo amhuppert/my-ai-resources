@@ -1,0 +1,1790 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="A source-inspected review of memory systems for AI agents and coding agents: architectures, projects, evidence, failure modes, and design principles.">
+  <title>The Memory Layer — State of the Art in Agent Memory</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --paper: #f4f0e7;
+      --paper-2: #ece5d9;
+      --panel: rgba(255, 253, 248, 0.78);
+      --panel-solid: #fffdf8;
+      --ink: #142027;
+      --muted: #5e696b;
+      --line: rgba(20, 32, 39, 0.16);
+      --line-strong: rgba(20, 32, 39, 0.3);
+      --coral: #cf563d;
+      --coral-soft: #f0c7b9;
+      --teal: #177c78;
+      --teal-soft: #c3dfda;
+      --gold: #a76c16;
+      --gold-soft: #ead8ad;
+      --blue: #305d8c;
+      --blue-soft: #cddbe9;
+      --red: #a63b3b;
+      --red-soft: #edcaca;
+      --green: #2f7358;
+      --green-soft: #c8dfd3;
+      --shadow: 0 22px 65px rgba(37, 32, 25, 0.11);
+      --radius: 18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif: Iowan Old Style, Baskerville, "Times New Roman", serif;
+    }
+
+    html[data-theme="dark"] {
+      --paper: #10171b;
+      --paper-2: #172126;
+      --panel: rgba(24, 34, 39, 0.84);
+      --panel-solid: #182227;
+      --ink: #edf0e9;
+      --muted: #adb9b8;
+      --line: rgba(237, 240, 233, 0.14);
+      --line-strong: rgba(237, 240, 233, 0.28);
+      --coral: #f08066;
+      --coral-soft: #5e3029;
+      --teal: #66c9c1;
+      --teal-soft: #234f4d;
+      --gold: #e2b45e;
+      --gold-soft: #544523;
+      --blue: #8eb5dd;
+      --blue-soft: #2a4259;
+      --red: #f08a8a;
+      --red-soft: #572f31;
+      --green: #83c9a7;
+      --green-soft: #294b3c;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.26);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 2rem; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 2%, rgba(207, 86, 61, 0.11), transparent 29rem),
+        radial-gradient(circle at 94% 14%, rgba(23, 124, 120, 0.1), transparent 34rem),
+        var(--paper);
+      font: 16px/1.65 var(--sans);
+      text-rendering: optimizeLegibility;
+    }
+    a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: 0.08em; }
+    a:hover { color: var(--coral); }
+    :focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; border-radius: 3px; }
+    code, pre, .mono { font-family: var(--mono); }
+    code { font-size: 0.88em; }
+    img, svg { max-width: 100%; }
+    p { margin: 0 0 1rem; }
+    strong { font-weight: 720; }
+
+    .skip-link {
+      position: fixed;
+      z-index: 100;
+      left: 1rem;
+      top: 1rem;
+      padding: 0.65rem 0.9rem;
+      border-radius: 9px;
+      background: var(--ink);
+      color: var(--paper);
+      transform: translateY(-180%);
+    }
+    .skip-link:focus { transform: translateY(0); }
+    .reading-progress {
+      position: fixed;
+      z-index: 80;
+      inset: 0 auto auto 0;
+      width: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--coral), var(--gold), var(--teal));
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+      gap: clamp(2rem, 5vw, 5.5rem);
+      width: min(1520px, calc(100% - 2rem));
+      margin: 0 auto;
+    }
+    .rail {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      padding: 2rem 0 1.5rem;
+      overflow: auto;
+    }
+    .rail-mark {
+      display: flex;
+      gap: 0.7rem;
+      align-items: center;
+      margin-bottom: 2rem;
+      font: 750 0.74rem/1.2 var(--mono);
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+    .rail-mark::before {
+      content: "";
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--line-strong);
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 38%, var(--coral) 0 18%, transparent 20%),
+                  radial-gradient(circle at 68% 65%, var(--teal) 0 16%, transparent 18%);
+    }
+    .rail-label {
+      margin: 0 0 0.65rem;
+      color: var(--muted);
+      font: 650 0.68rem/1.2 var(--mono);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .rail nav { border-left: 1px solid var(--line); }
+    .rail nav a {
+      display: block;
+      padding: 0.36rem 0.72rem;
+      border-left: 2px solid transparent;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-decoration: none;
+    }
+    .rail nav a:hover,
+    .rail nav a.active { border-left-color: var(--coral); color: var(--ink); }
+    .rail-actions { display: flex; gap: 0.5rem; margin-top: 1.35rem; }
+    .icon-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.5rem 0.65rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink);
+      background: var(--panel);
+      font: 650 0.7rem/1 var(--mono);
+      cursor: pointer;
+    }
+
+    main { min-width: 0; padding: 1rem 0 8rem; }
+    .hero {
+      position: relative;
+      isolation: isolate;
+      min-height: min(780px, 92vh);
+      margin-top: 1rem;
+      padding: clamp(2rem, 6vw, 6rem);
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(270px, 0.8fr);
+      gap: clamp(2rem, 6vw, 5rem);
+      align-items: center;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.3), transparent 45%),
+        var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 530px;
+      aspect-ratio: 1;
+      right: -170px;
+      top: -180px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      box-shadow: 0 0 0 80px rgba(23,124,120,0.035), 0 0 0 160px rgba(207,86,61,0.025);
+    }
+    .eyebrow, .section-kicker {
+      margin: 0 0 1.2rem;
+      color: var(--coral);
+      font: 720 0.72rem/1.35 var(--mono);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, h4 { margin: 0; line-height: 1.08; text-wrap: balance; }
+    h1 {
+      max-width: 10ch;
+      font: 700 clamp(3.4rem, 8vw, 7.8rem)/0.86 var(--serif);
+      letter-spacing: -0.055em;
+    }
+    h1 em { color: var(--coral); font-weight: 500; }
+    .deck {
+      max-width: 58ch;
+      margin: 2rem 0 0;
+      color: var(--muted);
+      font: 430 clamp(1.12rem, 2vw, 1.46rem)/1.48 var(--sans);
+    }
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin-top: 2rem;
+    }
+    .chip, .evidence {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.38rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.38rem 0.68rem;
+      background: rgba(255,255,255,0.12);
+      color: var(--muted);
+      font: 650 0.68rem/1.2 var(--mono);
+    }
+    .evidence { padding: 0.27rem 0.52rem; white-space: nowrap; }
+    .evidence::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .evidence.strong { color: var(--green); background: var(--green-soft); border-color: transparent; }
+    .evidence.mixed { color: var(--gold); background: var(--gold-soft); border-color: transparent; }
+    .evidence.early { color: var(--blue); background: var(--blue-soft); border-color: transparent; }
+    .evidence.risk { color: var(--red); background: var(--red-soft); border-color: transparent; }
+
+    .hero-figure { position: relative; min-height: 430px; }
+    .orbit {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: min(390px, 100%);
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border: 1px solid var(--line-strong);
+      border-radius: 50%;
+    }
+    .orbit::before, .orbit::after {
+      content: "";
+      position: absolute;
+      inset: 14%;
+      border: 1px dashed var(--line);
+      border-radius: 50%;
+      transform: rotate(24deg);
+    }
+    .orbit::after { inset: 31%; border-style: solid; }
+    .orbit-core {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      transform: translate(-50%, -50%);
+      width: 112px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--ink);
+      color: var(--paper);
+      text-align: center;
+      font: 700 0.73rem/1.3 var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .orbit-node {
+      position: absolute;
+      width: 116px;
+      padding: 0.65rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-solid);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+      font-size: 0.75rem;
+      line-height: 1.25;
+    }
+    .orbit-node b { display: block; margin-bottom: 0.2rem; font: 720 0.66rem var(--mono); text-transform: uppercase; color: var(--coral); }
+    .orbit-node.n1 { top: 3%; left: 33%; }
+    .orbit-node.n2 { top: 31%; right: -3%; }
+    .orbit-node.n3 { right: 6%; bottom: 2%; }
+    .orbit-node.n4 { bottom: 5%; left: 0; }
+    .orbit-node.n5 { top: 27%; left: -5%; }
+    .hero-caption { position: absolute; bottom: -0.5rem; inset-inline: 0; color: var(--muted); font-size: 0.73rem; text-align: center; }
+
+    .section {
+      padding: clamp(5rem, 10vw, 9rem) 0 0;
+      border-top: 1px solid transparent;
+    }
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(180px, 0.36fr) minmax(0, 1fr);
+      gap: clamp(2rem, 6vw, 6rem);
+      align-items: start;
+      margin-bottom: 3rem;
+    }
+    .section-number { color: var(--muted); font: 650 0.78rem var(--mono); }
+    h2 { max-width: 17ch; font: 650 clamp(2.3rem, 5vw, 4.7rem)/0.98 var(--serif); letter-spacing: -0.035em; }
+    .section-intro { max-width: 65ch; margin: 0.8rem 0 0; color: var(--muted); font-size: 1.08rem; }
+    h3 { font: 680 clamp(1.35rem, 2.5vw, 2rem)/1.15 var(--serif); letter-spacing: -0.018em; }
+    h4, .card-label { font: 730 0.8rem/1.3 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+
+    .lede {
+      margin: 0 0 3rem;
+      padding: clamp(1.5rem, 4vw, 3rem);
+      border-left: 4px solid var(--coral);
+      background: var(--panel);
+      font: 520 clamp(1.35rem, 3vw, 2.1rem)/1.35 var(--serif);
+    }
+    .lede strong { color: var(--coral); }
+    .grid { display: grid; gap: 1rem; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card {
+      min-width: 0;
+      padding: 1.35rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .card > :last-child { margin-bottom: 0; }
+    .card h3 { margin-bottom: 0.72rem; font-size: 1.35rem; }
+    .card .card-label { margin-bottom: 0.65rem; color: var(--coral); }
+    .card p, .card li { color: var(--muted); }
+    .card .big-number { color: var(--ink); font: 650 clamp(2.2rem, 5vw, 4rem)/1 var(--serif); }
+    .card .big-label { display: block; margin-top: 0.25rem; color: var(--muted); font: 650 0.7rem var(--mono); text-transform: uppercase; letter-spacing: 0.08em; }
+    .accent-top { border-top: 3px solid var(--coral); }
+    .teal-top { border-top: 3px solid var(--teal); }
+    .gold-top { border-top: 3px solid var(--gold); }
+    .blue-top { border-top: 3px solid var(--blue); }
+
+    .plain-list { margin: 0; padding: 0; list-style: none; }
+    .plain-list li { position: relative; padding: 0.55rem 0 0.55rem 1.3rem; border-bottom: 1px solid var(--line); }
+    .plain-list li:last-child { border-bottom: 0; }
+    .plain-list li::before { content: "→"; position: absolute; left: 0; color: var(--coral); }
+    .compact-list { margin: 0.65rem 0 0; padding-left: 1.1rem; }
+    .compact-list li { margin: 0.35rem 0; }
+
+    .definition-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      margin: 2.5rem 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .definition-strip > div { padding: 1.2rem; border-right: 1px solid var(--line); background: var(--panel); }
+    .definition-strip > div:last-child { border-right: 0; }
+    .definition-strip dt { margin-bottom: 0.4rem; font: 720 0.7rem var(--mono); color: var(--coral); text-transform: uppercase; }
+    .definition-strip dd { margin: 0; color: var(--muted); font-size: 0.85rem; }
+
+    .table-wrap {
+      width: 100%;
+      margin: 1.5rem 0;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.035);
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    caption { padding: 1rem 1.15rem; color: var(--muted); text-align: left; font-size: 0.78rem; }
+    th, td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { position: sticky; top: 0; z-index: 1; background: var(--panel-solid); color: var(--muted); font: 700 0.68rem/1.25 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: rgba(23,124,120,0.045); }
+    td { font-size: 0.87rem; }
+    td:first-child { color: var(--ink); font-weight: 700; }
+
+    .strategy {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 0.9fr) minmax(0, 1.2fr);
+      gap: 1.2rem;
+      align-items: start;
+      padding: 1.35rem 0;
+      border-top: 1px solid var(--line);
+    }
+    .strategy:last-child { border-bottom: 1px solid var(--line); }
+    .strategy-id { color: var(--coral); font: 650 0.78rem var(--mono); }
+    .strategy h3 { font-size: 1.3rem; }
+    .strategy p { margin: 0; color: var(--muted); }
+
+    .callout {
+      margin: 2rem 0;
+      padding: 1.25rem 1.4rem;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(120deg, rgba(23,124,120,0.09), transparent 68%), var(--panel);
+    }
+    .callout.warning { background: linear-gradient(120deg, rgba(207,86,61,0.1), transparent 68%), var(--panel); }
+    .callout-title { display: block; margin-bottom: 0.45rem; color: var(--teal); font: 750 0.7rem var(--mono); text-transform: uppercase; letter-spacing: 0.09em; }
+    .callout.warning .callout-title { color: var(--coral); }
+    .callout > :last-child { margin-bottom: 0; }
+
+    .cite {
+      display: inline-block;
+      margin-left: 0.12em;
+      color: var(--teal);
+      font: 700 0.68rem var(--mono);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .cite:hover { color: var(--coral); }
+    .small { color: var(--muted); font-size: 0.8rem; }
+    .note { color: var(--muted); font: 0.78rem/1.5 var(--mono); }
+    .rule { height: 1px; margin: 3rem 0; border: 0; background: var(--line); }
+    .project-head { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.9rem; }
+    .project-head h3 { margin-right: auto; }
+    .project-meta { color: var(--muted); font: 0.7rem/1.45 var(--mono); }
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    .pros-cons > div { padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.1); }
+    .pros-cons b { display: block; margin-bottom: 0.4rem; color: var(--ink); font: 720 0.68rem var(--mono); text-transform: uppercase; }
+    .pros-cons p { margin: 0; font-size: 0.85rem; }
+
+    .verdict-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .verdict-card { padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--line); }
+    .verdict-card.accepted { background: var(--green-soft); }
+    .verdict-card.flawed { background: var(--red-soft); }
+    .verdict-card.uncertain { background: var(--gold-soft); }
+    .verdict-card h3 { margin-bottom: 1rem; font-size: 1.45rem; }
+    .verdict-card ul { margin: 0; padding-left: 1.1rem; }
+    .verdict-card li { margin: 0.6rem 0; }
+
+    .architecture {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.6rem;
+      margin: 2rem 0;
+    }
+    .layer {
+      position: relative;
+      min-height: 190px;
+      padding: 1.15rem;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+    }
+    .layer:not(:last-child)::after { content: "→"; position: absolute; top: 48%; right: -0.72rem; z-index: 2; color: var(--coral); font-weight: 800; }
+    .layer .layer-no { color: var(--coral); font: 700 0.68rem var(--mono); }
+    .layer h3 { margin: 0.75rem 0 0.6rem; font-size: 1.12rem; }
+    .layer p { margin: 0; color: var(--muted); font-size: 0.78rem; }
+
+    .record {
+      margin: 1.5rem 0;
+      padding: 1.2rem;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #182126;
+      color: #e8ede8;
+      font: 0.77rem/1.65 var(--mono);
+    }
+    .record .key { color: #7fd0c6; }
+    .record .value { color: #f0b27e; }
+
+    details {
+      margin: 1rem 0;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--panel);
+    }
+    summary { padding: 1rem 1.2rem; cursor: pointer; font-weight: 700; }
+    details[open] summary { border-bottom: 1px solid var(--line); }
+    .details-body { padding: 1.2rem; }
+
+    .references { counter-reset: refs; }
+    .reference {
+      display: grid;
+      grid-template-columns: 3rem minmax(0, 1fr);
+      gap: 0.8rem;
+      padding: 0.9rem 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.86rem;
+    }
+    .reference::before { counter-increment: refs; content: "R" counter(refs); color: var(--coral); font: 700 0.7rem var(--mono); }
+    .reference p { margin: 0; }
+    .reference .source-type { display: inline-block; margin-left: 0.4rem; color: var(--muted); font: 0.65rem var(--mono); text-transform: uppercase; }
+
+    .footer {
+      margin-top: 7rem;
+      padding: 2.5rem 0;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 2rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    @media (max-width: 1120px) {
+      .shell { grid-template-columns: 200px minmax(0, 1fr); gap: 2rem; }
+      .hero { grid-template-columns: 1fr; }
+      .hero-figure { min-height: 380px; }
+      .definition-strip { grid-template-columns: repeat(3, 1fr); }
+      .definition-strip > div { border-bottom: 1px solid var(--line); }
+      .grid.four { grid-template-columns: repeat(2, 1fr); }
+      .architecture { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 820px) {
+      .shell { display: block; width: min(100% - 1.2rem, 760px); }
+      .rail { position: relative; height: auto; padding: 1rem 0; }
+      .rail-mark { margin-bottom: 0.8rem; }
+      .rail-label, .rail nav { display: none; }
+      .rail-actions { position: absolute; right: 0; top: 0.75rem; margin: 0; }
+      main { padding-top: 0; }
+      .hero { min-height: auto; padding: 2rem 1.25rem 2.5rem; border-radius: 20px; }
+      .hero-figure { min-height: 355px; }
+      .section-head { grid-template-columns: 1fr; gap: 0.8rem; }
+      .grid.two, .grid.three, .verdict-grid { grid-template-columns: 1fr; }
+      .definition-strip { grid-template-columns: 1fr 1fr; }
+      .strategy { grid-template-columns: 52px 1fr; }
+      .strategy > p { grid-column: 2; }
+      .architecture { grid-template-columns: 1fr 1fr; }
+      .layer::after { display: none; }
+    }
+    @media (max-width: 520px) {
+      body { font-size: 15px; }
+      h1 { font-size: clamp(3.2rem, 19vw, 5rem); }
+      .hero-figure { min-height: 315px; transform: scale(0.9); margin-inline: -1rem; }
+      .orbit-node { width: 98px; font-size: 0.65rem; }
+      .definition-strip, .grid.four, .architecture, .pros-cons { grid-template-columns: 1fr; }
+      .definition-strip > div { border-right: 0; }
+      .architecture .layer { min-height: 0; }
+      .footer { display: block; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+    @media print {
+      :root, html[data-theme] {
+        --paper: #fff;
+        --paper-2: #fff;
+        --panel: #fff;
+        --panel-solid: #fff;
+        --ink: #111;
+        --muted: #444;
+        --line: #ccc;
+        --line-strong: #aaa;
+        --coral: #9b301f;
+        --teal: #185f5c;
+        --gold: #71480d;
+        --blue: #274e74;
+        --red: #7d2929;
+        --green: #245c45;
+        --shadow: none;
+      }
+      body { background: #fff; font-size: 10pt; }
+      .shell { display: block; width: 100%; }
+      .rail, .reading-progress { display: none; }
+      main { padding: 0; }
+      .hero { min-height: 0; box-shadow: none; break-after: page; }
+      .hero-figure { min-height: 340px; }
+      .section { padding-top: 2.3rem; }
+      .card, .callout, .table-wrap, details { break-inside: avoid; box-shadow: none; }
+      a { text-decoration: none; }
+      .table-wrap { overflow: visible; }
+      table { min-width: 0; table-layout: fixed; font-size: 8pt; }
+      th, td { padding: 0.4rem; overflow-wrap: anywhere; }
+      th { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to report</a>
+  <div class="reading-progress" aria-hidden="true"></div>
+
+  <div class="shell">
+    <aside class="rail" aria-label="Report navigation">
+      <div class="rail-mark">Memory research</div>
+      <p class="rail-label">Contents</p>
+      <nav>
+        <a href="#verdict">Executive verdict</a>
+        <a href="#definitions">What memory means</a>
+        <a href="#taxonomy">Strategy landscape</a>
+        <a href="#projects">Project atlas</a>
+        <a href="#mcp-memory">MCP Memory</a>
+        <a href="#memento">Memento</a>
+        <a href="#knowledge-base-ingest">Knowledge Base Ingest</a>
+        <a href="#other-projects">Other architectures</a>
+        <a href="#coding-products">Codex &amp; Claude Code</a>
+        <a href="#coding-agents">Coding-agent memory</a>
+        <a href="#philosophies">Competing philosophies</a>
+        <a href="#principles">Design principles</a>
+        <a href="#evidence">Evidence verdict</a>
+        <a href="#architecture">Reference architecture</a>
+        <a href="#evaluation">Evaluation &amp; safety</a>
+        <a href="#hn">HN discussion</a>
+        <a href="#method">Method &amp; sources</a>
+      </nav>
+      <div class="rail-actions">
+        <button class="icon-button" id="theme-toggle" type="button" aria-pressed="false" aria-label="Switch color theme">◐ Theme</button>
+      </div>
+    </aside>
+
+    <main id="main">
+      <header class="hero" id="top">
+        <div>
+          <p class="eyebrow">Research report · 14 August 2026</p>
+          <h1>The <em>memory</em> layer</h1>
+          <p class="deck">A source-inspected map of how AI agents remember: from context windows and flat files to temporal graphs, governed knowledge bases, procedural skill libraries, and learned memory policies.</p>
+          <div class="hero-meta" aria-label="Research scope">
+            <span class="chip">35 HN comments reviewed</span>
+            <span class="chip">15 repositories inspected</span>
+            <span class="chip">34 source groups cited</span>
+            <span class="chip">Coding-agent focus</span>
+          </div>
+        </div>
+        <figure class="hero-figure" aria-labelledby="orbit-caption">
+          <div class="orbit" aria-hidden="true">
+            <div class="orbit-core">Useful<br>future<br>behavior</div>
+            <div class="orbit-node n1"><b>Admit</b>What deserves to persist?</div>
+            <div class="orbit-node n2"><b>Represent</b>Fact, event, graph, file, skill</div>
+            <div class="orbit-node n3"><b>Retrieve</b>What is useful now?</div>
+            <div class="orbit-node n4"><b>Verify</b>Did it help—and was it true?</div>
+            <div class="orbit-node n5"><b>Evolve</b>Revise, supersede, decay, forget</div>
+          </div>
+          <figcaption class="hero-caption" id="orbit-caption">The memory lifecycle—not the database—is the system.</figcaption>
+        </figure>
+      </header>
+
+      <section class="section" id="verdict">
+        <div class="section-head">
+          <div><span class="section-number">01</span><p class="section-kicker">Executive verdict</p></div>
+          <div>
+            <h2>Memory is governed state, not a bigger prompt</h2>
+            <p class="section-intro">The field is converging on selective, typed, provenance-bearing memory. It has not converged on one storage engine—and the evidence says it should not.</p>
+          </div>
+        </div>
+
+        <p class="lede"><strong>The best current design is a layered one:</strong> keep authoritative project truth in versioned files; keep volatile work in the active context and checkpoint; promote only reusable, verified experience into durable memory; retrieve a small, task-conditioned subset; preserve the evidence needed to revise or delete it.</p>
+
+        <div class="grid four">
+          <article class="card accent-top">
+            <p class="card-label">Strongest consensus</p>
+            <p>Memory needs an explicit lifecycle—admission, representation, retrieval, revision, and forgetting—not merely persistence.</p>
+          </article>
+          <article class="card teal-top">
+            <p class="card-label">Best coding default</p>
+            <p>Repository-native instructions plus compact task state and externally verified lessons. Generated recall must not become policy.</p>
+          </article>
+          <article class="card gold-top">
+            <p class="card-label">Most common failure</p>
+            <p>Irrelevant or stale memories prime the model toward the wrong action. More recalled context can reduce task performance.</p>
+          </article>
+          <article class="card blue-top">
+            <p class="card-label">Largest open question</p>
+            <p>Who should control evolution: the same agent, a separate curator, a human reviewer, or a learned policy?</p>
+          </article>
+        </div>
+
+        <div class="callout">
+          <span class="callout-title">The practical test</span>
+          <p>A memory system is valuable only if it improves future decisions after accounting for capture cost, retrieval latency, prompt tokens, stale advice, privacy risk, and repair. Fast lookup is an implementation property; better behavior is the product outcome.</p>
+        </div>
+
+        <div class="grid three">
+          <article class="card">
+            <span class="big-number">1</span><span class="big-label">No universal winner</span>
+            <p>Long context wins some factual-recall tasks; structured memory wins under budget and across sessions; procedural memory wins when outcomes repeat. Workload determines the architecture.</p>
+          </article>
+          <article class="card">
+            <span class="big-number">2</span><span class="big-label">Retrieval is an intervention</span>
+            <p>Every memory placed in context changes the model’s trajectory. Retrieval should be gated by expected utility and trust, not similarity alone.</p>
+          </article>
+          <article class="card">
+            <span class="big-number">3</span><span class="big-label">Authority must be visible</span>
+            <p>An observation, a hypothesis, a user preference, a verified procedure, and a mandatory rule are not interchangeable records.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="definitions">
+        <div class="section-head">
+          <div><span class="section-number">02</span><p class="section-kicker">Definitions</p></div>
+          <div>
+            <h2>Five neighboring systems, one overloaded word</h2>
+            <p class="section-intro">“Memory” is often used for any information outside the current message. Separating adjacent mechanisms prevents category errors.</p>
+          </div>
+        </div>
+
+        <dl class="definition-strip">
+          <div><dt>Context</dt><dd>The model’s volatile working set for this inference: conversation, files, tool output, and instructions.</dd></div>
+          <div><dt>Compaction</dt><dd>A lossy summary that keeps a long-running session inside the context budget.</dd></div>
+          <div><dt>Checkpoint</dt><dd>Execution state sufficient to resume a task: plan, artifacts, cursor, pending actions.</dd></div>
+          <div><dt>RAG</dt><dd>Retrieval of an external corpus. It becomes agent memory when the corpus is formed from the agent’s history or experience.</dd></div>
+          <div><dt>Durable memory</dt><dd>History-derived state that persists and can alter behavior in a later task or conversation.</dd></div>
+        </dl>
+
+        <div class="grid two">
+          <article class="card">
+            <h3>Memory is not authority</h3>
+            <p>Codex and Claude Code both make this distinction in practice. Generated memories help recall; checked-in <code>AGENTS.md</code>/<code>CLAUDE.md</code>, permissions, hooks, tests, and policy control required behavior. A remembered suggestion can be wrong, stale, or omitted.</p>
+          </article>
+          <article class="card">
+            <h3>Memory is not identity</h3>
+            <p>A preference such as “use terse commit messages” is scoped to a user or team. A finding such as “this service uses port 8081” is scoped to a repository and time. Treating both as an undifferentiated user profile creates leakage and contradiction.</p>
+          </article>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <caption>A functional taxonomy adapted from agent-memory surveys and working systems. Cognitive labels are useful design shorthand, not claims that agents reproduce human memory.</caption>
+            <thead><tr><th>Function</th><th>Useful content</th><th>Typical lifetime</th><th>Good representation</th><th>Main failure</th></tr></thead>
+            <tbody>
+              <tr><td>Working</td><td>Current goal, open files, intermediate results</td><td>Turn → task</td><td>Context, scratchpad, compacted summary</td><td>Loss during compaction; stale plan</td></tr>
+              <tr><td>Semantic</td><td>Stable facts, preferences, concepts, repo map</td><td>Sessions → months</td><td>Atomic records, wiki, graph</td><td>Contradiction and temporal drift</td></tr>
+              <tr><td>Episodic</td><td>What happened, in what situation, with what result</td><td>Sessions → months</td><td>Event log with evidence/backlinks</td><td>Retrieving a superficially similar but causally different episode</td></tr>
+              <tr><td>Procedural</td><td>How to perform a repeatable action</td><td>Months → project lifetime</td><td>Skill, script, verified playbook</td><td>Self-reported success; environment drift</td></tr>
+              <tr><td>Prospective</td><td>What must be done when a future condition occurs</td><td>Until trigger/expiry</td><td>Typed intention with trigger and deadline</td><td>Never firing, firing twice, or firing in the wrong context</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="small">Research taxonomies increasingly separate <em>form</em> (token, parameter, latent state, text, graph) from <em>function</em> (factual, experiential, working), and model memory as operations: consolidate, update, index, retrieve, compress, and forget. <a class="cite" href="#ref-survey-age">[R1]</a> <a class="cite" href="#ref-survey-ops">[R2]</a></p>
+      </section>
+
+      <section class="section" id="taxonomy">
+        <div class="section-head">
+          <div><span class="section-number">03</span><p class="section-kicker">Strategy landscape</p></div>
+          <div>
+            <h2>Eight strategies, usually combined</h2>
+            <p class="section-intro">These are centers of gravity, not mutually exclusive products. Mature systems compose several and assign each a different scope.</p>
+          </div>
+        </div>
+
+        <div class="strategy">
+          <span class="strategy-id">S01</span><h3>Keep the transcript / use long context</h3>
+          <p><strong>Idea:</strong> avoid lossy extraction and let the model read history. <strong>Best at:</strong> exact recent evidence while it fits. <strong>Weakness:</strong> cost grows with every turn; attention and instruction adherence degrade; multi-session retention, deletion, and revision remain unsolved. A necessary baseline, not a complete memory architecture.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">S02</span><h3>Compact and checkpoint</h3>
+          <p><strong>Idea:</strong> summarize completed work and preserve resumption state. <strong>Best at:</strong> keeping long coding tasks moving. <strong>Weakness:</strong> summaries silently discard details and can turn tentative beliefs into facts. Claude Code compaction and MCP Memory’s fixed <code>system/last_memory</code> are different implementations of this family.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">S03</span><h3>Extract facts into a searchable store</h3>
+          <p><strong>Idea:</strong> convert interactions into small records, deduplicate/update them, then retrieve with lexical or vector search. <strong>Best at:</strong> preferences, identities, reusable facts. <strong>Weakness:</strong> extraction errors become durable; similarity is not situational relevance. Mem0 and MCP Memory occupy opposite ends of the autonomous–explicit spectrum.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">S04</span><h3>Build a temporal knowledge graph</h3>
+          <p><strong>Idea:</strong> represent entities, relations, episodes, and validity intervals. <strong>Best at:</strong> changing relationships and multi-hop questions. <strong>Weakness:</strong> extraction/ontology cost, graph maintenance, and another retrieval planner. Graphiti is the clearest production-oriented example.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">S05</span><h3>Maintain a living file/wiki</h3>
+          <p><strong>Idea:</strong> an agent curates linked, human-readable knowledge; a derived representation provides discovery or inspection. <strong>Best at:</strong> shared project knowledge, audit, and repair. <strong>Weakness:</strong> merge conflict, drift, and editorial burden—or, in database-first variants, loss of direct file repair. Karpathy’s LLM Wiki, OKF, Memento, ByteRover, and Knowledge Base Ingest explore variants.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">S06</span><h3>Virtualize context like an operating system</h3>
+          <p><strong>Idea:</strong> give the agent tools/policies to move state among working context, persistent blocks, archival storage, and recall. <strong>Best at:</strong> stateful agents whose memory is itself part of the control loop. <strong>Weakness:</strong> autonomous paging decisions are hard to debug. MemGPT/Letta and MemOS make this philosophy explicit.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">S07</span><h3>Store verified procedures and skills</h3>
+          <p><strong>Idea:</strong> distill successful trajectories into reusable code, scripts, or instructions. <strong>Best at:</strong> recurring coding and environment tasks. <strong>Weakness:</strong> a procedure is safe only when its outcome was externally checked and its preconditions remain valid. Voyager, MemP, and coding skills are exemplars.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">S08</span><h3>Learn the memory controller</h3>
+          <p><strong>Idea:</strong> train a policy to decide when and what to store, retrieve, compress, update, or forget. <strong>Best at:</strong> optimizing a repeated workload end to end. <strong>Weakness:</strong> training cost, distribution shift, opaque policy failures, and difficult governance. AgeMem and SWE-MeM are promising research, not settled defaults.</p>
+        </div>
+
+        <div class="callout warning">
+          <span class="callout-title">The key distinction</span>
+          <p>A vector database, SQLite FTS5, a graph database, and a folder of Markdown are retrieval substrates. None decides what deserves permanence, whose claim wins, when a fact expires, or whether recall helped. Those policies define the memory system.</p>
+        </div>
+
+        <div class="callout">
+          <span class="callout-title">How the lineage developed</span>
+          <p><em>Generative Agents</em> made the modern pattern legible: an event stream retrieved by relevance, recency, and importance; higher-level reflections written back; plans influenced by both. <em>Reflexion</em> stored linguistic self-critique as episodic feedback, while MemGPT introduced explicit virtual-context tiers and Voyager turned successful behavior into executable skills. Current systems largely recombine these four ideas—stream, reflection, paging, and procedure—with stronger persistence and governance. <a class="cite" href="#ref-generative-agents">[R3]</a> <a class="cite" href="#ref-reflexion">[R5]</a> <a class="cite" href="#ref-memgpt">[R4]</a> <a class="cite" href="#ref-voyager">[R6]</a></p>
+        </div>
+      </section>
+
+      <section class="section" id="projects">
+        <div class="section-head">
+          <div><span class="section-number">04</span><p class="section-kicker">Project atlas</p></div>
+          <div>
+            <h2>The landscape at a glance</h2>
+            <p class="section-intro">This matrix describes the inspected implementation, not the broadest marketing claim or an older paper architecture. “Canonical” means the state from which usable memory can actually be reconstructed.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Source-inspected projects at pinned commits. The table is deliberately comparative, not a leaderboard.</caption>
+            <thead><tr><th>Project</th><th>Center of gravity</th><th>Canonical state</th><th>Retrieval</th><th>Write control</th><th>Best fit / sharp edge</th></tr></thead>
+            <tbody>
+              <tr><td>MCP Memory</td><td>Explicit OKF records + checkpoint</td><td>SQLite (Markdown is a one-way mirror)</td><td>FTS5 prefix-AND; exact key</td><td>Agent writes directly</td><td>Simple local interoperability / no reconciliation, lifecycle, or containment</td></tr>
+              <tr><td>Memento</td><td>Governed shared knowledge</td><td>Bare Git repository</td><td>FTS5-first; optional vector + graph</td><td>Proposal → review → apply</td><td>Auditable team memory / machinery and single-writer throughput</td></tr>
+              <tr><td>Knowledge Base Ingest</td><td>Quote-grounded semantic knowledge compiler</td><td>SQLite + immutable sources; Markdown is generated</td><td>FTS5/BM25 over chunks, claims, and nodes</td><td>Agent proposal → typed validation → exact-quote gate → transaction</td><td>Auditable technical corpus / expensive formation, lexical recall, no semantic entailment</td></tr>
+              <tr><td>Codex Memories</td><td>Background cross-chat synthesis</td><td>Local generated workspace + state DB</td><td>Compact summary, then lexical drill-down</td><td>Restricted consolidation agent; chat controls</td><td>Personal recall with evidence / asynchronous, generated, local-only</td></tr>
+              <tr><td>Claude Code</td><td>Repo instructions + auto memory</td><td>Markdown files on local machine</td><td>Loaded index; topic files on demand</td><td>Agent and user edit directly</td><td>Low-friction coding continuity / no structured provenance or revision policy</td></tr>
+              <tr><td>Letta / MemGPT</td><td>Virtual context and persistent blocks</td><td>SQL records + archival passages</td><td>Always-on core; vector archival; recall history</td><td>Agent memory tools</td><td>Stateful autonomous agents / hard-to-debug paging and self-rewrite</td></tr>
+              <tr><td>Letta Code</td><td>Agent-owned coding identity</td><td>Git-backed memory filesystem</td><td>Pinned system files + file discovery</td><td>Agent, reflection subagents, worktrees</td><td>History reflection and portability / inference can ossify into identity</td></tr>
+              <tr><td>Mem0 OSS v3</td><td>Extracted semantic facts</td><td>Vector/provider stores + history DB</td><td>Vector + keyword + entity + rerank</td><td>LLM extracts additive facts</td><td>Small integration API / duplicates and contradictions accumulate</td></tr>
+              <tr><td>OpenMemory</td><td>Now: session portability</td><td>Portable session bundle</td><td>Not an online memory service</td><td>User CLI/TUI</td><td>Move coding sessions / older MCP dashboard is archived</td></tr>
+              <tr><td>Graphiti</td><td>Bi-temporal knowledge graph</td><td>Graph database</td><td>Vector + BM25 + graph, multiple rerankers</td><td>LLM extraction + invalidation</td><td>Changing relations and provenance / costly extraction and entity resolution</td></tr>
+              <tr><td>LangMem</td><td>Composable memory primitives</td><td>LangGraph <code>BaseStore</code></td><td>Profile load or collection search</td><td>Foreground/background managers</td><td>Build-your-own typed memory / not a governed product</td></tr>
+              <tr><td>ByteRover</td><td>Coding Context Tree + lifecycle</td><td>Typed HTML tree; Git-like sync</td><td>MiniSearch hierarchy; tiered executor</td><td>Agent curation + review proposals</td><td>Coding-specific project model / complexity and paper–code drift</td></tr>
+              <tr><td>Cognee</td><td>Graph/vector knowledge platform</td><td>Pluggable SQL + graph + vector stores</td><td>Multiple graph-RAG pipelines</td><td>Pipeline/model dependent</td><td>Broad knowledge infrastructure / very large surface</td></tr>
+              <tr><td>MemOS</td><td>Memory operating system</td><td>MemCubes across text/KV/LoRA</td><td>Vector + graph + model-specific paths</td><td>Lifecycle services</td><td>Serving-stack research / portability and complexity</td></tr>
+              <tr><td>A-MEM</td><td>Self-organizing Zettelkasten</td><td>In-process records + Chroma</td><td>Vector neighbors + generated links</td><td>LLM evolves nearby notes</td><td>Associative research / weak durability, provenance, and governance</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <span class="callout-title">A naming trap</span>
+          <p>OpenMemory’s current repository is a beta CLI/TUI for moving coding sessions among Claude Code, Codex, and OpenCode. The frequently cited local MCP memory service—FastAPI, Qdrant, Mem0, and a Next.js dashboard—now lives in an explicitly unmaintained archive. This report does not conflate the two.</p>
+        </div>
+      </section>
+
+      <section class="section" id="mcp-memory">
+        <div class="section-head">
+          <div><span class="section-number">05</span><p class="section-kicker">Deep dive</p></div>
+          <div>
+            <h2>MCP Memory: a clear baseline with revealing gaps</h2>
+            <p class="section-intro">The project from the linked HN post is valuable precisely because it is small enough to see the entire memory loop—and the missing pieces.</p>
+          </div>
+        </div>
+
+        <div class="project-head">
+          <h3>fellowgeek/mcp-memory</h3>
+          <span class="evidence early">one-day implementation</span>
+          <span class="evidence mixed">12 tests passed</span>
+        </div>
+        <p class="project-meta">Audited commit <a href="https://github.com/fellowgeek/mcp-memory/tree/4514d1fd162598e65280c15ea2df017698fcbf16">4514d1f</a> · MIT · Python/FastMCP 3 · SQLite WAL + FTS5 · OKF v0.2 · 13 Aug 2026</p>
+
+        <div class="grid two" style="margin-top: 1.5rem">
+          <article class="card">
+            <p class="card-label">What it actually does</p>
+            <ul class="plain-list">
+              <li>Six stdio MCP tools: store, retrieve, search, delete, get-last, update-last.</li>
+              <li>Upserts an OKF payload under primary key <code>(key, namespace)</code>.</li>
+              <li>Indexes keys, tags, and payloads with synchronized FTS5 triggers.</li>
+              <li>Mirrors each record to a Markdown hierarchy with <code>index.md</code> and <code>log.md</code>.</li>
+              <li>Uses fixed <code>system/last_memory</code> as an overwrite-only session checkpoint.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <p class="card-label">What it does not do</p>
+            <ul class="plain-list">
+              <li>No automatic capture, embeddings, graph, reflection, deduplication, or consolidation.</li>
+              <li>No temporal ranking, stale enforcement, contradiction handling, or decay.</li>
+              <li>No revision history, compare-and-swap, multi-writer policy, or crash reconciliation.</li>
+              <li>No Markdown import/reindex, benchmark, retrieval evaluation, or client end-to-end test.</li>
+              <li>No guarantee that a model obeys the “call memory first” server instruction.</li>
+            </ul>
+          </article>
+        </div>
+
+        <h3 style="margin-top: 3rem">The write/read asymmetry</h3>
+        <div class="architecture" aria-label="MCP Memory data path">
+          <div class="layer"><span class="layer-no">01</span><h3>Agent call</h3><p>Model supplies content, key, namespace, metadata, and an absolute project root.</p></div>
+          <div class="layer"><span class="layer-no">02</span><h3>Serialize</h3><p>The server renders YAML-frontmatter OKF Markdown.</p></div>
+          <div class="layer"><span class="layer-no">03</span><h3>Commit DB</h3><p>SQLite row and FTS trigger are committed first.</p></div>
+          <div class="layer"><span class="layer-no">04</span><h3>Mirror files</h3><p>Concept file and indexes are written afterward.</p></div>
+          <div class="layer"><span class="layer-no">05</span><h3>Recall DB only</h3><p>Exact retrieval and search never read or reconcile Markdown.</p></div>
+        </div>
+        <p>This means SQLite is the operational source of truth. A human edit, Git revert, or restored Markdown backup is invisible to recall. Because the database transaction precedes filesystem output, a filesystem error can split the representations. The project calls the design “dual-layer”; at this commit it is more accurately <strong>database memory with a one-way human-readable export</strong>.</p>
+
+        <div class="grid three" style="margin-top: 2rem">
+          <article class="card teal-top">
+            <p class="card-label">Distinctive strength</p>
+            <p>OKF equips a minimal local store with explicit fields for sources, generator, verification, status, usage window, and staleness—far better raw material than an untyped vector chunk.</p>
+          </article>
+          <article class="card gold-top">
+            <p class="card-label">Retrieval trade-off</p>
+            <p>Quoted prefix-AND FTS is predictable and strong for symbols, paths, commands, and names. It misses paraphrases and returns up to ten entire OKF records, weakening its token-efficiency story.</p>
+          </article>
+          <article class="card accent-top">
+            <p class="card-label">Critical risk</p>
+            <p>Open issue #2 demonstrates <code>../</code> key traversal. Namespace and model-supplied <code>project_root</code> compound the path-authority problem. Logical namespaces are not security isolation.</p>
+          </article>
+        </div>
+
+        <div class="callout warning">
+          <span class="callout-title">Metadata is not policy</span>
+          <p>The schema can say <code>stale_after: 2026-09-01</code>, <code>status: deprecated</code>, or <code>verified: …</code>. Retrieval never interprets those fields. A stale, deprecated, unverified item ranks like a fresh reviewed one. A memory system earns its lifecycle claims only when behavior acts on the metadata.</p>
+        </div>
+
+        <div class="pros-cons">
+          <div><b>Where it is strong</b><p>A transparent, inexpensive, local, cross-client baseline; no embedding service; good exact vocabulary; portable record format; easy to understand and extend.</p></div>
+          <div><b>Where it is weak</b><p>Extremely early; direct model writes; unsafe path resolution; passive lifecycle; token-heavy responses; dual-write inconsistency; no proof it improves agent outcomes.</p></div>
+        </div>
+
+        <details>
+          <summary>Claim audit and engineering maturity</summary>
+          <div class="details-body">
+            <ul class="compact-list">
+              <li><strong>Supported:</strong> local persistence, FTS5 indexing, human-browseable mirrors, project/global path configuration, and plausible MCP portability.</li>
+              <li><strong>Partly supported:</strong> “strict OKF compliance.” The serializer is plausible and the vendored v0.2 spec matches upstream, but the limited validator is not on the write path and reserved keys can collide with generated indexes.</li>
+              <li><strong>Unproven:</strong> “sub-20ms” lookup. There is no benchmark, dataset, hardware, percentile, or comparison.</li>
+              <li><strong>Tested here:</strong> all 12 tests passed under Python 3.12/FastMCP 3.0 in 0.146 seconds. The documented generic <code>python3</code> path failed on Python 3.9 because the minimum Python version is undocumented.</li>
+              <li><strong>Maturity signals:</strong> seven same-day commits, no release/tag, no CI, no lockfile, global warning suppression, and ordinary strings for errors.</li>
+            </ul>
+          </div>
+        </details>
+        <p class="small">Primary evidence: <a href="https://github.com/fellowgeek/mcp-memory/blob/4514d1fd162598e65280c15ea2df017698fcbf16/memory_server.py">MCP tools</a>, <a href="https://github.com/fellowgeek/mcp-memory/blob/4514d1fd162598e65280c15ea2df017698fcbf16/db.py">SQLite layer</a>, <a href="https://github.com/fellowgeek/mcp-memory/blob/4514d1fd162598e65280c15ea2df017698fcbf16/okf_engine.py">OKF/file layer</a>, <a href="https://github.com/fellowgeek/mcp-memory/issues/2">path-traversal issue</a>. <a class="cite" href="#ref-mcp-memory">[R15]</a></p>
+      </section>
+
+      <section class="section" id="memento">
+        <div class="section-head">
+          <div><span class="section-number">06</span><p class="section-kicker">Deep dive</p></div>
+          <div>
+            <h2>Memento: memory as governed shared knowledge</h2>
+            <p class="section-intro">Memento is the strongest inspected example of designing authority, transactions, review, provenance, and repair before adding model cleverness.</p>
+          </div>
+        </div>
+
+        <div class="project-head">
+          <h3>rcarmo/memento</h3>
+          <span class="evidence strong">governance-first</span>
+          <span class="evidence mixed">small-scale evidence</span>
+        </div>
+        <p class="project-meta">Audited commit <a href="https://github.com/rcarmo/memento/tree/5acbf7bf8f373a91870c674cae4231a193f792bc">5acbf7b</a> · MIT · Python 3.12–3.14 · Rust semantic path · Bun/Playwright UI · Git + two SQLite databases</p>
+
+        <div class="grid three" style="margin-top: 1.5rem">
+          <article class="card accent-top"><p class="card-label">Knowledge plane</p><p>A bare Git repository is authoritative. Concepts are validated Markdown with stable UUIDs, typed metadata, sources, supersession, and links. Every accepted write is a commit.</p></article>
+          <article class="card blue-top"><p class="card-label">Control plane</p><p><code>control.sqlite</code> owns proposals, reviews, idempotency, journals, leases, principals, HMAC checks, checkpoints, and access audit.</p></article>
+          <article class="card teal-top"><p class="card-label">Derived plane</p><p><code>derived.sqlite</code> owns FTS5, backlinks, graph metrics, optional embeddings, cache, traces, and signals. It can be rebuilt from Git.</p></article>
+        </div>
+
+        <p style="margin-top: 2rem">The write contract is <strong>search → read → propose → review → apply</strong>. Application validates the entire candidate tree in a detached worktree, commits it, then compare-and-swaps the Git reference against an expected revision. A model-authored proposal cannot approve itself. This is intentionally slower than direct upsert—and much safer for shared organizational memory.</p>
+
+        <div class="grid two" style="margin-top: 2rem">
+          <article class="card">
+            <h3>Small-model restraint</h3>
+            <p>Memento once tried a broader small-model planner. Its own evidence reported 38.1% tool accuracy and 85.7% valid JSON, with no useful UNKNOWN precision. The design retreated to six shallow routing actions, strict schema validation, and abstention; deterministic code owns state transitions. This is a rare, concrete example of replacing model judgment after it failed.</p>
+          </article>
+          <article class="card">
+            <h3>Security by dataflow</h3>
+            <p>Authorization filters candidates <em>before</em> scoring, so secret records cannot perturb visible rankings. Retrieved files, frontmatter, links, and model output are untrusted. Optional answer generation is evidence-scoped, revision-bound, citation-validated, and disabled in production without a trusted model.</p>
+          </article>
+        </div>
+
+        <div class="callout">
+          <span class="callout-title">Why it is distinctive</span>
+          <p>Most memory products optimize recall, then add governance. Memento begins with a state machine: proposals, revisions, identities, audit, atomic application, rollback, and rebuild. Its local model is a replaceable advisory component, not the keeper of truth.</p>
+        </div>
+
+        <div class="pros-cons">
+          <div><b>Strengths</b><p>Human repairability; stable identity across rename; explicit conflict semantics; rebuildable indexes; provenance and rollback; pre-ranking authorization; conservative model boundary; local-first operation.</p></div>
+          <div><b>Weaknesses</b><p>Single writer; Git/worktree operational weight; current rename scan; roughly 10k-concept initial target; reader-checkout refresh is not atomic; small maintainer base and no large independent evaluation.</p></div>
+        </div>
+
+        <p class="small" style="margin-top: 1.5rem">Release 0.3.23’s reported evidence—23 concepts, 15 synthetic queries, lexical top-5 recall 0.8333 and hybrid 0.8974—is an engineering smoke test, not a scientific comparison. A 250-concept local load test reported direct-query p50 2.435 ms, p95 81.382 ms, p99 336.447 ms. Useful, but far below production-scale proof. <a class="cite" href="#ref-memento">[R16]</a></p>
+      </section>
+
+      <section class="section" id="knowledge-base-ingest">
+        <div class="section-head">
+          <div><span class="section-number">07</span><p class="section-kicker">Deep dive</p></div>
+          <div>
+            <h2>Knowledge Base Ingest: memory as a provable source graph</h2>
+            <p class="section-intro">This local project is best understood as a source-grounded semantic-memory compiler: an agent supplies judgment, while deterministic code refuses knowledge that cannot be traced to immutable evidence.</p>
+          </div>
+        </div>
+
+        <div class="project-head">
+          <h3>knowledge-base-ingest</h3>
+          <span class="evidence strong">provenance-first</span>
+          <span class="evidence mixed">experimental v0.1</span>
+        </div>
+        <p class="project-meta">Audited local commit <code>b26dce4</code> · 7 August 2026 · TypeScript/Node 20+ · Zod · better-sqlite3/FTS5 · Claude Code skills · no license declaration found</p>
+
+        <div class="callout">
+          <span class="callout-title">Category boundary</span>
+          <p>This is not autobiographical agent memory. It does not remember conversations, preferences, task checkpoints, or successful trajectories, and it is not automatically injected into a new chat. It compiles a finite source corpus into <strong>external semantic and organizational memory</strong>: claims, a synthesis hierarchy, entities, relationships, conflicts, open questions, and the evidence behind them.</p>
+        </div>
+
+        <h3 style="margin-top: 3rem">The compilation pipeline</h3>
+        <div class="architecture" aria-label="Knowledge Base Ingest data path">
+          <div class="layer"><span class="layer-no">01</span><h3>Preserve</h3><p>Hash the original bytes; store an immutable, content-addressed source and versioned canonical text.</p></div>
+          <div class="layer"><span class="layer-no">02</span><h3>Index</h3><p>Deterministically tile text into structure-aware chunks and synchronize FTS5 through SQL triggers.</p></div>
+          <div class="layer"><span class="layer-no">03</span><h3>Propose</h3><p>The coding agent submits typed JSON for the hierarchy, claims, relationships, and synthesis.</p></div>
+          <div class="layer"><span class="layer-no">04</span><h3>Prove</h3><p>Zod, exact unique-quote resolution, scope checks, and one immediate transaction accept or reject the batch.</p></div>
+          <div class="layer"><span class="layer-no">05</span><h3>Project</h3><p>Queries return claims plus quotes; a deterministic Markdown tree renders the human view and exposes drift.</p></div>
+        </div>
+
+        <div class="grid three" style="margin-top: 2rem">
+          <article class="card accent-top">
+            <p class="card-label">Evidence plane</p>
+            <p>Original files, canonical text, chunks, and exact spans are separate from model-authored interpretation. A span stores absolute offsets and a quote hash; the CLI derives both.</p>
+          </article>
+          <article class="card blue-top">
+            <p class="card-label">Knowledge plane</p>
+            <p>SQLite is authoritative for claims, claim–span edges, the arbitrary-depth synthesis tree, graph relationships, currentness, reviews, and change records.</p>
+          </article>
+          <article class="card teal-top">
+            <p class="card-label">Projection plane</p>
+            <p><code>kb/</code> is a deterministic read-only render with claim footnotes. Humans can inspect it, but edits are overwritten; <code>render --check</code> detects divergence.</p>
+          </article>
+        </div>
+
+        <p style="margin-top: 2rem">The normal claim path is deliberately fail-closed. The agent supplies a chunk ID and quotation; code must find that quote exactly once inside the chunk, derive absolute UTF-16 offsets, recheck the canonical text, validate all citations, then persist the entire batch or none of it. Sources and natural keys are content-derived; mutations use <code>BEGIN IMMEDIATE</code>; dry runs can be bound to an expected payload digest; synthesis writes require the previously read body hash. The database enables foreign keys, strict tables, WAL, a five-second busy timeout, and pre-migration backups.</p>
+
+        <div class="callout">
+          <span class="callout-title">Most distinctive mechanism: review that expires correctly</span>
+          <p>Coverage exceptions, possible-duplicate coexistence decisions, and relationship reviews are immutable records bound to a fingerprint of the exact subject being reviewed. If the evidence or subject changes, the old acceptance no longer matches and the question reopens. Likewise, “source finalized” is not a permanent done bit: readiness is recomputed across integrity, extraction, judgment, and synthesis. This is materially stronger than a passive <code>verified: true</code> field.</p>
+        </div>
+
+        <div class="pros-cons">
+          <div>
+            <b>Strengths</b>
+            <ul class="plain-list">
+              <li><strong>Structural provenance:</strong> fabricated quotations and dangling evidence cannot pass normal claim or relationship writes.</li>
+              <li><strong>Clean division of labor:</strong> the model chooses and interprets; code owns hashing, schemas, offsets, transactions, staleness, drift, and verification.</li>
+              <li><strong>Evidence survives synthesis:</strong> claims, conflicts, superseded sources, and exact spans remain inspectable when prose is regenerated.</li>
+              <li><strong>Currentness is active:</strong> source/claim supersession, conflicted status, recursive stale-node propagation, successor lookup, and fingerprinted reviews affect workflow behavior.</li>
+              <li><strong>Safe local writes:</strong> atomic batches, idempotent IDs, dry runs, optimistic hashes, path containment, FTS triggers, and source-file race handling reduce agent-caused corruption.</li>
+              <li><strong>Agent-readable interface:</strong> generated help, typed issue codes, bounded results, continuation actions, and uniform JSON envelopes reduce prompt bookkeeping.</li>
+              <li><strong>Small infrastructure:</strong> no hosted model, embedding API, graph server, or vector database is required.</li>
+            </ul>
+          </div>
+          <div>
+            <b>Weaknesses</b>
+            <ul class="plain-list">
+              <li><strong>A quotation is not entailment:</strong> a real sentence can still be summarized incorrectly. <code>answer-check</code> verifies citation structure and current status, not meaning.</li>
+              <li><strong>Formation is expensive:</strong> the agent must inspect chunks, author claims/graph payloads, adjudicate candidates, synthesize bottom-up, and clear finalization gates.</li>
+              <li><strong>Recall is lexical:</strong> BM25/FTS5 is strong for identifiers but misses paraphrase; the graph is not traversed or ranked during retrieval.</li>
+              <li><strong>The database is irreplaceable:</strong> Markdown cannot rebuild the KB, raw sources cannot reconstruct model judgments, and the changelog is not a replayable event log.</li>
+              <li><strong>Single-user and local:</strong> no API/MCP transport, authenticated identity, curator separation, RBAC, encryption, remote sync, or distributed write protocol.</li>
+              <li><strong>Security stops short of trust:</strong> source paths are contained, but there is no quarantine, source-trust class, instruction/data separation, or prompt-injection policy.</li>
+              <li><strong>No forgetting policy:</strong> supersession preserves history; there is no retention, expiry, privacy erasure, or access-sensitive recall lifecycle.</li>
+              <li><strong>Input and ontology limits:</strong> binary documents need a sidecar transcription; entity matching is exact/lightly normalized; graph vocabulary is advisory.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout warning">
+          <span class="callout-title">Two provenance exceptions matter</span>
+          <p>First, exact evidence proves that a quote exists, not that a model-authored claim is a fair implication. Second, entity descriptions are not span-backed: they record a first-seen source but can contain agent-authored prose without an exact quotation. The broad slogan “every generated part traces to a source” is therefore directionally right for claims, relationships, and cited synthesis, but too strong for every rendered statement. The current verifier also rechecks spans against canonical database text, not the entire stored original against its raw hash; tampering outside cited regions can escape that audit.</p>
+        </div>
+
+        <h3 style="margin-top: 3rem">Similarities and differences</h3>
+        <div class="table-wrap">
+          <table>
+            <caption>Knowledge Base Ingest compared with the closest architectures in this report.</caption>
+            <thead><tr><th>Compared with</th><th>What is similar</th><th>What Knowledge Base Ingest does differently</th><th>Trade-off</th></tr></thead>
+            <tbody>
+              <tr><td>Memento</td><td>Local durable knowledge; agent proposals; deterministic validation; SQLite/FTS; provenance and review</td><td>SQLite and immutable sources are canonical; Markdown is derived. Claims require exact quotes. Review has no authenticated actor or curator separation.</td><td>KBI is narrower and stronger at source grounding; Memento is stronger at organizational governance, revision-safe Git, authorization, rollback, and rebuild.</td></tr>
+              <tr><td>MCP Memory</td><td>Local SQLite/FTS5, human-readable Markdown projection, explicit agent tooling, provenance orientation</td><td>A normalized domain model, immutable corpus, span proof, transactions, conflicts, synthesis, graph, and active review gates replace generic OKF records. Interface is CLI/skills, not MCP.</td><td>Far stronger invariants and much higher ingestion cost; much less cross-client portability and no personal-fact/checkpoint use case.</td></tr>
+              <tr><td>LLM Wiki / ByteRover</td><td>Hierarchical, agent-curated, human-readable technical knowledge with progressive drill-down</td><td>The tree is a generated view, not the editable/canonical artifact. Claims and source spans live below prose; lifecycle decisions are database-enforced.</td><td>Better auditability and atomicity; worse Git-native diff, merge, repair, and direct file portability.</td></tr>
+              <tr><td>Graphiti</td><td>Entities, relationships, provenance, contradiction/supersession, evolving knowledge</td><td>A secondary SQLite graph with exact quote-backed relations, not a bi-temporal graph with entity resolution, temporal traversal, hybrid search, and rerankers.</td><td>Simpler and more inspectable; weaker for changing multi-hop relationships and semantic questions.</td></tr>
+              <tr><td>Mem0</td><td>Distills source material into durable semantic facts and retrieves a bounded subset</td><td>Explicit corpus workflow, lexical search, hard evidence, and explicit conflict review instead of automatic conversation extraction and vector-first personalization.</td><td>Trustworthy lineage and user effort rise together; it is not a low-friction personal-memory API.</td></tr>
+              <tr><td>Claude Code / Codex</td><td>Coding agents can consult persistent local state across otherwise fresh contexts</td><td>Nothing is automatically captured or recalled; the KB is queried on demand and is optimized for sourced technical knowledge rather than habits, preferences, or continuity.</td><td>Much stronger provenance; much weaker immediacy and no complete working/episodic memory loop.</td></tr>
+              <tr><td>Cognee</td><td>Document ingestion, graph construction, and retrieval over technical knowledge</td><td>A narrow SQLite/FTS system with one explicit evidence contract rather than pluggable graph/vector stores, ontologies, pipelines, and integrations.</td><td>Smaller trust and operations surface; far less semantic infrastructure, connector breadth, and deployment flexibility.</td></tr>
+              <tr><td>Letta / learned controllers</td><td>External state can alter later agent behavior</td><td>Hand-designed, deterministic formation and lifecycle; no autonomous paging, reflection, eviction, latent memory, learned admission, or RL controller.</td><td>Auditable and predictable, but less adaptive and not an agent “operating system.”</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid two" style="margin-top: 2rem">
+          <article class="card">
+            <h3>Evidence and maturity</h3>
+            <p>In a fresh isolated clone of this commit, all <strong>987 tests across 91 files passed</strong>; strict type-checking also passed. The checked-in paired skill evaluation ran six isolated agent sessions—old versus revised skills over creation, ingestion, and query—and all reached their terminal correctness gates; revised skills reduced payload retries from two to zero while invocation counts were effectively flat. A separate two-source CLI evaluation exercised supersession, coverage, quote provenance, strict verification, and render drift. These are unusually strong product-level mechanics tests, not an independent memory benchmark.</p>
+          </article>
+          <article class="card">
+            <h3>Observed retrieval limits</h3>
+            <p>The project’s own evaluation found that claim-type-filtered <code>ask-context</code> under-returned for category questions and needed a node fallback. It also found that structural answer checking can reject a harmless framing sentence. The retrieval fixture is eight queries, so there is no evidence yet for large-corpus recall, semantic robustness, latency distribution, or improved downstream coding outcomes.</p>
+          </article>
+        </div>
+
+        <p class="small" style="margin-top: 1.5rem">Bottom line: this is one of the strongest inspected demonstrations of <strong>P02, preserve evidence separately from synthesis</strong>, <strong>P05, compute currentness from evidence and review</strong>, and <strong>P09, keep the model advisory where code can decide</strong>. It makes P07’s canonical/derived boundary unusually clear, but not yet its recoverability promise because the database cannot be rebuilt from sources and Markdown. It is best for technical or research knowledge whose claims must be auditable. It should complement—not replace—a coding agent’s working context, checkpoints, repository instructions, procedural skills, or personal cross-chat memory. <a class="cite" href="#ref-kbi">[R34]</a></p>
+      </section>
+
+      <section class="section" id="other-projects">
+        <div class="section-head">
+          <div><span class="section-number">08</span><p class="section-kicker">Other architectures</p></div>
+          <div>
+            <h2>What the major project families teach</h2>
+            <p class="section-intro">Each project makes one or two architectural bets unusually clear. Their lessons are more useful than a winner-take-all ranking.</p>
+          </div>
+        </div>
+
+        <div class="grid two">
+          <article class="card">
+            <div class="project-head"><h3>Letta / MemGPT</h3><span class="evidence early">OS metaphor</span></div>
+            <p>Core blocks remain in prompt; archival passages live behind vector search; raw messages remain in recall memory. The agent pages information through tools, making memory part of its control loop. This is the foundational “virtual context” design. Letta’s legacy V1 server persists agents, blocks, histories, messages, passages, and archives in SQL.</p>
+            <p><strong>Lesson:</strong> a hot/cold hierarchy is powerful, but autonomous paging and self-editing make errors difficult to observe. <a class="cite" href="#ref-memgpt">[R4]</a></p>
+          </article>
+          <article class="card">
+            <div class="project-head"><h3>Letta Code</h3><span class="evidence early">agent-owned files</span></div>
+            <p>Current Letta moves coding memory into a Git-backed filesystem. Small <code>system/</code> files compile into the prompt; larger reference files stay detached. Reflection/history subagents use worktrees; <code>/sleeptime</code> consolidates offline and <code>/doctor</code> reorganizes.</p>
+            <p><strong>Lesson:</strong> file ownership, history, and offline reflection fit coding well. Treating memory as agent identity can also turn uncertain inference into persistent behavioral bias. <a class="cite" href="#ref-letta-code">[R19]</a></p>
+          </article>
+          <article class="card">
+            <div class="project-head"><h3>Mem0 OSS v3</h3><span class="evidence mixed">fact extraction</span></div>
+            <p>One LLM pass extracts additive facts, embeds them, and scopes them by user, agent, or run. Search fuses vectors, provider keyword/BM25, entity overlap, and optional reranking. Unlike the older paper algorithm, current OSS v3 does not automatically update/delete earlier facts; contradictions accumulate as history.</p>
+            <p><strong>Lesson:</strong> a tiny API wins adoption, but paper, hosted platform, and current OSS behavior must be separated. ADD-only lowers write latency while moving contradiction resolution downstream. <a class="cite" href="#ref-mem0">[R20]</a></p>
+          </article>
+          <article class="card">
+            <div class="project-head"><h3>Graphiti</h3><span class="evidence mixed">bi-temporal graph</span></div>
+            <p>Episodes preserve source evidence; entity nodes evolve; fact edges carry valid, invalid, expired, created, and reference times. Ingestion resolves entities, detects contradictions, and invalidates old edges without erasing them. Search combines embeddings, full text, traversal, RRF/MMR/cross-encoder options.</p>
+            <p><strong>Lesson:</strong> time and provenance deserve first-class representation when relationships change. The cost is multiple extraction calls, entity-resolution error, and graph operations. <a class="cite" href="#ref-graphiti">[R21]</a></p>
+          </article>
+          <article class="card">
+            <div class="project-head"><h3>LangMem</h3><span class="evidence early">toolkit</span></div>
+            <p>LangMem cleanly separates semantic facts/profiles, episodic examples, and procedural prompt optimization. Managers can insert/update/delete structured schemas in the hot path or via background reflection; persistence is delegated to LangGraph’s cross-thread store rather than its thread checkpointer.</p>
+            <p><strong>Lesson:</strong> foreground versus background writing is a real freshness/latency trade-off. A taxonomy and primitives are not a governance layer. <a class="cite" href="#ref-langmem">[R22]</a></p>
+          </article>
+          <article class="card">
+            <div class="project-head"><h3>ByteRover</h3><span class="evidence early">coding Context Tree</span></div>
+            <p>Knowledge lives under <code>.brv/context-tree</code> in typed <code>&lt;bv-topic&gt;</code> HTML, organized hierarchically and searched with MiniSearch, paths, relations, and lifecycle signals. Native execution has five tiers from cache to agentic retrieval; external MCP/tool mode intentionally uses only deterministic tiers 0–2 and leaves synthesis to the caller.</p>
+            <p><strong>Lesson:</strong> progressive retrieval, OOD abstention, review, and lossless archive are compelling. Inspect source: the paper’s Markdown format, title boost, thresholds, shared lifecycle state, and five-tier common path do not all match shipping code. Elastic-2.0 is source-available, not OSI open source. <a class="cite" href="#ref-byterover">[R23]</a></p>
+          </article>
+          <article class="card">
+            <div class="project-head"><h3>Karpathy’s LLM Wiki + OKF</h3><span class="evidence early">file-first idea</span></div>
+            <p>The LLM Wiki proposal places an agent-maintained linked Markdown layer between immutable raw sources and users, with content indexes, chronological logs, Git history, linting, and optional hybrid search later. Google’s OKF supplies a portable frontmatter vocabulary for type, source, generator, verification, lifecycle, and attested computation.</p>
+            <p><strong>Lesson:</strong> human-readable source plus rebuildable retrieval is an excellent default. “Near-zero” LLM bookkeeping cost and autonomous editorial quality at large scale remain hypotheses. <a class="cite" href="#ref-llm-wiki">[R17]</a> <a class="cite" href="#ref-okf">[R18]</a></p>
+          </article>
+          <article class="card">
+            <div class="project-head"><h3>Cognee · MemOS · A-MEM</h3><span class="evidence early">research frontier</span></div>
+            <p>Cognee offers broad graph/vector/ontology pipelines and coding hooks. MemOS spans textual, KV-cache/activation, and LoRA/parametric memories in MemCubes. A-MEM grows a Zettelkasten-like network by having an LLM link and rewrite nearby vector-retrieved notes.</p>
+            <p><strong>Lesson:</strong> these broaden the design space, but breadth is not maturity. Current evidence is mostly project-authored; A-MEM in particular lacks production durability, concurrency, provenance, and governance. <a class="cite" href="#ref-research-projects">[R24]</a></p>
+          </article>
+        </div>
+
+        <details>
+          <summary>ByteRover: paper versus inspected source</summary>
+          <div class="details-body">
+            <div class="table-wrap" style="margin:0">
+              <table>
+                <caption>Differences between the ByteRover paper narrative and the inspected product path.</caption>
+                <thead><tr><th>Claim or design</th><th>Inspected source</th><th>Implication</th></tr></thead>
+                <tbody>
+                  <tr><td>Markdown Context Tree leaves</td><td>Typed HTML <code>&lt;bv-topic&gt;</code> leaves; Markdown summaries/stubs remain</td><td>Architecture migrated; some tooling still assumes older format</td></tr>
+                  <tr><td>Five-tier retrieval</td><td>Implemented natively; common external coding-agent tool mode stops after tiers 0–2</td><td>Caller model performs synthesis; paper path is not universal product path</td></tr>
+                  <tr><td>Lifecycle shared with memory</td><td>Usage/importance signals moved to a per-machine sidecar</td><td>Fewer Git conflicts, but collaborators rank the same corpus differently</td></tr>
+                  <tr><td>Title boost 5× / OOD 0.6</td><td>Current title boost 3×; OOD floor around 0.45</td><td>Implementation drift must be versioned in evaluations</td></tr>
+                  <tr><td>Performance and benchmark claims</td><td>No full harness/output in repo; caches disabled in benchmark; cold p50 ≈1.2–1.6s</td><td>Published scores are promising, author-run, and not independently reproducible here</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="coding-products">
+        <div class="section-head">
+          <div><span class="section-number">09</span><p class="section-kicker">Coding products</p></div>
+          <div>
+            <h2>Codex and Claude Code: similar layers, different control</h2>
+            <p class="section-intro">Both separate durable instructions from generated recall. Codex emphasizes asynchronous extraction/consolidation and provenance; Claude Code emphasizes direct, editable Markdown and a compact per-repository index.</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <span class="callout-title">Reflection from inside this Codex run</span>
+          <p>This report exercised three distinct mechanisms. The live conversation and tool outputs were working context. When that context became large, a continuity summary preserved the research goal, source map, delegated work, and remaining tasks—but not every raw passage; details sometimes had to be reopened. That is lossy same-task compaction. Cross-conversation Codex Memories are a separate, optional background system, and the user-supplied <code>AGENTS.md</code> is a third mechanism: explicit authority. Treating these as one “memory” would obscure their different guarantees.</p>
+        </div>
+
+        <div class="grid two">
+          <article class="card">
+            <div class="project-head"><h3>Codex Memories</h3><span class="evidence early">off by default</span></div>
+            <p>Eligible completed root sessions are processed asynchronously in two phases. Phase 1 extracts a raw memory and rollout summary using strict structured output after filtering developer messages, reasoning, compaction artifacts, injected instructions, and skill fragments; inputs and outputs are secret-redacted. Phase 2 selects bounded candidates and gives a dedicated consolidation agent a restricted memory workspace.</p>
+            <p>The generated state is local under <code>~/.codex/memories/</code> and separate from ChatGPT web memory. Per-chat controls independently govern whether a conversation may use memory and whether it may contribute to future memory.</p>
+            <p>The consolidator is ephemeral and cannot use memories, apps, MCP, plugins, collaboration, approvals, or the network. Generated Markdown preserves source thread, time, rollout path, working directory, and Git branch. A small <code>memory_summary.md</code> is injected with a 2,500-token cap; the read path then searches <code>MEMORY.md</code> and opens at most one or two relevant rollout summaries or skills.</p>
+            <p>Retrieval is bounded lexical search, not embeddings. Path access rejects roots, traversal, hidden components, prefix escape, and symlinks. Direct “remember this” requests become validated timestamped notes, and stored content is framed as information—not trusted actions.</p>
+          </article>
+          <article class="card">
+            <div class="project-head"><h3>Claude Code memory</h3><span class="evidence early">auto memory on</span></div>
+            <p>Claude Code starts each session fresh, then layers human-authored <code>CLAUDE.md</code> guidance and agent-authored auto memory. Instructions can be managed, user, project, or local; nested files load as the agent enters directories, and <code>@</code> imports compose guidance.</p>
+            <p>Auto memory is machine-local under <code>~/.claude/projects/&lt;project&gt;/memory/</code> and shared by worktrees of the same repository. A concise <code>MEMORY.md</code> index is loaded every session—up to the first 200 lines or 25 KiB—and topic files are read on demand. Files are plain Markdown, visible, editable, and deletable through normal tools or <code>/memory</code>.</p>
+            <p>Compaction is separate: it clears older tool output and summarizes conversation state. Root project guidance survives, while conversation-only instructions can be lost. Claude’s docs likewise describe memory as context, not enforcement; permissions, hooks, and checked-in rules own hard constraints.</p>
+          </article>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Current public behavior and inspected Codex source as of the report date.</caption>
+            <thead><tr><th>Dimension</th><th>Codex</th><th>Claude Code</th><th>Design implication</th></tr></thead>
+            <tbody>
+              <tr><td>Cross-chat default</td><td>Feature off by default</td><td>Auto memory enabled by default</td><td>Consent and surprise differ even when both are local</td></tr>
+              <tr><td>Write path</td><td>Idle background extraction → bounded consolidation</td><td>Agent writes Markdown during work</td><td>Background work lowers interaction latency; direct writes are fresher</td></tr>
+              <tr><td>Bootstrap budget</td><td><code>memory_summary.md</code>, max 2,500 tokens</td><td>First 200 lines / 25 KiB of <code>MEMORY.md</code></td><td>Both use a small index and progressive disclosure</td></tr>
+              <tr><td>Evidence</td><td>Rollout/thread provenance, cwd, branch, timestamp</td><td>Plain topic files; no required per-claim schema</td><td>Provenance makes drift and repair more tractable</td></tr>
+              <tr><td>Controls</td><td>Per-chat use vs contribute; external-context exclusion; local settings</td><td>Inspect/edit/delete and auto-memory toggle</td><td>Generation and use should be independently controllable</td></tr>
+              <tr><td>Durable rules</td><td>Hierarchical <code>AGENTS.md</code>, 32 KiB combined default</td><td>Hierarchical <code>CLAUDE.md</code> plus permissions/hooks</td><td>Generated memory is never the only home for must-follow policy</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid two">
+          <article class="card">
+            <h3>What Codex gets right</h3>
+            <p>It separates contribution from use; excludes risky external-context sessions by configuration; filters instruction artifacts from extraction; isolates the consolidation agent; stores evidence; bounds every read; and directs the agent to verify drift-prone memory against the current repository.</p>
+          </article>
+          <article class="card">
+            <h3>What remains uncertain</h3>
+            <p>Extraction is eventually consistent and can skip active or short sessions. Secret redaction and synthesis are not infallible. Local state is device-bound. The compact summary still primes every opted-in chat, and public evidence does not yet establish its task-level benefit, false-memory rate, or long-term repair quality.</p>
+          </article>
+        </div>
+
+        <h3 style="margin-top:3rem">Other coding-agent choices</h3>
+        <div class="table-wrap">
+          <table>
+            <caption>Other coding products illustrate different balances of ambient recall and explicit rules.</caption>
+            <thead><tr><th>Product</th><th>Current philosophy</th><th>Freshness / control</th><th>Assessment</th></tr></thead>
+            <tbody>
+              <tr><td>GitHub Copilot Memory</td><td>Shared repository facts with code citations; personal cross-repo preferences</td><td>Checks facts against current branch; 28-day unused expiry; review/delete/export/admin controls</td><td>Strong lifecycle ideas, but closed service and improvements are vendor-reported</td></tr>
+              <tr><td>Cursor</td><td>Rules are clear; general Chat Memories’ current status is ambiguous; Automations advertise run memory</td><td>Historical sidecar proposed project memories for approval; current schema/retention not public</td><td>Do not design against an undocumented or shifting product surface</td></tr>
+              <tr><td><a href="https://docs.windsurf.com/windsurf/cascade/memories">Windsurf Cascade</a></td><td>Automatically generated, local, workspace-scoped memories alongside explicit Rules, Skills, and <code>AGENTS.md</code></td><td>Docs recommend versioned Rules or <code>AGENTS.md</code> for durable, shared knowledge</td><td>A first-party endorsement of using ambient memory for facts and explicit artifacts for reliable policy</td></tr>
+              <tr><td><a href="https://docs.cline.bot/improving-your-prompting-skills/cline-memory-bank">Cline Memory Bank</a></td><td>Six conventional Markdown files describing project and active state</td><td>Human/agent maintenance; read-all prompt</td><td>Portable and transparent, but no ranking, expiry, evidence, or conflict policy</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="small" style="margin-top:1.5rem">Official sources: <a href="https://learn.chatgpt.com/docs/customization/memories">Codex Memories</a>, <a href="https://learn.chatgpt.com/docs/agent-configuration/agents-md">Codex AGENTS.md</a>, <a href="https://code.claude.com/docs/en/memory">Claude Code memory</a>, <a href="https://code.claude.com/docs/en/how-claude-code-works">Claude Code context and compaction</a>. Source audit: <a href="https://github.com/openai/codex/tree/cbe85e117b1db59cdbe8175c59793c3cf2a4a7b8/codex-rs/memories">Codex memory subsystem</a>. <a class="cite" href="#ref-codex">[R25]</a> <a class="cite" href="#ref-claude">[R26]</a></p>
+      </section>
+
+      <section class="section" id="coding-agents">
+        <div class="section-head">
+          <div><span class="section-number">10</span><p class="section-kicker">Coding-agent focus</p></div>
+          <div>
+            <h2>What should a coding agent remember?</h2>
+            <p class="section-intro">Coding work has unusually strong external truth: the repository, compiler, tests, issue tracker, deployment, and runtime. A good memory architecture exploits that instead of building a shadow codebase.</p>
+          </div>
+        </div>
+
+        <div class="grid four">
+          <article class="card accent-top"><p class="card-label">1 · Invariants</p><p>Build/test commands, policy, architecture boundaries, safety rules. <strong>Home:</strong> checked-in <code>AGENTS.md</code>, ADRs, schemas, tests, hooks. Reviewed; authoritative.</p></article>
+          <article class="card blue-top"><p class="card-label">2 · Task state</p><p>Goal, plan, changed files, failing check, next step. <strong>Home:</strong> live context + resumable checkpoint. Short-lived; replaceable.</p></article>
+          <article class="card teal-top"><p class="card-label">3 · Project model</p><p>Symbol map, ownership, subsystem relationships, operational facts. <strong>Home:</strong> generated index/wiki with source links, revision, and freshness.</p></article>
+          <article class="card gold-top"><p class="card-label">4 · Verified experience</p><p>Failure pattern, successful repair, reusable procedure, environment quirk. <strong>Home:</strong> evidence-linked episode or skill with test verdict and preconditions.</p></article>
+        </div>
+
+        <div class="callout warning">
+          <span class="callout-title">Do not copy the repository into memory</span>
+          <p>Code facts change too quickly. Store navigation cues, decisions, and verified lessons; resolve current symbols, APIs, tests, and configuration from the checked-out revision. This boundary was the strongest point of agreement in the HN discussion and is explicitly reinforced in Codex’s read-path instructions.</p>
+        </div>
+
+        <h3 style="margin-top:3rem">Evidence from coding tasks is mixed—and instructive</h3>
+        <div class="table-wrap">
+          <table>
+            <caption>Task-level studies are more informative than retrieval-only benchmarks. Most 2026 results are recent preprints and need replication.</caption>
+            <thead><tr><th>Study</th><th>Intervention</th><th>Observed result</th><th>What it supports</th><th>Confidence</th></tr></thead>
+            <tbody>
+              <tr><td>AGENTS.md / CTXBench</td><td>Generated or developer context files on repo tasks</td><td>Generated files increased steps/cost and reduced performance overall; developer files averaged +2.4%, not statistically significant</td><td>Short, earned instructions; measure context tax</td><td><span class="evidence mixed">mixed</span></td></tr>
+              <tr><td>CTIM-Rover</td><td>Cross-task distilled memory and retrieved exemplars</td><td>42% baseline; 40% with memory+exemplar; 31% CTIM-only on 45 cases</td><td>Irrelevant “clean” memory can prime the wrong code path</td><td><span class="evidence mixed">negative</span></td></tr>
+              <tr><td>PMCoder</td><td>Phase planner + phase-conditioned episodic retrieval + reproduction verdict</td><td>Reported +5.0 percentage points (+25 solved cases) on SWE-bench Verified</td><td>Memory works better when coupled to phase and external execution</td><td><span class="evidence early">preprint</span></td></tr>
+              <tr><td>SWE-MeM</td><td>Learned proactive/on-demand compression tool</td><td>Reported 43.4% (4B) and 60.2% (30B) SWE-bench Verified</td><td>Learning when/what to compress can beat static policies</td><td><span class="evidence early">preprint</span></td></tr>
+              <tr><td>MERIT</td><td>Oracle-verified positive/negative memories + failure classifier</td><td>Spider 66.34→69.79; BIRD 47.35→48.44</td><td>Outcome labels and causal failure type matter more than raw similarity</td><td><span class="evidence early">preprint</span></td></tr>
+              <tr><td>Voyager / MemP</td><td>Executable skill library or distilled procedural scripts</td><td>Large reported gains in Minecraft; transfer gains in planning environments</td><td>Procedures are high-value memory when environment feedback verifies them</td><td><span class="evidence mixed">domain-bound</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>The result is not “memory hurts” or “memory helps.” <strong>Untargeted context hurts; task-conditioned, verified, appropriately typed memory can help.</strong> CTIM-Rover’s irrelevant memory biased the agent toward the wrong function and even superficial text changes altered search. PMCoder’s stronger result couples recall to a known execution phase, notices stuck states, and grounds promoted memory in reproduction. That is a lifecycle difference, not merely a better embedder.</p>
+
+        <div class="grid two" style="margin-top:2rem">
+          <article class="card">
+            <h3>A recommended coding record</h3>
+            <pre class="record" aria-label="Example coding memory record"><span class="key">kind:</span> <span class="value">verified_episode</span>
+<span class="key">scope:</span> repo:payments-api @ revision
+<span class="key">trigger:</span> retry loop + idempotency key
+<span class="key">claim:</span> duplicate capture came from …
+<span class="key">evidence:</span> [test path, failing log, patch]
+<span class="key">verdict:</span> test passed before/after reproduction
+<span class="key">preconditions:</span> provider v3; async worker
+<span class="key">supersedes:</span> memory-id-or-null
+<span class="key">review_after:</span> dependency upgrade</pre>
+          </article>
+          <article class="card">
+            <h3>Promotion rules</h3>
+            <ul class="plain-list">
+              <li>Do not promote ordinary code discovery; the code remains cheaper and fresher.</li>
+              <li>Promote a lesson only after a test, compiler, runtime, or human verdict establishes outcome.</li>
+              <li>Record the trigger and preconditions, not just the repair.</li>
+              <li>Keep negative episodes when they identify a recognizable failure mode.</li>
+              <li>Convert stable, repeatable procedure into a reviewed skill or deterministic script.</li>
+            </ul>
+          </article>
+        </div>
+
+        <p class="small">Sources: <a href="https://arxiv.org/abs/2602.11988">CTXBench/AGENTS.md study</a>, <a href="https://arxiv.org/abs/2505.23422">CTIM-Rover</a>, <a href="https://arxiv.org/abs/2608.06811">PMCoder</a>, <a href="https://arxiv.org/abs/2606.28434">SWE-MeM</a>, <a href="https://arxiv.org/abs/2608.05906">MERIT</a>, <a href="https://arxiv.org/abs/2305.16291">Voyager</a>, <a href="https://arxiv.org/abs/2508.06433">MemP</a>. <a class="cite" href="#ref-coding-evidence">[R27]</a></p>
+      </section>
+
+      <section class="section" id="philosophies">
+        <div class="section-head">
+          <div><span class="section-number">11</span><p class="section-kicker">Competing philosophies</p></div>
+          <div>
+            <h2>The disagreements are about control and truth</h2>
+            <p class="section-intro">Storage debates are proxies for deeper questions: who may write, what can be forgotten, whether history is rewritten, and whether memory is an instrument or part of the agent’s identity.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Each philosophy embraces useful principles and creates characteristic risks.</caption>
+            <thead><tr><th>Philosophy</th><th>Core claim</th><th>Exemplars</th><th>Principles it embraces</th><th>Characteristic failure</th></tr></thead>
+            <tbody>
+              <tr><td>Context maximalism</td><td>Preserve raw history; extraction loses truth</td><td>Long-context baseline, transcript replay</td><td>Evidence fidelity, simple write path</td><td>Unbounded token cost, distraction, poor deletion and cross-session control</td></tr>
+              <tr><td>Extract and retrieve</td><td>Convert experience into small reusable facts</td><td>Mem0, classic vector memories</td><td>Compression, scope, semantic recall</td><td>Extraction error and similarity masquerade as truth/relevance</td></tr>
+              <tr><td>Living documentation</td><td>Memory should be a human-readable maintained artifact</td><td>LLM Wiki, OKF, Claude, Letta Code, ByteRover</td><td>Inspectability, portability, version history</td><td>Editorial drift, merge conflict, self-reinforcing rewrites</td></tr>
+              <tr><td>Temporal graph</td><td>Facts are relationships with evidence and validity intervals</td><td>Graphiti</td><td>Provenance, contradiction, time, multi-hop structure</td><td>Extraction complexity and cascading entity-resolution errors</td></tr>
+              <tr><td>Agent-owned self</td><td>Memory is part of a continuing agent identity that it should curate</td><td>Letta Code, A-MEM</td><td>Continuity, autonomy, offline reflection</td><td>Speculation becomes identity; confirmation and popularity loops</td></tr>
+              <tr><td>Governed knowledge</td><td>Shared durable truth must be proposed, reviewed, versioned, and reversible</td><td>Memento</td><td>Authority, audit, least privilege, conflict control</td><td>Higher latency and operational/editorial overhead</td></tr>
+              <tr><td>Compiled evidence</td><td>Generated knowledge is an artifact that should pass deterministic source and freshness gates</td><td>Knowledge Base Ingest</td><td>Immutable evidence, typed admission, fail-closed provenance, reproducible projection</td><td>High formation cost; source quotation can still be misinterpreted; database becomes critical state</td></tr>
+              <tr><td>Learned controller</td><td>Optimize store/retrieve/update/forget as a policy</td><td>AgeMem, SWE-MeM</td><td>Task-conditioned behavior, end-to-end optimization</td><td>Opaque policy, training cost, distribution shift, weak user control</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid two">
+          <article class="card">
+            <h3>Rewrite or preserve contradictions?</h3>
+            <p>Mem0 v3 is predominantly additive: keep both facts and resolve later. Graphiti invalidates old facts while preserving their temporal history. Letta/ByteRover consolidate or reorganize. Add-only maximizes evidence but accumulates noise; rewrite keeps prompts clean but can erase nuance. The robust middle is <strong>append + supersede</strong>: immutable evidence, an explicit current view, and reversible consolidation.</p>
+          </article>
+          <article class="card">
+            <h3>Files or a service?</h3>
+            <p>Files/Git optimize ownership, diff, backup, and universal coding-agent access. A service optimizes cross-device availability, authorization, concurrency, and clients without a filesystem. The strongest hybrid makes a durable format canonical or exportable, gives API writes revisions/idempotency, and treats indexes as rebuildable.</p>
+          </article>
+        </div>
+
+        <div class="callout">
+          <span class="callout-title">Synthesis</span>
+          <p>The philosophies need not collapse into one. Personal coding memory can be agent-edited files; shared operational knowledge can require Memento-like review; high-value corpus claims can use Knowledge Base Ingest’s evidence compiler; time-varying customer facts can use a Graphiti-like model; high-volume personalization can use Mem0-like extraction. The unifying contract is typed authority, evidence, scope, revision, and bounded recall.</p>
+        </div>
+      </section>
+
+      <section class="section" id="principles">
+        <div class="section-head">
+          <div><span class="section-number">12</span><p class="section-kicker">Inferred principles</p></div>
+          <div>
+            <h2>Ten principles for building memory that ages well</h2>
+            <p class="section-intro">These principles recur in successful systems, are supported by negative results, or fall directly out of the security and lifecycle constraints.</p>
+          </div>
+        </div>
+
+        <div class="strategy">
+          <span class="strategy-id">P01</span><h3>Type memory by function, scope, and authority</h3>
+          <p>Working state, semantic fact, episode, procedure, preference, and prospective intention need different retention and retrieval. Include user/repo/team scope and classify the claim as observation, inference, reviewed knowledge, or policy. This prevents an anecdote from silently becoming a command.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">P02</span><h3>Preserve evidence separately from synthesis</h3>
+          <p>Keep immutable source turns, logs, files, test runs, and timestamps behind every distilled memory. A summary is a view, not the raw event. Provenance enables revalidation, explanation, deletion, and re-consolidation with a better model.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">P03</span><h3>Make admission stricter than retrieval</h3>
+          <p>Persistence amplifies mistakes and prompt injection across time. Before writing, evaluate reuse, novelty, confidence, trust origin, scope, sensitivity, and conflict. Untrusted web/tool output should enter quarantine or evidence storage—not developer-level prompt memory.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">P04</span><h3>Use progressive, task-conditioned retrieval</h3>
+          <p>Start with a tiny index or candidate outline; use exact identifiers/path/lexical matching first; add semantic or graph expansion when the query demands it; fetch full records last. Let task phase and expected action gate recall. Return omission handles, not ten full documents.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">P05</span><h3>Represent time and contradiction explicitly</h3>
+          <p>Record observed time, effective validity, source revision, expiration/review date, and supersession. Avoid destructive overwrite. “Current” should be a computed view over evidence and review—not the most recent model completion.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">P06</span><h3>Ground procedural memory in outcomes</h3>
+          <p>A model’s explanation of why a patch worked is not a verdict. Promote procedures only when tests, compiler, runtime, simulator, benchmark, or human review establish the result. Store preconditions and failure signatures alongside the steps.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">P07</span><h3>Separate canonical, control, and derived state</h3>
+          <p>Canonical content must be inspectable/exportable and recoverable. Journals, leases, authorization, and idempotency belong in control state. FTS/vector/graph indexes and caches should be rebuildable. Declare the authority and reconciliation rule for every duplicate representation.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">P08</span><h3>Apply identity and authorization before ranking</h3>
+          <p>Resolve project/user/tenant on the server; never accept arbitrary model-chosen paths as identity. Filter inaccessible candidates before scoring so secret material cannot influence visible rankings. Protect shared writes with expected revision, idempotency, or immutable events.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">P09</span><h3>Keep models advisory at state boundaries</h3>
+          <p>Models are excellent at extraction, classification, synthesis, and proposing links. Deterministic code should validate schemas, paths, revisions, state transitions, retention, permissions, and tool budgets. High-impact or shared memories need review.</p>
+        </div>
+        <div class="strategy">
+          <span class="strategy-id">P10</span><h3>Design for inspection, deletion, and evaluation</h3>
+          <p>Users need view/edit/delete/export/disable controls and clear use-versus-contribute settings. Operators need traces from source → memory → retrieval → action → outcome. Evaluate task quality, abstention, revision, privacy, cost, and latency against no-memory and full-context baselines.</p>
+        </div>
+      </section>
+
+      <section class="section" id="evidence">
+        <div class="section-head">
+          <div><span class="section-number">13</span><p class="section-kicker">Evidence verdict</p></div>
+          <div>
+            <h2>Accepted, rejected as defaults, and unresolved</h2>
+            <p class="section-intro">“Flawed” here means repeated empirical failure or a known structural defect in the naive form—not that no carefully bounded variant can ever work.</p>
+          </div>
+        </div>
+
+        <div class="verdict-grid">
+          <article class="verdict-card accepted">
+            <h3>Strong convergence</h3>
+            <ul>
+              <li>Small hot context + searchable cold memory</li>
+              <li>Explicit scope and memory type</li>
+              <li>Evidence/provenance behind synthesis</li>
+              <li>Progressive, bounded retrieval</li>
+              <li>Temporal revision and rollback</li>
+              <li>Exact + semantic retrieval where needed</li>
+              <li>External verification of procedures</li>
+              <li>User visibility, deletion, and export</li>
+              <li>End-task and lifecycle evaluation</li>
+            </ul>
+          </article>
+          <article class="verdict-card flawed">
+            <h3>Rejected as defaults</h3>
+            <ul>
+              <li>Load all accumulated memory every session</li>
+              <li>Embed everything + nearest neighbor = memory</li>
+              <li>Similarity = truth, importance, or relevance</li>
+              <li>Model self-report = successful experience</li>
+              <li>Shadow copy of a changing codebase</li>
+              <li>One irreversible summary of raw history</li>
+              <li>Passive <code>stale_after</code> metadata = freshness</li>
+              <li>Dual writes without canonical authority/reconciliation</li>
+              <li>Agent-chosen filesystem path = safe namespace</li>
+            </ul>
+          </article>
+          <article class="verdict-card uncertain">
+            <h3>Still unresolved</h3>
+            <ul>
+              <li>Agent self-curation vs separate extractor</li>
+              <li>Files vs temporal graph at real scale</li>
+              <li>Optimal decay and forgetting policy</li>
+              <li>Autonomous reflection/dream quality</li>
+              <li>Identity/persona memory’s net value</li>
+              <li>Learned controllers outside training distribution</li>
+              <li>Parametric/KV persistent memory portability</li>
+              <li>Git vs API/ETag under many writers</li>
+              <li>A trustworthy universal benchmark</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="callout warning">
+          <span class="callout-title">A qualified verdict on long context</span>
+          <p>Long context is not “disproven.” It is often the strongest baseline for factual recall while the complete evidence fits, and recent work reports GPT-5-mini full context outperforming memory systems on some benchmarks. It does not solve persistent cross-session state, privacy/erasure, cost growth, temporal revision, or prospective action. Benchmark it; do not confuse it with a lifecycle. <a class="cite" href="#ref-longcontext">[R33]</a></p>
+        </div>
+      </section>
+
+      <section class="section" id="architecture">
+        <div class="section-head">
+          <div><span class="section-number">14</span><p class="section-kicker">Reference architecture</p></div>
+          <div>
+            <h2>A trust-aware memory stack for coding agents</h2>
+            <p class="section-intro">This design composes the strongest ideas from the inspected systems while keeping the common case file-native and small.</p>
+          </div>
+        </div>
+
+        <div class="architecture" aria-label="Recommended coding-agent memory layers">
+          <div class="layer"><span class="layer-no">L0 · Authority</span><h3>Repo truth</h3><p>Code, tests, ADRs, AGENTS, policy, issue state. Live and versioned. Memory may point here, never override it.</p></div>
+          <div class="layer"><span class="layer-no">L1 · Working</span><h3>Task state</h3><p>Context, plan, scratch, resumable checkpoint. Compact aggressively; expire at task completion.</p></div>
+          <div class="layer"><span class="layer-no">L2 · Project</span><h3>Semantic map</h3><p>Generated navigation, components, owners, commands. Source-linked and revision-aware; rebuildable.</p></div>
+          <div class="layer"><span class="layer-no">L3 · Experience</span><h3>Verified episodes</h3><p>Problem, conditions, action, evidence, verdict. Retrieved by task phase and failure signature.</p></div>
+          <div class="layer"><span class="layer-no">L4 · Procedure</span><h3>Skills</h3><p>Reviewed scripts/playbooks with preconditions and checks. Versioned; shared only through approval.</p></div>
+        </div>
+
+        <div class="grid two">
+          <article class="card">
+            <h3>Write path</h3>
+            <ol class="compact-list">
+              <li>Capture immutable evidence with origin, scope, time, and revision.</li>
+              <li>Classify candidate kind and sensitivity; reject secrets and low-reuse detail.</li>
+              <li>Check novelty, contradiction, and existing supersession chain.</li>
+              <li>Generate a proposal; deterministic validators enforce schema/path/access.</li>
+              <li>Require external verdict for episodes and human review for shared/high-impact records.</li>
+              <li>Commit canonical content and journal atomically; update derived indexes afterward.</li>
+            </ol>
+          </article>
+          <article class="card">
+            <h3>Read path</h3>
+            <ol class="compact-list">
+              <li>Resolve user, repository, revision, task phase, and allowed scopes.</li>
+              <li>Search cheap exact/path/lexical indexes; add vector/graph expansion only as needed.</li>
+              <li>Gate candidates by trust, validity, task utility, and contradiction—not score alone.</li>
+              <li>Return a short outline with source, age, confidence, and handles.</li>
+              <li>Open one or two full records; verify drift-prone claims against L0 authority.</li>
+              <li>Log influence and outcome so use can trigger review—not blindly boost “importance.”</li>
+            </ol>
+          </article>
+        </div>
+
+        <h3 style="margin-top:3rem">Minimum durable record</h3>
+        <pre class="record" aria-label="Minimum durable memory schema"><span class="key">id:</span> <span class="value">stable opaque identifier</span>
+<span class="key">kind:</span> semantic | episode | procedure | preference | intention
+<span class="key">scope:</span> user | repo@revision | team | organization
+<span class="key">authority:</span> observed | inferred | verified | reviewed | policy
+<span class="key">claim:</span> concise statement or procedure reference
+<span class="key">evidence:</span> immutable source handles + quoted region hashes
+<span class="key">time:</span> observed_at, valid_from, valid_to, review_after
+<span class="key">lineage:</span> generated_by, supersedes, derived_from
+<span class="key">verdict:</span> verifier, outcome, environment, confidence
+<span class="key">access:</span> owner, readers, sensitivity, retention/delete state</pre>
+
+        <div class="callout">
+          <span class="callout-title">YAGNI path</span>
+          <p>Start with checked-in instructions, a bounded checkpoint, atomic evidence-linked Markdown, Git history, and lexical search. Add embeddings only after paraphrase failures are measured; add a graph only after temporal/multi-hop failures are measured; add autonomous consolidation only after manual curation becomes the bottleneck.</p>
+        </div>
+      </section>
+
+      <section class="section" id="evaluation">
+        <div class="section-head">
+          <div><span class="section-number">15</span><p class="section-kicker">Evaluation &amp; safety</p></div>
+          <div>
+            <h2>Measure memory as a behavior-changing system</h2>
+            <p class="section-intro">A top-k recall score cannot tell whether the agent stored the right thing, revised a contradiction, obeyed an old injection, or completed the future task.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Useful benchmarks illuminate different slices; none is a complete proxy for a deployed memory system.</caption>
+            <thead><tr><th>Benchmark</th><th>What it tests</th><th>Useful contribution</th><th>Blind spot</th></tr></thead>
+            <tbody>
+              <tr><td>LongMemEval</td><td>500 questions: extraction, multi-session reasoning, temporal reasoning, updates, abstention</td><td>Separates indexing, retrieval, and reading; introduced time-aware/session decomposition baselines</td><td>Mostly QA; modern long context can fit much of the corpus</td></tr>
+              <tr><td>MemoryAgentBench</td><td>Accurate retrieval, test-time learning, long-range understanding, selective forgetting</td><td>Forces incremental multi-turn memory and four distinct competencies</td><td>No method mastered all; benchmark remains synthetic relative to coding work</td></tr>
+              <tr><td>BEAM / LIGHT</td><td>Validated questions over conversations up to 10M tokens</td><td>Exposes degradation of long-context and RAG baselines; evaluates hierarchical episodic/working/scratchpad memory</td><td>Conversation setting, not repository/action outcome</td></tr>
+              <tr><td>EvoMemBench</td><td>15 methods across in/cross-episode and knowledge/execution axes</td><td>Shows retention is easier than revision; memory helps more under tight context and on harder tasks</td><td>Standardization cannot erase backend/model differences</td></tr>
+              <tr><td>STATE-Bench</td><td>Whether agents improve from experience on realistic enterprise tasks</td><td>Moves from “can it recall?” toward “did it learn usefully?”</td><td>New; ecosystem replication still developing</td></tr>
+              <tr><td>Prospective Memory Bench</td><td>Delayed intentions that must fire under future conditions</td><td>Surfaces a neglected memory function; no strategy dominates</td><td>Very recent; best reported GPT-5.4 result only 65.1 F1</td></tr>
+              <tr><td>MemoryArena</td><td>Interdependent multi-session agentic tasks</td><td>Tests memory in sequences where earlier actions change later requirements</td><td>Still an abstraction from production permissions and organizational state</td></tr>
+              <tr><td>SWE-bench + memory ablations</td><td>Repository issue resolution with tests</td><td>Strong external outcome for coding-specific episodic/procedural memory</td><td>Patch success alone does not measure privacy, cross-task transfer, or long-term drift</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:3rem">A minimum evaluation protocol</h3>
+        <div class="grid three">
+          <article class="card"><p class="card-label">1 · Baselines</p><p>Compare no memory, full available history, a concise human note, and the proposed system. Keep agent model, tool harness, token budget, and repository revision fixed.</p></article>
+          <article class="card"><p class="card-label">2 · Lifecycle</p><p>Measure capture precision, recall@budget, contradiction revision, temporal validity, abstention, deletion completeness, and recovery from corrupt/poisoned state.</p></article>
+          <article class="card"><p class="card-label">3 · Outcomes</p><p>Track task success, repeated failure, steps, wall time, model/tool tokens, write cost, latency percentiles, and human repair effort across many future tasks.</p></article>
+        </div>
+
+        <div class="callout warning">
+          <span class="callout-title">Leaderboard caution</span>
+          <p>An independent, reproducible 2026 audit of LoCoMo reports 99 errors among 1,540 gold answers (6.4%) and a judge accepting 62.81% of intentionally wrong vague answers, alongside inconsistent token/call accounting and omitted categories. It is not peer-reviewed and does not invalidate every LoCoMo experiment; it does invalidate treating small vendor score differences as settled fact. Cross-paper tables with different backbones, prompts, judges, and product versions are not rankings. <a class="cite" href="#ref-locomo-audit">[R32]</a></p>
+        </div>
+
+        <h3 style="margin-top:3rem">Persistent memory creates persistent attack surface</h3>
+        <p>Recent “Zombie Agents,” sleeper-memory, and memory-poisoning studies demonstrate the core threat: a one-time indirect prompt injection can be distilled into long-lived state and reactivated in later clean conversations. Repeated consolidation can strengthen the malicious instruction. Session-level input filters are therefore insufficient; security must cover admission, storage, retrieval, action, and repair. <a class="cite" href="#ref-security">[R14]</a></p>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Memory threats persist across sessions, so controls must cover the full lifecycle.</caption>
+            <thead><tr><th>Threat</th><th>Failure path</th><th>Required control</th></tr></thead>
+            <tbody>
+              <tr><td>Indirect prompt injection</td><td>Untrusted web/tool text becomes durable instruction</td><td>Origin labels; content/instruction separation; quarantine; high-impact review; retrieval framing as untrusted data</td></tr>
+              <tr><td>Cross-scope leakage</td><td>User/repo/tenant memory retrieved in another scope</td><td>Server-owned identity; explicit ACL; pre-ranking authorization; tenant-isolated encryption and logs</td></tr>
+              <tr><td>Sleeper poisoning</td><td>Dormant trigger survives until future context</td><td>Admission classifier, evidence linkage, trigger-pattern audits, memory-delta review, rollback and kill switch</td></tr>
+              <tr><td>Stale operational fact</td><td>Old command or environment detail causes destructive action</td><td>Validity/review date; verify against live system; action approval; low authority for generated recall</td></tr>
+              <tr><td>Filesystem escape</td><td>Model-selected key/path writes outside store</td><td>Opaque IDs; server-resolved roots; no raw path parameters; traversal/symlink containment checks</td></tr>
+              <tr><td>Privacy/erasure failure</td><td>Deleted fact remains in raw logs, embeddings, Git, cache, or model prompt</td><td>Retention map across all derivatives; tombstone propagation; reindex/rewrite policy; export/delete verification</td></tr>
+              <tr><td>Popularity loop</td><td>Frequently retrieved false memory gains weight and crowds out truth</td><td>Do not equate access with confidence; weight verified outcome; exploration and periodic audit</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <span class="callout-title">Privacy architecture</span>
+          <p>Prefer local storage for personal memory, redact secrets before extraction, minimize retained raw text, separate billing/organization identities, and make “may use” independent from “may contribute.” For sensitive domains, keep identifiers inside a trusted boundary and hydrate only the minimum purpose-specific context on return.</p>
+        </div>
+
+        <p class="small">Benchmark sources: <a href="https://mlanthology.org/iclr/2025/wu2025iclr-longmemeval/">LongMemEval</a>, <a href="https://arxiv.org/abs/2507.05257">MemoryAgentBench</a>, <a href="https://arxiv.org/abs/2510.27246">BEAM/LIGHT</a>, <a href="https://arxiv.org/html/2605.18421">EvoMemBench</a>, <a href="https://opensource.microsoft.com/blog/2026/05/19/introducing-state-bench-a-benchmark-for-ai-agent-memory/">STATE-Bench</a>, <a href="https://arxiv.org/abs/2607.12385">Prospective Memory Bench</a>, <a href="https://arxiv.org/abs/2602.16313">MemoryArena</a>. <a class="cite" href="#ref-benchmarks">[R31]</a></p>
+      </section>
+
+      <section class="section" id="hn">
+        <div class="section-head">
+          <div><span class="section-number">16</span><p class="section-kicker">Community review</p></div>
+          <div>
+            <h2>What all 35 HN comments add</h2>
+            <p class="section-intro">The thread is less a verdict on MCP Memory than a compact map of the field’s unresolved trade-offs: files versus indexes, current code versus durable knowledge, local versus shared, and autonomous writes versus review.</p>
+          </div>
+        </div>
+
+        <div class="grid four">
+          <article class="card"><span class="big-number">35</span><span class="big-label">live comments</span></article>
+          <article class="card"><span class="big-number">13</span><span class="big-label">live top-level branches</span></article>
+          <article class="card"><span class="big-number">24</span><span class="big-label">unique commenters</span></article>
+          <article class="card"><span class="big-number">5</span><span class="big-label">maximum reply depth</span></article>
+        </div>
+        <p class="small" style="margin-top:1rem">Firebase reported 35 descendants and 14 top-level child IDs. Algolia exposed 35 live comments; the extra child, <a href="https://news.ycombinator.com/item?id=49290154">49290154</a>, is dead/deleted with no recoverable text. The table below therefore accounts for every visible comment plus the tombstone. Snapshot score: 56.</p>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Exhaustive branch accounting. Counts sum to all 35 live comments.</caption>
+            <thead><tr><th>Branch theme</th><th>Comments</th><th>What the discussion established</th></tr></thead>
+            <tbody>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49286444">Memento, scope, model dependence, graphs</a></td><td>10</td><td>The sharpest boundary: mutable code state belongs in the repo; cross-project facts, operational knowledge, skills, and handoffs are better memory candidates. Model/harness reliability remains anecdotal.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49287061">Why OKF rather than Markdown?</a></td><td>2</td><td>The sole visible OP reply: OKF is Markdown with frontmatter. Its real value is interoperable provenance, lifecycle, and verification fields.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49287164">Benchmark against Claude Code</a></td><td>2</td><td>Portability may be the goal, but no native-memory quality comparison was offered.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49287387">Plain files/grep versus indexed MCP</a></td><td>6</td><td>Files win local simplicity; FTS wins candidate discovery at hundreds of notes and works on surfaces without filesystem access. Tool/schema token overhead matters.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49287508">“Just grep” skepticism</a></td><td>2</td><td>An inverted index is not merely a convoluted full scan, but the corpus size at which MCP+FTS beats native search remains unmeasured.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49287624">Pragmatism praise</a></td><td>1</td><td>SQLite FTS5 was praised as a small, practical choice; no additional evidence.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49287986">Difference from Mem0</a></td><td>2</td><td>No OP answer. Source inspection shows the difference is explicit OKF + local lexical retrieval, not a new learned memory algorithm.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49288231">Difference from native Claude memory</a></td><td>2</td><td>Cross-agent portability is the cleanest distinction; effectiveness is not established.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49288579">Hosted alternative</a></td><td>1</td><td>Markbase illustrates demand for an internal shared service and explicit concurrency semantics.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49290209">MEMORY.md / AGENTS.md workflow</a></td><td>2</td><td>A minimal repository-native pattern works for personal projects, but depends on disciplined consolidation and grows poorly if loaded wholesale.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49290256">Git canonical versus ETag store</a></td><td>2</td><td>Git offers review and recovery; shared Markdown produced merge conflicts for one builder, who moved to ETags. Versioning and concurrency are different problems.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49290426">Conversation distillation + vectors</a></td><td>1</td><td>Backlinked structured episodes plus embeddings are a credible semantic alternative; “vectors are more accurate” depends on query type.</td></tr>
+              <tr><td><a href="https://news.ycombinator.com/item?id=49292663">Model/harness variability</a></td><td>2</td><td>Reports conflict on which model reliably calls external memory. Tool-use compliance is a model-and-harness property that can regress independently of storage.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid two">
+          <article class="card">
+            <h3>The thread’s strongest consensus</h3>
+            <ul class="plain-list">
+              <li>Keep durable artifacts inspectable.</li>
+              <li>Do not shadow a rapidly changing codebase.</li>
+              <li>Bound discovery instead of loading the corpus.</li>
+              <li>Portability is valuable independently of clever retrieval.</li>
+              <li>Freshness, provenance, and conflict semantics matter.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>What the thread could not answer</h3>
+            <ul class="plain-list">
+              <li>Whether MCP Memory beats native Claude/Codex memory.</li>
+              <li>The crossover point between grep and FTS after tool overhead.</li>
+              <li>Whether hybrid/vector/graph recall improves coding outcomes.</li>
+              <li>How much tool-use reliability varies by harness version.</li>
+              <li>Whether durable writes should be autonomous or reviewed.</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="callout">
+          <span class="callout-title">The most useful HN contribution</span>
+          <p>Memento author Rui Carmo repeatedly narrowed the scope: short-term/session state and mutable code facts are not the target; durable cross-project knowledge is. That scoping discipline is more important than whether the index uses FTS or vectors.</p>
+        </div>
+        <p class="small">Thread and APIs: <a href="https://news.ycombinator.com/item?id=49286073">HN discussion</a>, <a href="https://hacker-news.firebaseio.com/v0/item/49286073.json">Firebase root</a>, <a href="https://hn.algolia.com/api/v1/items/49286073">Algolia tree</a>. <a class="cite" href="#ref-hn">[R30]</a></p>
+      </section>
+
+      <section class="section" id="method">
+        <div class="section-head">
+          <div><span class="section-number">17</span><p class="section-kicker">Method</p></div>
+          <div>
+            <h2>Evidence, reproducibility, and limits</h2>
+            <p class="section-intro">Architecture claims were checked against code where possible. Product behavior comes from first-party documentation. Performance claims remain attributed to their authors unless independently reproduced.</p>
+          </div>
+        </div>
+
+        <div class="grid three">
+          <article class="card"><p class="card-label">Source inspection</p><p>Fifteen repositories were cloned into isolated temporary directories and pinned to commits. Source paths, data models, write/read flows, tests, dependencies, and licenses were inspected.</p></article>
+          <article class="card"><p class="card-label">Discussion review</p><p>The HN tree was reconciled through both Firebase and Algolia. All 35 visible comments and the one unrecoverable tombstone were accounted for.</p></article>
+          <article class="card"><p class="card-label">Evidence grading</p><p>Peer-reviewed/primary work outranks preprints; independent results outrank vendor claims; end-task outcomes outrank retrieval-only metrics; source behavior outranks README language.</p></article>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Exact source snapshots used for architecture claims.</caption>
+            <thead><tr><th>Repository</th><th>Inspected commit</th><th>License / note</th></tr></thead>
+            <tbody>
+              <tr><td>fellowgeek/mcp-memory</td><td><a href="https://github.com/fellowgeek/mcp-memory/tree/4514d1fd162598e65280c15ea2df017698fcbf16"><code>4514d1f</code></a></td><td>MIT</td></tr>
+              <tr><td>rcarmo/memento</td><td><a href="https://github.com/rcarmo/memento/tree/5acbf7bf8f373a91870c674cae4231a193f792bc"><code>5acbf7b</code></a></td><td>MIT</td></tr>
+              <tr><td>amhuppert/knowledge-base-ingest (local checkout)</td><td><code>b26dce4</code></td><td>No license declaration found; local commit was one ahead of <code>origin/main</code></td></tr>
+              <tr><td>openai/codex</td><td><a href="https://github.com/openai/codex/tree/cbe85e117b1db59cdbe8175c59793c3cf2a4a7b8"><code>cbe85e1</code></a></td><td>Apache-2.0</td></tr>
+              <tr><td>letta-ai/letta (legacy V1)</td><td><a href="https://github.com/letta-ai/letta/tree/56ba9c25552605eec89de8ed3dc6394b625c1993"><code>56ba9c2</code></a></td><td>Apache-2.0</td></tr>
+              <tr><td>letta-ai/letta-code</td><td><a href="https://github.com/letta-ai/letta-code/tree/a575e11753943d9a4e18373a8817eb16a5b76b47"><code>a575e11</code></a></td><td>Apache-2.0</td></tr>
+              <tr><td>mem0ai/mem0</td><td><a href="https://github.com/mem0ai/mem0/tree/96d45b78c702b742fc91a2ce9eae91805be9144b"><code>96d45b7</code></a></td><td>Apache-2.0</td></tr>
+              <tr><td>mem0ai/openmemory</td><td><a href="https://github.com/mem0ai/openmemory/tree/2df78cc48e5f688a771fee5b39899325accc2450"><code>2df78cc</code></a></td><td>Apache-2.0; online memory app archived</td></tr>
+              <tr><td>getzep/graphiti</td><td><a href="https://github.com/getzep/graphiti/tree/b2ff2eadd9a6b75a261a5cf0b19557883a13f752"><code>b2ff2ea</code></a></td><td>Apache-2.0</td></tr>
+              <tr><td>langchain-ai/langmem</td><td><a href="https://github.com/langchain-ai/langmem/tree/29cbe41e58528f92e9efa773c12e15c47be3808c"><code>29cbe41</code></a></td><td>MIT</td></tr>
+              <tr><td>campfirein/byterover-cli</td><td><a href="https://github.com/campfirein/byterover-cli/tree/1052ac1a5dd0fde4da8693d4712064f7876c269c"><code>1052ac1</code></a></td><td>Elastic-2.0; source-available, not OSI open source</td></tr>
+              <tr><td>topoteretes/cognee</td><td><a href="https://github.com/topoteretes/cognee/tree/4b9dd362625dfd3621c344e571a86f5bc7a55ee8"><code>4b9dd36</code></a></td><td>Apache-2.0 core</td></tr>
+              <tr><td>MemTensor/MemOS</td><td><a href="https://github.com/MemTensor/MemOS/tree/f4db521214c29337164ec788bafede7eab236c25"><code>f4db521</code></a></td><td>Apache-2.0; v2.0.30</td></tr>
+              <tr><td>agiresearch/A-mem</td><td><a href="https://github.com/agiresearch/A-mem/tree/ceffb860f0712bbae97b184d440df62bc910ca8d"><code>ceffb86</code></a></td><td>MIT</td></tr>
+              <tr><td>karpathy/llm-wiki gist</td><td><a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f/ac46de1ad27f92b28ac95459c782c07f6b8c964a"><code>ac46de1</code></a></td><td>Idea/specification gist; no package release</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <details>
+          <summary>Research limitations</summary>
+          <div class="details-body">
+            <ul class="compact-list">
+              <li>The ecosystem is changing quickly; product defaults, docs, and repositories reflect the 14 August 2026 snapshot.</li>
+              <li>MCP Memory’s 12-test suite and Knowledge Base Ingest’s full 987-test/91-file suite plus type-check were executed in isolated environments. Other architecture findings are static source inspection, not production deployment.</li>
+              <li>Most 2026 agent-memory papers are preprints. Reported scores are attributed, not treated as replicated truth.</li>
+              <li>Repository source may omit managed services, private benchmark harnesses, or production policy. The report says so when OSS and hosted behavior differ.</li>
+              <li>HN comments are practitioner evidence and design argument, not controlled experiments.</li>
+              <li>“Best practice” denotes broad convergence plus supporting evidence; the optimal policy still depends on risk, scale, latency, and workload.</li>
+            </ul>
+          </div>
+        </details>
+
+        <h3 style="margin-top:3rem">Sources</h3>
+        <div class="references">
+          <article class="reference" id="ref-survey-age"><p><a href="https://arxiv.org/abs/2512.13564"><strong>Memory in the Age of AI Agents</strong></a> — taxonomy separating agent memory from context engineering and RAG. <span class="source-type">survey preprint</span></p></article>
+          <article class="reference" id="ref-survey-ops"><p><a href="https://arxiv.org/abs/2505.00675"><strong>Survey of memory mechanisms for LLM agents</strong></a> — representation and six-operation lifecycle taxonomy. <span class="source-type">survey preprint</span></p></article>
+          <article class="reference" id="ref-generative-agents"><p><a href="https://dlab.epfl.ch/teaching/spring2024/cs727/papers/park2023generative.pdf"><strong>Generative Agents</strong></a> — memory stream, relevance/recency/importance retrieval, reflection, and planning. <span class="source-type">peer reviewed</span></p></article>
+          <article class="reference" id="ref-memgpt"><p><a href="https://arxiv.org/abs/2310.08560"><strong>MemGPT: Towards LLMs as Operating Systems</strong></a> — virtual-context hierarchy and agent-directed paging. <span class="source-type">peer reviewed</span></p></article>
+          <article class="reference" id="ref-reflexion"><p><a href="https://arxiv.org/abs/2303.11366"><strong>Reflexion</strong></a> — linguistic feedback stored as episodic reflection; dependent on feedback quality. <span class="source-type">peer reviewed</span></p></article>
+          <article class="reference" id="ref-voyager"><p><a href="https://arxiv.org/abs/2305.16291"><strong>Voyager</strong></a> — executable skill library learned through environment feedback. <span class="source-type">peer reviewed</span></p></article>
+          <article class="reference" id="ref-amem-paper"><p><a href="https://arxiv.org/abs/2502.12110"><strong>A-MEM</strong></a> — Zettelkasten-inspired atomic notes, links, and memory evolution. <span class="source-type">preprint</span></p></article>
+          <article class="reference" id="ref-mem0-paper"><p><a href="https://arxiv.org/abs/2504.19413"><strong>Mem0</strong></a> — older two-pass consolidate/update/delete and graph architecture; differs from current OSS v3. <span class="source-type">preprint / vendor</span></p></article>
+          <article class="reference" id="ref-memos-paper"><p><a href="https://arxiv.org/abs/2505.22101"><strong>MemOS / MemCube</strong></a> — resource abstraction spanning textual, activation, and parametric memories. <span class="source-type">preprint</span></p></article>
+          <article class="reference" id="ref-agemem"><p><a href="https://arxiv.org/abs/2601.01885"><strong>AgeMem</strong></a> — reinforcement-learned memory actions across short- and long-term stores. <span class="source-type">preprint</span></p></article>
+          <article class="reference" id="ref-longmemeval"><p><a href="https://mlanthology.org/iclr/2025/wu2025iclr-longmemeval/"><strong>LongMemEval</strong></a> — 500-question benchmark for extraction, multi-session reasoning, time, updates, and abstention. <span class="source-type">peer reviewed</span></p></article>
+          <article class="reference" id="ref-memoryagentbench"><p><a href="https://arxiv.org/abs/2507.05257"><strong>MemoryAgentBench</strong></a> — retrieval, test-time learning, long-range understanding, selective forgetting. <span class="source-type">preprint</span></p></article>
+          <article class="reference" id="ref-evomembench"><p><a href="https://arxiv.org/html/2605.18421"><strong>EvoMemBench</strong></a> — standardized comparison of 15 methods over knowledge and execution. <span class="source-type">preprint</span></p></article>
+          <article class="reference" id="ref-security"><p><a href="https://arxiv.org/abs/2602.15654"><strong>Zombie Agents</strong></a>; <a href="https://arxiv.org/abs/2605.15338"><strong>Hidden in Memory</strong></a>; <a href="https://arxiv.org/abs/2606.04329"><strong>memory-poisoning analysis</strong></a>; <a href="https://arxiv.org/abs/2607.27080"><strong>MemSecBench</strong></a> — persistence, sleeper behavior, lifecycle attacks, and repair. <span class="source-type">security preprints</span></p></article>
+          <article class="reference" id="ref-mcp-memory"><p><a href="https://github.com/fellowgeek/mcp-memory/tree/4514d1fd162598e65280c15ea2df017698fcbf16"><strong>MCP Memory</strong></a> — audited source; <a href="https://github.com/fellowgeek/mcp-memory/issues/2">path traversal issue</a>. <span class="source-type">source inspected</span></p></article>
+          <article class="reference" id="ref-memento"><p><a href="https://rcarmo.github.io/projects/memento/"><strong>Memento overview</strong></a>; <a href="https://github.com/rcarmo/memento/blob/5acbf7bf8f373a91870c674cae4231a193f792bc/docs/implementation.md">implementation</a>; <a href="https://github.com/rcarmo/memento/blob/5acbf7bf8f373a91870c674cae4231a193f792bc/docs/threat-model.md">threat model</a>; <a href="https://github.com/rcarmo/memento/blob/5acbf7bf8f373a91870c674cae4231a193f792bc/docs/evidence/release-0.3.23.md">evidence</a>. <span class="source-type">source inspected</span></p></article>
+          <article class="reference" id="ref-llm-wiki"><p><a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f"><strong>Karpathy’s LLM Wiki</strong></a> — agent-maintained linked Markdown between raw sources and users. <span class="source-type">design proposal</span></p></article>
+          <article class="reference" id="ref-okf"><p><a href="https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/3fcbb9f828c2f23d109c855ee403c3a4c81f3a96/okf/SPEC.md"><strong>Open Knowledge Format v0.2</strong></a> — portable Markdown/frontmatter schema for knowledge, provenance, lifecycle, and attestations. <span class="source-type">specification</span></p></article>
+          <article class="reference" id="ref-letta-code"><p><a href="https://github.com/letta-ai/letta-code/tree/a575e11753943d9a4e18373a8817eb16a5b76b47"><strong>Letta Code</strong></a>; <a href="https://arxiv.org/abs/2504.13171">sleep-time compute paper</a>. <span class="source-type">source inspected / preprint</span></p></article>
+          <article class="reference" id="ref-mem0"><p><a href="https://github.com/mem0ai/mem0/blob/96d45b78c702b742fc91a2ce9eae91805be9144b/docs/core-concepts/how-it-works.mdx"><strong>Mem0 OSS v3 architecture</strong></a>; <a href="https://github.com/mem0ai/mem0/blob/96d45b78c702b742fc91a2ce9eae91805be9144b/mem0/memory/main.py">implementation</a>. <span class="source-type">source inspected</span></p></article>
+          <article class="reference" id="ref-graphiti"><p><a href="https://github.com/getzep/graphiti/tree/b2ff2eadd9a6b75a261a5cf0b19557883a13f752"><strong>Graphiti</strong></a>; <a href="https://arxiv.org/abs/2501.13956">Zep/Graphiti paper</a>. <span class="source-type">source inspected / vendor paper</span></p></article>
+          <article class="reference" id="ref-langmem"><p><a href="https://github.com/langchain-ai/langmem/blob/29cbe41e58528f92e9efa773c12e15c47be3808c/docs/docs/concepts/conceptual_guide.md"><strong>LangMem conceptual guide</strong></a> and <a href="https://github.com/langchain-ai/langmem/blob/29cbe41e58528f92e9efa773c12e15c47be3808c/src/langmem/knowledge/extraction.py">extraction implementation</a>. <span class="source-type">source inspected</span></p></article>
+          <article class="reference" id="ref-byterover"><p><a href="https://github.com/campfirein/byterover-cli/tree/1052ac1a5dd0fde4da8693d4712064f7876c269c"><strong>ByteRover CLI</strong></a>; <a href="https://arxiv.org/html/2604.01599">paper</a>; <a href="https://github.com/campfirein/byterover-cli/blob/1052ac1a5dd0fde4da8693d4712064f7876c269c/src/server/infra/executor/query-executor.ts">tier executor</a>. <span class="source-type">source inspected / vendor paper</span></p></article>
+          <article class="reference" id="ref-research-projects"><p><a href="https://github.com/topoteretes/cognee/tree/4b9dd362625dfd3621c344e571a86f5bc7a55ee8"><strong>Cognee</strong></a>; <a href="https://github.com/MemTensor/MemOS/tree/f4db521214c29337164ec788bafede7eab236c25"><strong>MemOS</strong></a>; <a href="https://github.com/agiresearch/A-mem/tree/ceffb860f0712bbae97b184d440df62bc910ca8d"><strong>A-MEM</strong></a>. <span class="source-type">source inspected</span></p></article>
+          <article class="reference" id="ref-codex"><p><a href="https://learn.chatgpt.com/docs/customization/memories"><strong>Codex Memories docs</strong></a>; <a href="https://learn.chatgpt.com/docs/agent-configuration/agents-md">AGENTS.md docs</a>; <a href="https://github.com/openai/codex/blob/cbe85e117b1db59cdbe8175c59793c3cf2a4a7b8/codex-rs/memories/README.md">inspected subsystem</a>. <span class="source-type">official docs / source inspected</span></p></article>
+          <article class="reference" id="ref-claude"><p><a href="https://code.claude.com/docs/en/memory"><strong>Claude Code memory docs</strong></a>; <a href="https://code.claude.com/docs/en/context-window">context window</a>; <a href="https://code.claude.com/docs/en/sessions">sessions</a>. <span class="source-type">official docs</span></p></article>
+          <article class="reference" id="ref-coding-evidence"><p><a href="https://arxiv.org/abs/2602.11988"><strong>CTXBench / AGENTS.md</strong></a>; <a href="https://arxiv.org/abs/2505.23422">CTIM-Rover</a>; <a href="https://arxiv.org/abs/2608.06811">PMCoder</a>; <a href="https://arxiv.org/abs/2606.28434">SWE-MeM</a>; <a href="https://arxiv.org/abs/2608.05906">MERIT</a>; <a href="https://arxiv.org/abs/2508.06433">MemP</a>. <span class="source-type">coding-agent studies</span></p></article>
+          <article class="reference" id="ref-copilot"><p><a href="https://docs.github.com/en/copilot/concepts/agents/copilot-memory"><strong>GitHub Copilot Memory</strong></a> — repository facts, user preferences, citations, validation, retention, and controls. <span class="source-type">official docs / public preview</span></p></article>
+          <article class="reference" id="ref-cursor"><p><a href="https://docs.cursor.com/en/context/memories"><strong>Cursor Memories</strong></a>; <a href="https://docs.cursor.com/context/rules">Rules</a>. <span class="source-type">official docs</span></p></article>
+          <article class="reference" id="ref-hn"><p><a href="https://news.ycombinator.com/item?id=49286073"><strong>Show HN: MCP Memory</strong></a> — all 35 visible comments reviewed via <a href="https://hacker-news.firebaseio.com/v0/item/49286073.json">Firebase</a> and <a href="https://hn.algolia.com/api/v1/items/49286073">Algolia</a>. <span class="source-type">community discussion</span></p></article>
+          <article class="reference" id="ref-benchmarks"><p><a href="https://arxiv.org/abs/2510.27246"><strong>BEAM/LIGHT</strong></a>; <a href="https://opensource.microsoft.com/blog/2026/05/19/introducing-state-bench-a-benchmark-for-ai-agent-memory/">STATE-Bench</a>; <a href="https://arxiv.org/abs/2607.12385">Prospective Memory Bench</a>; <a href="https://arxiv.org/abs/2602.16313">MemoryArena</a>. <span class="source-type">benchmarks</span></p></article>
+          <article class="reference" id="ref-locomo-audit"><p><a href="https://github.com/dial481/locomo-audit"><strong>LoCoMo independent audit</strong></a> — reproducible critique of annotations, judge calibration, and cost accounting. <span class="source-type">independent repository; not peer reviewed</span></p></article>
+          <article class="reference" id="ref-longcontext"><p><a href="https://arxiv.org/abs/2603.04814"><strong>Long context versus memory systems</strong></a> — reports workload- and horizon-dependent cost/quality trade-offs. <span class="source-type">preprint</span></p></article>
+          <article class="reference" id="ref-kbi"><p><a href="../../knowledge-base-ingest/README.md"><strong>Knowledge Base Ingest</strong></a> at local commit <code>b26dce4</code>; <a href="../../knowledge-base-ingest/docs/ARCHITECTURE.md">architecture</a>; <a href="../../knowledge-base-ingest/src/db/migrations.ts">schema</a>; <a href="../../knowledge-base-ingest/src/domain/services/sourceWorkflow.ts">fingerprinted review workflow</a>; <a href="../../knowledge-base-ingest/src/query/query.ts">retrieval and answer checking</a>; <a href="../../knowledge-base-ingest/fixtures/eval/RESULTS.md">paired skill evaluation</a>. <span class="source-type">source inspected / tests reproduced</span></p></article>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p><strong>The Memory Layer</strong><br>Independent architecture review · 14 August 2026</p>
+        <p>Self-contained HTML · no external fonts, images, scripts, or tracking<br><a href="#top">Return to top ↑</a></p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const button = document.getElementById('theme-toggle');
+      const progress = document.querySelector('.reading-progress');
+      const stored = localStorage.getItem('memory-report-theme');
+      const preferred = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+      function setTheme(theme) {
+        root.dataset.theme = theme;
+        button.setAttribute('aria-pressed', String(theme === 'dark'));
+        button.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+      }
+      setTheme(stored || preferred);
+      button.addEventListener('click', () => {
+        const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('memory-report-theme', next);
+        setTheme(next);
+      });
+
+      const updateProgress = () => {
+        const max = document.documentElement.scrollHeight - innerHeight;
+        progress.style.width = `${max > 0 ? (scrollY / max) * 100 : 0}%`;
+      };
+      addEventListener('scroll', updateProgress, { passive: true });
+      addEventListener('resize', updateProgress);
+      updateProgress();
+
+      const links = new Map([...document.querySelectorAll('.rail nav a')].map(a => [a.hash.slice(1), a]));
+      const observer = new IntersectionObserver(entries => {
+        const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (!visible) return;
+        links.forEach(link => {
+          link.classList.remove('active');
+          link.removeAttribute('aria-current');
+        });
+        const link = links.get(visible.target.id);
+        if (link) {
+          link.classList.add('active');
+          link.setAttribute('aria-current', 'location');
+        }
+      }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+      document.querySelectorAll('section[id]').forEach(section => observer.observe(section));
+
+      document.querySelectorAll('.table-wrap').forEach((wrapper, index) => {
+        const caption = wrapper.querySelector('caption');
+        wrapper.tabIndex = 0;
+        wrapper.setAttribute('role', 'region');
+        wrapper.setAttribute('aria-label', caption?.textContent.trim() || `Scrollable data table ${index + 1}`);
+      });
+    })();
+  </script>
+</body>
+</html>

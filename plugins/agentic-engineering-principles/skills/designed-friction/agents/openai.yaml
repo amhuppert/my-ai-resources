@@ -1,0 +1,4 @@
+interface:
+  display_name: "Designed Friction"
+  short_description: "Make a tool's deliberate constraints legible to agents —..."
+  default_prompt: "Use $designed-friction to make a tool's deliberate constraints legible to agents — one-line rationale at the point of refusal, mechanisms stated where a wrong inference is invited, both sides of a ledger reported, and a published taxonomy of which friction is the product versus which is a defect."

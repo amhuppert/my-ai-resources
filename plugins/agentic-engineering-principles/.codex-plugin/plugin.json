@@ -1,6 +1,6 @@
 {
   "name": "agentic-engineering-principles",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Principles for reliable agent workflows, tooling, verification, debugging, and guardrails",
   "author": {
     "name": "Alex Huppert",
@@ -19,7 +19,7 @@
   "interface": {
     "displayName": "Agentic Engineering Principles",
     "shortDescription": "Principles for reliable agentic engineering",
-    "longDescription": "Skills for designing reliable agent workflows, agent-facing tools, structured output, verification, debugging, documentation, and mechanical guardrails.",
+    "longDescription": "Skills for designing reliable agent workflows, agent-facing tools, structured output, verification, debugging, documentation, mechanical guardrails, and legible designed constraints.",
     "developerName": "Alex Huppert",
     "category": "Developer Tools",
     "capabilities": [

@@ -43,6 +43,21 @@ Two things change shape when you do this:
 
 The rewritten rule is "there is no such operation to call" instead of "please don't call it on a hot path". That is the only form of the rule that cannot rot.
 
+## Explain the guardrail you just made unbreakable
+
+Climbing the ladder stops an agent from *violating* a rule. It does nothing to stop it from **campaigning against** one. A guardrail whose purpose is not stated reads as an accident, and agents route around accidents by design.
+
+In one real system, a staged write boundary refused work belonging to a later phase and named the correct surface to use instead. It never said why the boundary existed. The agent concluded the restriction was an implementation artifact and spent a substantial part of a review report arguing to remove it — an argument that dissolved the moment a human supplied one sentence of reasoning. The escalation is what matters: an agent with no authority produces a wasted report, one with local authority produces edge-case workarounds, and one with configuration authority removes the guardrail sincerely, as an improvement.
+
+So pair every rung above rung 3 with a one-line reason, sited where the rule fires — the lint message, the type error's hover text, the refusal, the CODEOWNERS comment on the import restriction:
+
+```
+no-restricted-imports: reach for the focused accessor.
+  why: whole-state reads land on request paths and cost hundreds of ms.
+```
+
+Assert the value rather than apologising for the cost: *"this is deliberate: X"* recruits the agent into the intent, while *"unfortunately you must…"* concedes the rule is a tax and invites avoidance. `designed-friction` covers rationale placement, the cost of putting it on the happy path, and publishing which friction is the product versus which is a defect.
+
 ## Make illegal states unrepresentable in types
 
 Where deletion is too blunt, move the constraint into the type system so the violating call site does not compile.
@@ -150,13 +165,15 @@ Every persisted shape gets a maximal write → reload → assert backstop agains
 3. **Prove it red** — an intentionally violating fixture must fail before you trust a pass.
 4. Run advisory to calibrate, and record the current state as a ceiling or a set of discharges rather than blocking on a full cleanup.
 5. Make the failure message say what to do, and where the approved-exception path is.
-6. Write the earned lesson in the durable log, and delete the prose guideline the mechanism now replaces.
+6. **Prove the remedy, not just the rule.** Take the violating fixture and actually clear it using only the operations a real caller has. A blocking rule whose finding cannot be discharged by any available operation is a wall, not a guardrail — and the gap is invisible from the rule's side, because the message can be perfectly actionable while the action does not exist.
 
 ## Anti-patterns
 
 - **Raising the ceiling to go green.** The ratchet's only property is monotonicity; one raise and it is decoration.
 - **The allowlist as pressure valve.** An allowlist that keeps growing is a convention wearing a lint rule's clothes.
 - **Guardrails nobody proved red.** A check that has never failed may not be checking anything.
+- **A gate with no discharge path.** A blocking rule whose finding no available operation can clear — no fix verb, no documented exception, no escape hatch. Prove the remedy the same way you prove the rule red.
+- **A blocking rule whose remedy is a human-only act nobody surfaced.** If discharging a finding requires an action only a person can take, some interface has to expose it. A gate that refuses an agent and points at a control the human cannot find either is a deadlock with good error text. The human-only boundary is designed friction; the missing affordance is a defect — see `designed-friction` for the taxonomy that separates them.
 - **A registry with no stale-key check.** It silently degrades into historical claims about schemas that moved.
 - **Documenting a convention instead of asserting it.** If compliance is invisible at the call site, prose will not save it.
 - **Hand-synced doc tables.** Two copies of the same facts, one of which is wrong by next month.
@@ -171,3 +188,5 @@ Every persisted shape gets a maximal write → reload → assert backstop agains
 - `progressive-disclosure-tooling` — help as a navigable disclosure graph derived from one typed registry
 - `live-system-verification` — verify features against the running system and durable state, not fakes or UI
 - `agent-offloading` — offload deterministic work from agents onto code; reserve agents for judgment
+- `cli-tools-for-agents` — preflight verbs that let an agent read a gate's findings before attempting the transition
+- `designed-friction` — explain the guardrail you made unbreakable, so agents defend it instead of lobbying against it

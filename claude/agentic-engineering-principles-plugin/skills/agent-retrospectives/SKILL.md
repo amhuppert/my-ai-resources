@@ -57,6 +57,34 @@ A subagent's deep-read summary is a **hypothesis, not a source**. In one real au
 
 Iteration summaries, handoff notes, and completion messages overstate. A handoff claiming "independent reviewer APPROVED" or "TDD'd failing-test-first" is only true if the transcript shows the reviewer invocation or the RED test run. Spot-check specifically the claims the success verdict leaned on — those are the ones that were load-bearing and the ones most likely to have been asserted rather than done.
 
+## Read the friction, not the remedy
+
+A self-report has two axes, and they have **opposite reliability profiles**. The section above covers the factual axis: claims about what happened are unreliable and get verified. The experiential axis is the reverse. Where an agent reports it *struggled* is reliable data — it has no incentive to invent friction, and its own difficulty is the one thing it observed directly rather than inferred.
+
+Its **proposed fix**, however, is a hypothesis generated from inside the friction, and it carries a systematic directional bias: toward removing whatever constrained it. Take the location; derive the remedy independently.
+
+In one real retrospective, an agent reported that a staged authoring boundary — which barred design content until requirements were settled — had cost it real fidelity, and recommended relaxing the boundary. The friction was genuine. The recommendation was backwards: the boundary was load-bearing, and the actual defect was that the tool never stated why it existed. The correct fix *preserved* the constraint the agent wanted removed, and added one sentence of rationale. An owner who had adopted the proposed remedy would have removed a property they would otherwise defend, on the agent's recommendation.
+
+### Triage reported friction into three classes
+
+| Class | Tell | Fix |
+|---|---|---|
+| **Wrong model** | The complaint dissolves when you check the system's actual behaviour — the friction was never there | Legibility at the point where the belief formed; no behaviour change |
+| **Under-explained constraint** | The agent can state *what* was blocked but not *why*, and its proposed fix would remove a property you would defend | State the rationale; the constraint stays |
+| **Genuine defect** | The friction is real and protects nothing | Fix it |
+
+The wrong-model class is easy to miss, because verifying the agent's factual claim tells you the complaint was unfounded and stops there. That is only half the finding. The remaining half is that **your output taught it the wrong thing**, and the next agent will believe the same thing. Route it to the surface that formed the belief, not to a "the agent was mistaken" note.
+
+The separator between the last two classes: **does this friction protect a human judgement or an audit property?** If yes, it is the product, and the defect is that the agent did not know why. If it is a read path, a message, or a missing verb, it is a defect. See `designed-friction` for building the tool so this question rarely has to be asked.
+
+### Frustration ranks explanation, not removal
+
+Intensity of frustration is not evidence of defect severity. It is evidence of **route-around risk**.
+
+The constraints an agent found most frustrating are the ones it is most likely to work around, under-use, or — where it has the authority — reconfigure in a later run. That inverts the instinct on reading a heated retrospective: the loudest friction is not the first thing to remove, it is the first thing to **explain**. Sort the frustration list as a prioritised backlog for rationale, and only then ask which entries are also real defects.
+
+This is also why "the agent was just wrong" is never a complete finding. An agent's mistaken frustration is a reliable predictor of where future agents deviate, and deviation risk does not go away by being unfounded.
+
 ## When a reviewer rejected work, ask whether the criterion was wrong
 
 For every rejection or NO-GO, read both the verdict **and** what followed:
@@ -99,6 +127,8 @@ Run one subagent per hotspot, in parallel, and verify any number you republish (
 - **Problems-only reports.** Nothing marked "preserve" means the next revision churns what worked.
 - **Ownerless findings.** Observations that name no instruction file, skill, tool, or process change.
 - **Trusting the summary layer.** Publishing a subagent's or the agent's own numbers without re-deriving them.
+- **Adopting the agent's proposed fix.** Where it struggled is data; its remedy is a hypothesis biased toward removing the constraint. Derive the fix yourself.
+- **Closing a wrong-model complaint as "agent was mistaken."** The unfounded belief came from somewhere; the finding belongs to whatever taught it.
 - **Reading before counting.** Deep-reading transcripts chosen by gut instead of by mechanical flags.
 - **Blaming the agent for a guidance defect.** Punishing faithful enforcement of a bad criterion instead of fixing the criterion.
 - **Unlabeled floors.** Shipping a total that silently omits unmeasured spend or time.
@@ -110,3 +140,4 @@ Run one subagent per hotspot, in parallel, and verify any number you republish (
 - `agent-feedback-tiers` — hint/reminder/instruction output tiers and the reminder admission rule
 - `logging-for-agent-debugging` — structured logs agents can debug from: stable event names, trace context, bounded analysis
 - `live-system-verification` — verify features against the running system and durable state, not fakes or UI
+- `designed-friction` — build tools whose deliberate constraints are legible, so friction reports arrive pre-sorted
