@@ -5,7 +5,9 @@ skill find-skills
 
 source mattpocock/skills
 skill improve-codebase-architecture
-skill writing-great-skills
+skill resolving-merge-conflicts
+skill handoff
+skill writing-for-agents
 
 source wondelai/skills
 skill software-design-philosophy
@@ -13,6 +15,6 @@ skill software-design-philosophy
 source addyosmani/web-quality-skills
 skill accessibility
 
-# This repository's standalone global skill
+# This repository's global skills
 source https://github.com/amhuppert/my-ai-resources/tree/main/claude/ai-resources-plugin
-skill create-plan
+skill wait-what
