@@ -1,6 +1,7 @@
 ---
 name: react-scan
 description: "Install and use react-scan tooling for component-level React render attribution: \"set up react-scan\", \"diagnose React re-renders\", \"find unnecessary renders\", \"find unstable props\", \"measure component renders programmatically\", or automated render checks with Playwright (react-scan + playwright, lite headless API for CI). Covers install across Next.js/Vite/Remix/script-tag/browser-extension and the render-attribution → fix → validate loop. For trace-based triage of LCP/INP regressions, ForcedReflow, bundle bloat, or memory leaks, use investigate-web-perf instead."
+disable-model-invocation: true
 ---
 
 # React Scan + Playwright for React Performance Diagnosis

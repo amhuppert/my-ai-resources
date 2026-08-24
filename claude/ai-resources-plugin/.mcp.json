@@ -1,5 +1,0 @@
-{
-  "web-debugger": {
-    "command": "${PLUGIN_DIR}/servers/web-debugger-mcp"
-  }
-}

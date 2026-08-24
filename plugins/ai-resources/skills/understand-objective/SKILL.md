@@ -1,9 +1,8 @@
 ---
 name: understand-objective
-description: "Thoroughly understand a software development objective before
-  implementation: research, identify ambiguities, ask clarifying questions. Use
-  before starting implementation of a non-trivial or ambiguously specified
-  feature, or when requirements leave open design decisions."
+description: "Use to thoroughly understand a software development objective
+  before design & implementation: research, identify ambiguities, ask clarifying
+  questions."
 ---
 
 # Objective Understanding Assistant
@@ -31,24 +30,6 @@ Conduct thorough research to understand the objective:
 
 If your analysis reveals any unclear areas, missing details, open design decisions, or conflicting requirements, ask clarifying questions using the active client's user-question mechanism.
 
-Before asking questions, use a <scratchpad> to:
-
-- List out everything you understand about the objective
-- List out specific ambiguities, gaps, or unclear areas you've identified
-- Formulate clear, specific questions that will resolve these issues
-
-Then present the questions with the active client's user-question mechanism. Follow these guidelines:
-
-- Ask 1-4 questions per tool call (batch related questions together)
-- Each question requires:
-  - `header`: A short label (max 12 chars) like "Auth method", "Scope", "Priority"
-  - `question`: The full question ending with "?"
-  - `multiSelect`: Set to `true` if multiple options can be selected, `false` otherwise
-  - `options`: 2-4 distinct choices, each with a concise `label` (1-5 words) and `description` explaining implications
-- If you recommend a specific option, list it first and add "(Recommended)" to its label
-- Users can always select "Other" for custom input (don't include this as an option)
-- If you have questions that cannot be expressed as multiple choice, ask them as text in your response after the tool call
-
 **Step 3: Incorporate Responses and Iterate**
 
 After receiving answers:
@@ -71,15 +52,3 @@ Once you have no remaining clarifying questions and fully understand the objecti
 - Be thorough in identifying potential issues or unclear areas
 - Your questions should be specific and actionable
 - If you need to see specific files or parts of the codebase, explicitly request them
-
-**Output Format:**
-
-Your response should contain only:
-
-- Your <scratchpad> analysis (when you have clarifying questions)
-- User-question interaction with your questions
-- Any additional text questions that cannot be expressed as multiple choice
-  OR
-- Your final summary and confirmation (once you have complete understanding)
-
-Do not include your scratchpad in your final confirmation response - only the summary and confirmation statement.
