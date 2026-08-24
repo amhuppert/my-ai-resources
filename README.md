@@ -144,6 +144,29 @@ A source repository needs a `skills/<name>/SKILL.md` directory per skill —
 exactly one level below `skills/` — and, for `--preset`, a `presets/` directory
 whose files list one skill name per line.
 
+For skills from multiple sources, use a manifest. Each `source` value is passed
+unchanged to the `skills` CLI and followed by one or more skills from that
+source. Blank lines and lines beginning with `#` are ignored:
+
+```text
+source vercel-labs/skills
+skill find-skills
+
+source mattpocock/skills
+skill improve-codebase-architecture
+skill writing-great-skills
+```
+
+Install a manifest at either scope:
+
+```bash
+install-skills --manifest skill-manifests/global.skills --scope global
+```
+
+`--manifest` cannot be combined with `--repo` or `--preset`. The checked-in
+`skill-manifests/global.skills` file reproduces this repository's global skill
+set.
+
 #### Keeping installed copies out of git
 
 `--local` adds each installed skill's directory and `skills-lock.json` to the

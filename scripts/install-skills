@@ -3,22 +3,31 @@ set -euo pipefail
 
 show_help() {
   cat <<'EOF'
-Usage: install-skills [--repo <path>] [--preset <file>] [--scope <project|global>]
-                      [--local]
+Usage: install-skills [--repo <path>] [--preset <file>]
+                      [--manifest <file>] [--scope <project|global>] [--local]
 
-Install local skills for Claude Code and Codex. Without --preset, Gum prompts
-for one or more skills. Gum prompts for the installation scope unless --scope
-is provided.
+Install skills for Claude Code and Codex. A preset selects skills from one
+repository. A manifest can select skills from multiple sources. Without either,
+Gum prompts for one or more skills. Gum prompts for the installation scope
+unless --scope is provided.
 
 Options:
-  --repo <path>    Repository or plugin root containing skills/ and presets/
-  --preset <file>  Install skills listed in $LOCAL_SKILLS_REPO/presets/<file>
-  --scope <scope>  Install to the current project or globally
-  --local          Add each installed skill's directory and skills-lock.json to
-                   the repository's .git/info/exclude so the copies stay out of
-                   git status. Installs at the repository root and requires
-                   project scope.
-  -h, --help       Show this help
+  --repo <path>      Repository or plugin root containing skills/ and presets/
+  --preset <file>    Install skills listed in $LOCAL_SKILLS_REPO/presets/<file>
+  --manifest <file>  Install source and skill blocks from an arbitrary file
+  --scope <scope>    Install to the current project or globally
+  --local            Add each installed skill's directory and skills-lock.json
+                     to the repository's .git/info/exclude so the copies stay
+                     out of git status. Installs at the repository root and
+                     requires project scope.
+  -h, --help         Show this help
+
+Manifest format:
+  source <any source accepted by the skills CLI>
+  skill <skill name>
+  skill <another skill from the same source>
+
+  Blank lines and lines beginning with # are ignored.
 
 Environment:
   LOCAL_SKILLS_REPO  Default value for --repo
@@ -34,8 +43,26 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+trim_whitespace() {
+  printf '%s' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+}
+
+array_contains() {
+  local requested="$1"
+  shift
+  local value
+  for value in "$@"; do
+    if [[ "$requested" == "$value" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 PRESET=""
+MANIFEST=""
 SKILLS_REPO="${LOCAL_SKILLS_REPO:-}"
+REPO_OPTION_SET=false
 SCOPE=""
 LOCAL_EXCLUDE=false
 
@@ -47,11 +74,17 @@ while [[ $# -gt 0 ]]; do
     --repo)
       [[ $# -ge 2 ]] || fail "--repo requires a path"
       SKILLS_REPO="$2"
+      REPO_OPTION_SET=true
       shift 2
       ;;
     --preset)
       [[ $# -ge 2 ]] || fail "--preset requires a file name"
       PRESET="$2"
+      shift 2
+      ;;
+    --manifest)
+      [[ $# -ge 2 ]] || fail "--manifest requires a file path"
+      MANIFEST="$2"
       shift 2
       ;;
     --scope)
@@ -73,81 +106,153 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$SKILLS_REPO" ]]; then
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  REPO_SKILLS_ROOT="$SCRIPT_DIR/../claude/ai-resources-plugin"
-  if [[ -d "$REPO_SKILLS_ROOT/skills" ]]; then
-    SKILLS_REPO="$REPO_SKILLS_ROOT"
-  else
-    fail "no skills repository found; pass --repo or set LOCAL_SKILLS_REPO"
-  fi
+if [[ -n "$MANIFEST" && -n "$PRESET" ]]; then
+  fail "--manifest and --preset cannot be used together"
+fi
+if [[ -n "$MANIFEST" && "$REPO_OPTION_SET" == true ]]; then
+  fail "--manifest and --repo cannot be used together"
 fi
 
-SKILLS_DIR="$SKILLS_REPO/skills"
-PRESETS_DIR="$SKILLS_REPO/presets"
-
-[[ -d "$SKILLS_DIR" ]] || fail "skills directory not found: $SKILLS_DIR"
-
-# --local changes directory to the repository root before installing, which
-# would otherwise invalidate a relative --repo path.
-[[ "$SKILLS_DIR" == /* ]] || SKILLS_DIR="$(cd "$SKILLS_DIR" && pwd)"
 command_exists skills || fail "the skills CLI is not installed or not on PATH"
 
-AVAILABLE_SKILLS=()
-for skill_dir in "$SKILLS_DIR"/*; do
-  if [[ -d "$skill_dir" && -f "$skill_dir/SKILL.md" ]]; then
-    AVAILABLE_SKILLS+=("$(basename "$skill_dir")")
-  fi
-done
-
-[[ ${#AVAILABLE_SKILLS[@]} -gt 0 ]] || fail "no skills found in $SKILLS_DIR"
-
-skill_is_available() {
-  local requested="$1"
-  local available
-  for available in "${AVAILABLE_SKILLS[@]}"; do
-    if [[ "$requested" == "$available" ]]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
 SELECTED_SKILLS=()
+MANIFEST_SOURCES=()
+MANIFEST_SOURCE_LINES=()
+MANIFEST_SKILL_SOURCE_INDEXES=()
 
-if [[ -n "$PRESET" ]]; then
-  [[ "$PRESET" != */* && "$PRESET" != "." && "$PRESET" != ".." ]] || \
-    fail "preset must be a file name within $PRESETS_DIR"
+parse_manifest() {
+  local manifest_path="$1"
+  [[ -f "$manifest_path" ]] || fail "manifest not found: $manifest_path"
 
-  PRESET_PATH="$PRESETS_DIR/$PRESET"
-  [[ -f "$PRESET_PATH" ]] || fail "preset not found: $PRESET_PATH"
+  local line
+  local trimmed
+  local directive
+  local value
+  local line_number=0
+  local current_source_index=-1
+  local current_source_has_skills=false
 
   while IFS= read -r line || [[ -n "$line" ]]; do
+    line_number=$((line_number + 1))
     line="${line%$'\r'}"
-    skill_name="$(printf '%s' "$line" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
-    [[ -n "$skill_name" ]] || continue
+    trimmed="$(trim_whitespace "$line")"
 
-    skill_is_available "$skill_name" || \
-      fail "preset '$PRESET' contains unavailable skill '$skill_name'"
-    SELECTED_SKILLS+=("$skill_name")
-  done < "$PRESET_PATH"
+    [[ -n "$trimmed" ]] || continue
+    [[ "$trimmed" == \#* ]] && continue
 
-  [[ ${#SELECTED_SKILLS[@]} -gt 0 ]] || fail "preset '$PRESET' contains no skills"
+    directive="${trimmed%%[[:space:]]*}"
+    value="${trimmed#"$directive"}"
+    value="$(trim_whitespace "$value")"
+
+    case "$directive" in
+      source)
+        [[ -n "$value" ]] || \
+          fail "manifest '$manifest_path' line $line_number: source requires a value"
+        if [[ $current_source_index -ge 0 && "$current_source_has_skills" == false ]]; then
+          fail "manifest '$manifest_path' line ${MANIFEST_SOURCE_LINES[$current_source_index]}: source has no skills"
+        fi
+        if [[ $current_source_index -ge 0 ]] && \
+          array_contains "$value" "${MANIFEST_SOURCES[@]}"; then
+          fail "manifest '$manifest_path' line $line_number: duplicate source '$value'"
+        fi
+
+        MANIFEST_SOURCES+=("$value")
+        MANIFEST_SOURCE_LINES+=("$line_number")
+        current_source_index=$((${#MANIFEST_SOURCES[@]} - 1))
+        current_source_has_skills=false
+        ;;
+      skill)
+        [[ $current_source_index -ge 0 ]] || \
+          fail "manifest '$manifest_path' line $line_number: skill appears before a source"
+        [[ -n "$value" ]] || \
+          fail "manifest '$manifest_path' line $line_number: skill requires a value"
+        if [[ $current_source_index -gt 0 || "$current_source_has_skills" == true ]] && \
+          array_contains "$value" "${SELECTED_SKILLS[@]}"; then
+          fail "manifest '$manifest_path' line $line_number: duplicate skill '$value'"
+        fi
+
+        SELECTED_SKILLS+=("$value")
+        MANIFEST_SKILL_SOURCE_INDEXES+=("$current_source_index")
+        current_source_has_skills=true
+        ;;
+      *)
+        fail "manifest '$manifest_path' line $line_number: expected 'source' or 'skill', found '$directive'"
+        ;;
+    esac
+  done < "$manifest_path"
+
+  [[ $current_source_index -ge 0 ]] || \
+    fail "manifest '$manifest_path' contains no sources"
+  if [[ "$current_source_has_skills" == false ]]; then
+    fail "manifest '$manifest_path' line ${MANIFEST_SOURCE_LINES[$current_source_index]}: source has no skills"
+  fi
+}
+
+if [[ -n "$MANIFEST" ]]; then
+  parse_manifest "$MANIFEST"
 else
-  command_exists gum || fail "gum is not installed or not on PATH"
+  if [[ -z "$SKILLS_REPO" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    REPO_SKILLS_ROOT="$SCRIPT_DIR/../claude/ai-resources-plugin"
+    if [[ -d "$REPO_SKILLS_ROOT/skills" ]]; then
+      SKILLS_REPO="$REPO_SKILLS_ROOT"
+    else
+      fail "no skills repository found; pass --repo or set LOCAL_SKILLS_REPO"
+    fi
+  fi
 
-  while IFS= read -r skill_name; do
-    [[ -n "$skill_name" ]] && SELECTED_SKILLS+=("$skill_name")
-  done < <(
-    gum choose \
-      --no-limit \
-      --header "Select skills to install" \
-      "${AVAILABLE_SKILLS[@]}"
-  )
+  SKILLS_DIR="$SKILLS_REPO/skills"
+  PRESETS_DIR="$SKILLS_REPO/presets"
 
-  if [[ ${#SELECTED_SKILLS[@]} -eq 0 ]]; then
-    echo "No skills selected. Nothing to install."
-    exit 0
+  [[ -d "$SKILLS_DIR" ]] || fail "skills directory not found: $SKILLS_DIR"
+
+  # --local changes directory to the repository root before installing, which
+  # would otherwise invalidate a relative --repo path.
+  [[ "$SKILLS_DIR" == /* ]] || SKILLS_DIR="$(cd "$SKILLS_DIR" && pwd)"
+
+  AVAILABLE_SKILLS=()
+  for skill_dir in "$SKILLS_DIR"/*; do
+    if [[ -d "$skill_dir" && -f "$skill_dir/SKILL.md" ]]; then
+      AVAILABLE_SKILLS+=("$(basename "$skill_dir")")
+    fi
+  done
+
+  [[ ${#AVAILABLE_SKILLS[@]} -gt 0 ]] || fail "no skills found in $SKILLS_DIR"
+
+  if [[ -n "$PRESET" ]]; then
+    [[ "$PRESET" != */* && "$PRESET" != "." && "$PRESET" != ".." ]] || \
+      fail "preset must be a file name within $PRESETS_DIR"
+
+    PRESET_PATH="$PRESETS_DIR/$PRESET"
+    [[ -f "$PRESET_PATH" ]] || fail "preset not found: $PRESET_PATH"
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      line="${line%$'\r'}"
+      skill_name="$(trim_whitespace "$line")"
+      [[ -n "$skill_name" ]] || continue
+
+      array_contains "$skill_name" "${AVAILABLE_SKILLS[@]}" || \
+        fail "preset '$PRESET' contains unavailable skill '$skill_name'"
+      SELECTED_SKILLS+=("$skill_name")
+    done < "$PRESET_PATH"
+
+    [[ ${#SELECTED_SKILLS[@]} -gt 0 ]] || fail "preset '$PRESET' contains no skills"
+  else
+    command_exists gum || fail "gum is not installed or not on PATH"
+
+    while IFS= read -r skill_name; do
+      [[ -n "$skill_name" ]] && SELECTED_SKILLS+=("$skill_name")
+    done < <(
+      gum choose \
+        --no-limit \
+        --header "Select skills to install" \
+        "${AVAILABLE_SKILLS[@]}"
+    )
+
+    if [[ ${#SELECTED_SKILLS[@]} -eq 0 ]]; then
+      echo "No skills selected. Nothing to install."
+      exit 0
+    fi
   fi
 fi
 
@@ -171,23 +276,53 @@ if [[ "$LOCAL_EXCLUDE" == true ]]; then
   # Exclude patterns containing a slash are anchored to the repository root, so
   # the skills have to land there for the entries to match.
   GIT_TOPLEVEL="$(git rev-parse --show-toplevel)"
+
+  # Preserve local manifest source paths when installation moves to the
+  # repository root. Remote source strings remain untouched.
+  if [[ -n "$MANIFEST" ]]; then
+    for ((source_index = 0; source_index < ${#MANIFEST_SOURCES[@]}; source_index++)); do
+      if [[ -d "${MANIFEST_SOURCES[$source_index]}" ]]; then
+        MANIFEST_SOURCES[$source_index]="$(cd "${MANIFEST_SOURCES[$source_index]}" && pwd)"
+      fi
+    done
+  fi
+
   cd "$GIT_TOPLEVEL"
 fi
 
-SKILLS_ARGS=(add "$SKILLS_DIR")
-for skill_name in "${SELECTED_SKILLS[@]}"; do
-  SKILLS_ARGS+=(--skill "$skill_name")
-done
-# --copy gives every agent directory real content. Without it the skills CLI
-# writes only the universal Codex directory and the Claude Code symlink it
-# reports in its summary is never created.
-SKILLS_ARGS+=(--agent claude-code --agent codex --copy --yes)
+install_source() {
+  local source="$1"
+  shift
+  local skills_args=(add "$source")
+  local skill_name
+  for skill_name in "$@"; do
+    skills_args+=(--skill "$skill_name")
+  done
+  # --copy gives every agent directory real content. Without it the skills CLI
+  # writes only the universal Codex directory and the Claude Code symlink it
+  # reports in its summary is never created.
+  skills_args+=(--agent claude-code --agent codex --copy --yes)
 
-if [[ "$SCOPE" == "global" ]]; then
-  SKILLS_ARGS+=(--global)
+  if [[ "$SCOPE" == "global" ]]; then
+    skills_args+=(--global)
+  fi
+
+  skills "${skills_args[@]}"
+}
+
+if [[ -n "$MANIFEST" ]]; then
+  for ((source_index = 0; source_index < ${#MANIFEST_SOURCES[@]}; source_index++)); do
+    SOURCE_SKILLS=()
+    for ((skill_index = 0; skill_index < ${#SELECTED_SKILLS[@]}; skill_index++)); do
+      if [[ ${MANIFEST_SKILL_SOURCE_INDEXES[$skill_index]} -eq $source_index ]]; then
+        SOURCE_SKILLS+=("${SELECTED_SKILLS[$skill_index]}")
+      fi
+    done
+    install_source "${MANIFEST_SOURCES[$source_index]}" "${SOURCE_SKILLS[@]}"
+  done
+else
+  install_source "$SKILLS_DIR" "${SELECTED_SKILLS[@]}"
 fi
-
-skills "${SKILLS_ARGS[@]}"
 
 [[ "$LOCAL_EXCLUDE" == true ]] || exit 0
 

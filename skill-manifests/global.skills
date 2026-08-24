@@ -1,0 +1,18 @@
+# Global community skills
+
+source vercel-labs/skills
+skill find-skills
+
+source mattpocock/skills
+skill improve-codebase-architecture
+skill writing-great-skills
+
+source wondelai/skills
+skill software-design-philosophy
+
+source addyosmani/web-quality-skills
+skill accessibility
+
+# This repository's standalone global skill
+source https://github.com/amhuppert/my-ai-resources/tree/main/claude/ai-resources-plugin
+skill create-plan

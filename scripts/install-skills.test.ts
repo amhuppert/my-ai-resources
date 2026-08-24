@@ -8,7 +8,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 
 const SCRIPT_PATH = join(import.meta.dir, "install-skills");
@@ -49,6 +49,17 @@ function excludeLines(excludeFile: string): string[] {
     .filter((line) => line.length > 0 && !line.startsWith("#"));
 }
 
+function capturedCalls(capturePath: string): string[][] {
+  const calls: string[][] = [];
+  for (const line of readFileSync(`${capturePath}.calls`, "utf8")
+    .trim()
+    .split("\n")) {
+    if (line === "---") calls.push([]);
+    else calls.at(-1)?.push(line);
+  }
+  return calls;
+}
+
 describe("install-skills", () => {
   let tempDir: string;
   let repoDir: string;
@@ -73,7 +84,7 @@ describe("install-skills", () => {
 
     writeExecutable(
       join(binDir, "skills"),
-      '#!/usr/bin/env bash\nprintf "%s\\n" "$@" > "$CAPTURE_PATH"\npwd > "$CAPTURE_PATH.cwd"\n',
+      '#!/usr/bin/env bash\nprintf "%s\\n" "$@" > "$CAPTURE_PATH"\nprintf "%s\\n" "---" >> "$CAPTURE_PATH.calls"\nprintf "%s\\n" "$@" >> "$CAPTURE_PATH.calls"\npwd > "$CAPTURE_PATH.cwd"\n',
     );
   });
 
@@ -201,6 +212,202 @@ fi
     expect(readFileSync(capturePath, "utf8")).toContain(
       join(repoDir, "skills"),
     );
+  });
+
+  describe("--manifest", () => {
+    let manifestPath: string;
+
+    beforeEach(() => {
+      manifestPath = join(tempDir, "global skills.manifest");
+    });
+
+    test("installs grouped skills from opaque sources", async () => {
+      writeFileSync(
+        manifestPath,
+        `# Every source format is passed through to the skills CLI.
+
+source vercel-labs/skills
+skill find-skills
+
+source https://github.com/mattpocock/skills/tree/main/skills/engineering
+skill improve-codebase-architecture
+skill writing-great-skills
+
+source git@github.com:addyosmani/web-quality-skills.git
+skill accessibility
+
+source ../local skills repo
+skill create-plan
+`,
+      );
+
+      const result = await run([
+        "--manifest",
+        manifestPath,
+        "--scope",
+        "global",
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      expect(capturedCalls(capturePath)).toEqual([
+        [
+          "add",
+          "vercel-labs/skills",
+          "--skill",
+          "find-skills",
+          "--agent",
+          "claude-code",
+          "--agent",
+          "codex",
+          "--copy",
+          "--yes",
+          "--global",
+        ],
+        [
+          "add",
+          "https://github.com/mattpocock/skills/tree/main/skills/engineering",
+          "--skill",
+          "improve-codebase-architecture",
+          "--skill",
+          "writing-great-skills",
+          "--agent",
+          "claude-code",
+          "--agent",
+          "codex",
+          "--copy",
+          "--yes",
+          "--global",
+        ],
+        [
+          "add",
+          "git@github.com:addyosmani/web-quality-skills.git",
+          "--skill",
+          "accessibility",
+          "--agent",
+          "claude-code",
+          "--agent",
+          "codex",
+          "--copy",
+          "--yes",
+          "--global",
+        ],
+        [
+          "add",
+          "../local skills repo",
+          "--skill",
+          "create-plan",
+          "--agent",
+          "claude-code",
+          "--agent",
+          "codex",
+          "--copy",
+          "--yes",
+          "--global",
+        ],
+      ]);
+    });
+
+    test("installs the checked-in global skill manifest", async () => {
+      const globalManifest = join(
+        import.meta.dir,
+        "../skill-manifests/global.skills",
+      );
+
+      const result = await run([
+        "--manifest",
+        globalManifest,
+        "--scope",
+        "global",
+      ]);
+      const selections = capturedCalls(capturePath).map((call) => ({
+        source: call[1],
+        skills: call.flatMap((argument, index) =>
+          argument === "--skill" ? [call[index + 1]] : [],
+        ),
+      }));
+
+      expect(result.exitCode).toBe(0);
+      expect(selections).toEqual([
+        { source: "vercel-labs/skills", skills: ["find-skills"] },
+        {
+          source: "mattpocock/skills",
+          skills: ["improve-codebase-architecture", "writing-great-skills"],
+        },
+        {
+          source: "wondelai/skills",
+          skills: ["software-design-philosophy"],
+        },
+        {
+          source: "addyosmani/web-quality-skills",
+          skills: ["accessibility"],
+        },
+        {
+          source:
+            "https://github.com/amhuppert/my-ai-resources/tree/main/claude/ai-resources-plugin",
+          skills: ["create-plan"],
+        },
+      ]);
+    });
+
+    test("rejects repository selection options before installing", async () => {
+      writeFileSync(manifestPath, "source owner/repo\nskill alpha\n");
+      writeFileSync(join(repoDir, "presets", "team.txt"), "alpha\n");
+
+      const withPreset = await run([
+        "--manifest",
+        manifestPath,
+        "--preset",
+        "team.txt",
+        "--scope",
+        "global",
+      ]);
+      const withRepo = await run([
+        "--manifest",
+        manifestPath,
+        "--repo",
+        repoDir,
+        "--scope",
+        "global",
+      ]);
+
+      expect(withPreset.exitCode).not.toBe(0);
+      expect(withPreset.stderr).toContain("--manifest and --preset");
+      expect(withRepo.exitCode).not.toBe(0);
+      expect(withRepo.stderr).toContain("--manifest and --repo");
+      expect(existsSync(capturePath)).toBe(false);
+    });
+
+    test("validates every block before installing", async () => {
+      const invalidManifests = [
+        ["skill orphan\n", "line 1: skill appears before a source"],
+        ["source owner/repo\n", "line 1: source has no skills"],
+        [
+          "source owner/repo\nskill alpha\nsource owner/repo\nskill beta\n",
+          "line 3: duplicate source 'owner/repo'",
+        ],
+        [
+          "source owner/one\nskill alpha\nsource owner/two\nskill alpha\n",
+          "line 4: duplicate skill 'alpha'",
+        ],
+        ["package owner/repo\n", "line 1: expected 'source' or 'skill'"],
+        ["# only a comment\n", "contains no sources"],
+      ];
+
+      for (const [contents, message] of invalidManifests) {
+        writeFileSync(manifestPath, contents);
+        const result = await run([
+          "--manifest",
+          manifestPath,
+          "--scope",
+          "global",
+        ]);
+
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain(message);
+      }
+
+      expect(existsSync(capturePath)).toBe(false);
+    });
   });
 
   describe("--local", () => {
@@ -334,6 +541,37 @@ fi
       expect(result.exitCode).not.toBe(0);
       expect(result.stderr).toContain("git repository");
       expect(existsSync(capturePath)).toBe(false);
+    });
+
+    test("excludes manifest skills and preserves relative local sources", async () => {
+      const subDir = join(consumerDir, "packages", "app");
+      const localSource = join(tempDir, "source with spaces");
+      const manifestPath = join(tempDir, "project.manifest");
+      mkdirSync(subDir, { recursive: true });
+      mkdirSync(localSource, { recursive: true });
+      writeFileSync(
+        manifestPath,
+        `source ${relative(subDir, localSource)}\nskill gamma\n`,
+      );
+
+      const result = await run(
+        ["--manifest", manifestPath, "--scope", "project", "--local"],
+        {},
+        subDir,
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(capturedCalls(capturePath)[0]?.[1]).toBe(
+        realpathSync(localSource),
+      );
+      expect(readFileSync(`${capturePath}.cwd`, "utf8").trim()).toBe(
+        realpathSync(consumerDir),
+      );
+      expect(excludeLines(excludeFile)).toEqual([
+        "skills-lock.json",
+        ".claude/skills/gamma/",
+        ".agents/skills/gamma/",
+      ]);
     });
   });
 });
