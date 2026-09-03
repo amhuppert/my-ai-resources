@@ -29,7 +29,7 @@ modelcontextprotocol
 /ai-resources:shama-add-context
 /ai-resources:approve
 /ai-resources:break-into-subtasks
-/ai-resources:changes-tour-guide
+/ai-resources:change-review-guide
 /ai-resources:cheat-sheet
 /ai-resources:commit
 /ai-resources:compress

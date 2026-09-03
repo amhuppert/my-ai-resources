@@ -64,7 +64,7 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 - **/ai-resources:shama-add-context** - Add terms or context to Shama voice config files
 - **/ai-resources:approve** - Approve an implementation plan for immediate execution
 - **/ai-resources:break-into-subtasks** - Break frontend features into parallelizable work items
-- **/ai-resources:changes-tour-guide** - Create a pedagogical walkthrough of recent code changes
+- **/ai-resources:change-review-guide** - Write a reviewer's guide to a set of code changes: purpose, fundamental decisions, review path, diff noise
 - **/ai-resources:cheat-sheet** - Generate a concise reference document for a tool or technology
 - **/ai-resources:commit** - Commit staged changes with an AI-generated commit message
 - **/ai-resources:compress** - Optimize and compress AI instructions for token efficiency
