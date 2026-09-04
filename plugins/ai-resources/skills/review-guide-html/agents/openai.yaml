@@ -1,0 +1,6 @@
+interface:
+  display_name: "Review Guide Html"
+  short_description: "Render a change-review-guide as an interactive,..."
+  default_prompt: "Use $review-guide-html to render a change-review-guide as an interactive, self-contained HTML page (and optionally regenerated markdown) from a YAML content file, with the file index and stats pulled from git."
+policy:
+  allow_implicit_invocation: false

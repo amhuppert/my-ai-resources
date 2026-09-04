@@ -1,0 +1,138 @@
+# Worked example for the content schema. The project, ticket, and files are fictional;
+# the shape is what matters. Render against a repo whose diff contains these paths.
+title: Scheduled report exports
+ticket: EXP-412
+kicker: "Merge request review"
+lede: "Users can schedule a report to be exported nightly instead of downloading it by hand. This guide names the three decisions that drive the diff, orders the files so each is read with its context in hand, and marks what can be skimmed."
+scope:
+  base: main
+  head: feature/EXP-412-scheduled-exports
+intent: "Intent is taken from the merge request description, `docs/exports.md`, and code comments. Reasons not stated there are inferred from the code and marked as such."
+
+purpose:
+  - "A user opens Settings, picks a report and a cadence, and the app enqueues a recurring job. Each run renders the report, writes it to object storage, and records the object key on the job so the UI can offer a download link. Failures are retried with backoff and surfaced on the job row."
+  - "The branch also deletes the legacy nightly mailer, whose only remaining consumer was the report it used to email. Its schedule moves onto the queue worker that already runs the other background jobs."
+  - callout: "**Behaviour change for existing users.** Anyone who relied on the emailed report stops receiving it once this ships. The migration note in `docs/exports.md` covers it, but confirm support has been told."
+    tone: warn
+
+fundamentals:
+  - title: A versioned export-job contract
+    body: "`contracts.ts` defines the job record with `schemaVersion: 1`, a `cadence` enum, and a `status` union (`scheduled`, `running`, `succeeded`, `failed`). The API route validates requests against it and the worker validates stored jobs against it, so a record written by one version is checked by the next. Inferred: the version field exists so the queue can carry mixed versions during a rollout."
+    forces: [s1, s3, s5, s6]
+  - title: The scheduler replaces the legacy mailer inside the existing queue worker
+    body: "`scheduler.ts` registers an `export-report` job type with `worker.ts` rather than running its own timer. The legacy `report-mailer.ts` and its spec are deleted. Retries come from the queue's backoff policy; the scheduler adds none of its own."
+    forces: [s3, k-specs]
+  - title: The feature flag gates the UI only
+    body: "`exportsEnabled` in `feature-flags.ts` hides the dialog when off. The API route and the worker are always live, so a job scheduled while the flag was on keeps running after it is turned off."
+    forces: [s2, s5]
+
+stops:
+  - id: s1
+    nav: Contract
+    title: The job contract
+    files:
+      - src/lib/exports/contracts.ts
+    lead: "Read first; the route, the worker, and the dialog all conform to it."
+    scrutinize:
+      - "`cadence` accepts `daily` and `weekly` only; the dialog offers a `monthly` option that the schema will reject."
+      - "`objectKey` is optional on every status, so a `succeeded` job with no key is representable. Decide whether that should be a refinement."
+      - "The spec covers happy-path parsing but not a record with an unknown `schemaVersion`."
+
+  - id: s2
+    nav: Flag & mount
+    title: Feature flag and mount point
+    files:
+      - src/lib/feature-flags.ts
+      - config/flags.json
+      - src/components/settings/settings-page.tsx
+    lead: "How the feature is switched on and where it appears."
+    scrutinize:
+      - "`config/flags.json` sets `exportsEnabled` to `true` by default. Confirm that is intended for the first deploy."
+      - "`settings-page.tsx` renders the dialog inside the existing `<Section>` list; check the new section keeps its position when other flags are off."
+
+  - id: s3
+    nav: Scheduler & queue
+    title: Scheduler and queue registration
+    files:
+      - src/lib/exports/scheduler.ts
+      - src/lib/queue/worker.ts
+      - src/lib/queue/job-types.ts
+      - src/lib/legacy/report-mailer.ts
+      - src/lib/legacy/report-mailer.spec.ts
+    lead: "`registerExportJob` adds one handler to the worker's job table. The two deleted files are the mailer this replaces."
+    scrutinize:
+      - "`job-types.ts` gains `export-report`; the union is exhaustive in a `switch` in `worker.ts`, so the compiler forces the handler. Good, but the default branch still logs and swallows unknown types at runtime."
+      - "The handler calls `renderReport` without a timeout. A slow report holds a worker slot indefinitely."
+      - "Nothing migrates existing mailer subscriptions into export jobs; users must re-create them."
+    parts:
+      - title: Retry semantics
+        body: "The queue retries three times with exponential backoff. `renderReport` is not idempotent with respect to storage writes, so a retry after a successful write but before the status update produces a second object under a new key. The first is never cleaned up."
+
+  - id: s4
+    nav: Storage & HTTP
+    title: Storage and the HTTP client change
+    files:
+      - src/lib/exports/storage.ts
+      - src/lib/http/client.ts
+    lead: "`storage.ts` writes the rendered file and returns its key. The change to the shared HTTP client is the one edit outside the feature's own directories."
+    scrutinize:
+      - "`client.ts` now retries `PUT` requests on 503. Every caller of the shared client gets this behaviour, not just storage."
+      - "The object key embeds the user id. Check that matches the bucket's access policy before shipping."
+
+  - id: s5
+    nav: API route
+    title: The API route
+    files:
+      - src/app/api/exports/route.ts
+    lead: "`POST` creates a job, `GET` lists the caller's jobs, `DELETE` cancels one. Authentication wraps all three."
+    scrutinize:
+      - "`DELETE` looks the job up by id without checking ownership; any authenticated user can cancel any job."
+      - "`GET` returns `objectKey` verbatim, which reveals the storage layout to the client."
+      - "The spec mocks the scheduler entirely, so it exercises validation and status codes only."
+
+  - id: s6
+    nav: Dialog & hook
+    title: The dialog and its hook
+    files:
+      - src/components/exports/export-dialog.tsx
+      - src/components/exports/use-export-job.ts
+    lead: "`use-export-job.ts` owns the request lifecycle; the dialog is presentational."
+    scrutinize:
+      - "The dialog has no Escape handler and does not return focus on close."
+      - "`use-export-job.ts` polls `GET` every five seconds while the dialog is open, with no backoff and no stop on tab blur."
+      - "A failed `POST` shows a generic message; the route returns a validation detail the hook discards."
+
+skim:
+  - id: k-specs
+    nav: specs
+    title: New and updated specs
+    files:
+      - "**/*.spec.ts"
+      - "**/*.spec.tsx"
+    body: "`scheduler.spec.ts` is thorough on the job table and retry path. `route.spec.ts` and `export-dialog.spec.tsx` are thin: both mock the layer beneath them."
+    spot_check: "The deleted mailer spec had one case the scheduler spec does not carry over: an empty report renders a placeholder rather than failing."
+  - id: k-dep
+    nav: dependency
+    title: "Dependency: `archiver` added for zip output"
+    files:
+      - package.json
+      - package-lock.json
+    spot_check: "The lockfile diff is the `archiver` subtree only."
+  - id: k-docs-style
+    nav: docs and styles
+    title: Docs and stylesheet
+    files:
+      - docs/exports.md
+      - src/styles/dialog.css
+    spot_check: "The stylesheet adds one class used by the dialog; the doc describes the cadence options, including the `monthly` option the schema rejects."
+
+questions:
+  - title: Who owns retention of exported files?
+    tag: privacy
+    body: "Objects are written with no lifecycle rule. Exports of reports containing customer data accumulate indefinitely."
+  - title: Should the shared HTTP client retry for everyone?
+    tag: behaviour
+    body: "The 503 retry on `PUT` was added for storage but applies to every caller. Scope it or document it."
+  - title: Cadence mismatch between dialog and schema
+    tag: docs
+    body: "The dialog and the docs offer `monthly`; the contract rejects it. Which is right?"

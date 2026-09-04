@@ -70,4 +70,4 @@ The guide is done when every changed file in scope is either a stop on the revie
 
 Write for a developer who knows the codebase but has not seen the change. Quote code only where seeing it is faster than describing it. The guide's value is selection and ordering; a guide that restates the diff has failed.
 
-After saving, tell the user the file path and the one or two decisions that most shape the change.
+After saving, tell the user the file path and the one or two decisions that most shape the change, and that `/review-guide-html` can render the guide as an interactive HTML page.
