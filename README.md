@@ -32,6 +32,7 @@ Installs user-wide configurations that apply across all projects:
 - `scripts/push-main` → `~/.local/bin/push-main` - Branch deployment utility (executable)
 - `scripts/install-skills` → `~/.local/bin/install-skills` - Local skill installer for Claude Code and Codex
 - `scripts/notify` → `~/.local/bin/notify` - Command-completion notifier for macOS and Linux
+- `scripts/orphaned-playwright` → `~/.local/bin/orphaned-playwright` - Review and close abandoned browser automation sessions with Gum
 - `claude/settings.json` → Claude Code user settings (via TypeScript installer with deep merge)
 - MCP server registration for Claude Code:
   - `context7` (third-party library documentation)
@@ -97,6 +98,26 @@ working sound from `.claude/notification.mp3` in the current project or
 `~/.config/notify/notification.mp3`, then falls back to speaking the derived
 command result. Visual and audio delivery are best effort with warnings;
 wrapped commands retain their exit status, including signal-derived statuses.
+
+### Playwright Cleanup
+
+Run `./scripts/orphaned-playwright` to review potential abandoned Playwright
+sessions in a Gum multi-selection menu. It shows session names, ages, process
+counts, and memory footprint; termination requires confirmation. SIGTERM comes
+first, with a separate opt-in for SIGKILL if processes survive.
+
+```bash
+./scripts/orphaned-playwright                  # interactive review and optional cleanup
+./scripts/orphaned-playwright --list           # read-only report
+./scripts/orphaned-playwright --json           # read-only structured report
+./scripts/orphaned-playwright --all            # also show younger or attached sessions
+./scripts/orphaned-playwright --min-age-hours 8
+```
+
+Requires Python 3.9+ on macOS or Linux, plus Gum for interactive use
+(`brew install gum` on macOS). Run as your regular user. The default filter is
+roots with parent PID 1 and age at least two hours; these are clues, not proof
+that a session is abandoned. [Detection limits and prevention design](notes-for-humans/playwright-cleanup.md).
 
 ### Shared Claude Code and Codex skills
 

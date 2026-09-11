@@ -1,0 +1,359 @@
+#!/usr/bin/env bash
+set -euo pipefail
+command -v python3 >/dev/null || { echo 'Error: python3 is required.' >&2; exit 2; }
+exec python3 - "$@" <<'PYTHON_END'
+# PYTHON_START
+from __future__ import annotations
+
+import argparse
+import ctypes
+from dataclasses import dataclass
+import json
+import math
+import os
+from pathlib import Path
+import re
+import shutil
+import signal
+import struct
+import subprocess
+import sys
+import time
+
+
+@dataclass(frozen=True)
+class Process:
+    pid: int
+    ppid: int
+    uid: int
+    start: str
+    age_seconds: int
+    rss_mib: float
+    footprint_mib: float | None
+    argv: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class Candidate:
+    root: Process
+    members: tuple[Process, ...]
+    kind: str
+    label: str
+
+
+class Rusage(ctypes.Structure):
+    _fields_ = [("uuid", ctypes.c_ubyte * 16)] + [
+        (name, ctypes.c_uint64) for name in (
+            "user", "system", "pkg", "interrupt", "pageins", "wired",
+            "resident", "footprint", "start", "exit",
+        )
+    ]
+
+
+def native_identity(pid):
+    if sys.platform == "linux":
+        stat = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+        if stat[0] == "Z":
+            raise ProcessLookupError(pid)
+        argv = tuple(os.fsdecode(a) for a in Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0") if a)
+        return stat[19], argv, None
+    if sys.platform != "darwin":
+        raise RuntimeError("Supported platforms: macOS and Linux.")
+    lib = ctypes.CDLL("libproc.dylib", use_errno=True)
+    usage = Rusage()
+    if lib.proc_pid_rusage(pid, 0, ctypes.byref(usage)) or not usage.start or usage.exit:
+        raise ProcessLookupError(pid)
+    # KERN_PROCARGS2 preserves argv boundaries; ps flattens paths containing spaces.
+    mib = (ctypes.c_int * 3)(1, 49, pid)
+    size = ctypes.c_size_t()
+    if lib.sysctl(mib, 3, None, ctypes.byref(size), None, 0):
+        raise ProcessLookupError(pid)
+    buffer = ctypes.create_string_buffer(size.value)
+    if lib.sysctl(mib, 3, buffer, ctypes.byref(size), None, 0):
+        raise ProcessLookupError(pid)
+    raw = buffer.raw[:size.value]
+    argc = struct.unpack_from("i", raw)[0]
+    offset = raw.index(b"\0", 4)
+    while offset < len(raw) and raw[offset] == 0:
+        offset += 1
+    argv = tuple(os.fsdecode(a) for a in raw[offset:].split(b"\0", argc)[:argc])
+    return str(usage.start), argv, usage.footprint / 1024**2
+
+
+def elapsed_seconds(value):
+    days, _, clock = value.rpartition("-")
+    total = 0
+    for part in clock.split(":"):
+        total = total * 60 + int(part)
+    return total + int(days or 0) * 86400
+
+
+def scan_processes(pid=None):
+    command = ["ps", "-ww", "-p", str(pid)] if pid else ["ps", "-ww", "-A"]
+    result = subprocess.run(command + ["-o", "uid=,pid=,ppid=,etime=,rss="],
+                            capture_output=True, text=True, env={**os.environ, "LC_ALL": "C"}, timeout=10)
+    if result.returncode and not (pid and result.returncode == 1 and not result.stdout.strip()):
+        raise RuntimeError("Process scan failed: " + result.stderr.strip())
+    processes = {}
+    for line in result.stdout.splitlines():
+        uid, process_pid, parent, elapsed, rss = line.split()
+        if int(uid) != os.getuid():
+            continue
+        try:
+            start, argv, footprint = native_identity(int(process_pid))
+        except (OSError, ValueError):
+            continue
+        if not argv:
+            continue
+        processes[int(process_pid)] = Process(int(process_pid), int(parent), int(uid), start,
+                                              elapsed_seconds(elapsed), int(rss) / 1024,
+                                              footprint, argv)
+    return processes
+
+
+def read_process(pid):
+    return scan_processes(pid).get(pid)
+
+
+def root_kind(process):
+    argv = process.argv
+    if (len(argv) >= 2 and Path(argv[0]).name in {"node", "nodejs", "bun"}
+            and argv[1].endswith("/playwright-core/lib/entry/cliDaemon.js")):
+        label = argv[2] if len(argv) > 2 and not argv[2].startswith("-") else "unnamed"
+        return "daemon", label
+    browser = Path(argv[0]).name.lower()
+    if browser not in {"google chrome", "chrome", "chromium", "chromium-browser", "headless_shell", "chrome-headless-shell"}:
+        return None
+    profile = next((arg.split("=", 1)[1] for arg in argv if arg.startswith("--user-data-dir=")), "")
+    if ("--remote-debugging-pipe" in argv
+            and re.fullmatch(r"playwright_[a-z]+(?:dev)?_profile-[A-Za-z0-9_-]+", Path(profile).name)
+            and not any(arg.startswith("--type=") for arg in argv)):
+        return "browser", Path(profile).name
+    return None
+
+
+def descendants(root, processes):
+    members = {root.pid: root}
+    while True:
+        added = {p.pid: p for p in processes.values()
+                 if p.ppid in members and p.uid == root.uid and p.pid not in members}
+        if not added:
+            return tuple(members.values())
+        members.update(added)
+
+
+def ancestors(pid, processes):
+    result = set()
+    while pid in processes and pid not in result:
+        result.add(pid)
+        pid = processes[pid].ppid
+    return result
+
+
+def find_candidates(processes, uid, min_age=7200, include_all=False, protected=frozenset()):
+    roots = {p.pid: root_kind(p) for p in processes.values() if p.uid == uid and root_kind(p)}
+    candidates = []
+    for pid, (kind, label) in roots.items():
+        root = processes[pid]
+        if ancestors(root.ppid, processes) & roots.keys():
+            continue
+        if not include_all and (root.ppid != 1 or root.age_seconds < min_age):
+            continue
+        members = descendants(root, processes)
+        if any(p.pid in protected for p in members):
+            continue
+        candidates.append(Candidate(root, members, kind, label))
+    return sorted(candidates, key=lambda c: c.root.age_seconds, reverse=True)
+
+
+def same_identity(before, after):
+    return after is not None and (before.pid, before.uid, before.start, before.argv) == (
+        after.pid, after.uid, after.start, after.argv)
+
+
+def prepare_targets(selected, current):
+    targets = {}
+    for candidate in selected:
+        root = current.get(candidate.root.pid)
+        if not same_identity(candidate.root, root):
+            raise ValueError(f"PID {candidate.root.pid} exited or changed identity; scan again.")
+        approved = {p.pid: p for p in candidate.members}
+        for member in descendants(root, current):
+            if member.pid not in approved or not same_identity(approved[member.pid], member):
+                raise ValueError(f"Process tree for PID {root.pid} changed; scan again.")
+            targets[member.pid] = member
+    return list(targets.values())
+
+
+def signal_verified(process, sig, lookup=read_process, send=os.kill):
+    if not same_identity(process, lookup(process.pid)):
+        return False
+    try:
+        send(process.pid, sig)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def wait_survivors(targets, seconds):
+    deadline = time.monotonic() + seconds
+    while True:
+        current = scan_processes()
+        survivors = [p for p in targets if same_identity(p, current.get(p.pid))]
+        if not survivors or time.monotonic() >= deadline:
+            return survivors
+        time.sleep(0.2)
+
+
+def safe_text(value):
+    return "".join(char if char.isprintable() else "?" for char in value)
+
+
+def describe(candidate):
+    total_rss = sum(p.rss_mib for p in candidate.members)
+    footprints = [p.footprint_mib for p in candidate.members]
+    total_footprint = sum(footprints) if all(v is not None for v in footprints) else None
+    return dict(pid=candidate.root.pid, ppid=candidate.root.ppid, kind=candidate.kind,
+                session=candidate.label, age_hours=round(candidate.root.age_seconds / 3600, 1),
+                process_count=len(candidate.members), rss_mib=round(total_rss, 1),
+                footprint_mib=round(total_footprint, 1) if total_footprint is not None else None,
+                pids=[p.pid for p in candidate.members])
+
+
+def summary_line(candidate):
+    row = describe(candidate)
+    memory = f"{row['footprint_mib']:.0f} MiB footprint" if row['footprint_mib'] is not None else f"{row['rss_mib']:.0f} MiB RSS"
+    return (f"PID {row['pid']} | {row['age_hours']}h | {memory} | "
+            f"{row['process_count']} processes | {safe_text(row['session'])}")
+
+
+def show_details(selected):
+    for candidate in selected:
+        print(summary_line(candidate))
+        print(f"  {candidate.kind}; parent PID {candidate.root.ppid}; process PIDs: "
+              + ", ".join(str(p.pid) for p in candidate.members))
+    print("Footprint includes compressed allocations; RSS can understate retained memory.")
+    print("Age and PPID 1 are clues, not proof of abandonment. Active detached daemons also match.")
+
+
+def gum(*args):
+    with open("/dev/tty", "rb", buffering=0) as tty_in, open("/dev/tty", "wb", buffering=0) as tty_out:
+        result = subprocess.run(["gum", *args], stdin=tty_in, stdout=subprocess.PIPE,
+                                stderr=tty_out, text=True)
+    return result.returncode, result.stdout.strip()
+
+
+def log_signal(process, sig):
+    sent = signal_verified(process, sig)
+    print(json.dumps(dict(event="playwright_cleanup.signal", pid=process.pid,
+                          signal=signal.Signals(sig).name, result="sent" if sent else "exited_or_changed")),
+          file=sys.stderr)
+
+
+def interact(candidates, grace):
+    if not shutil.which("gum"):
+        raise RuntimeError("Gum is required for interactive cleanup. Install with: brew install gum; or use --list.")
+    if not sys.stdout.isatty():
+        raise RuntimeError("Interactive cleanup needs a terminal; use --list or --json for read-only output.")
+    subprocess.run(["gum", "style", "--bold", "--foreground", "#749bee", "Playwright cleanup"], check=True)
+    show_details(candidates)
+    labels = {summary_line(c): c for c in candidates}
+    code, answer = gum("choose", "--no-limit", "--header", "Select sessions: Space to toggle, Enter to review", "--", *labels)
+    if code or not answer:
+        print("No sessions selected.")
+        return 0
+    selected = [labels[line] for line in answer.splitlines()]
+    while True:
+        code, action = gum("choose", "--header", f"{len(selected)} selected session(s)",
+                           "Inspect selected", "Terminate selected (SIGTERM)", "Cancel")
+        if code or action == "Cancel":
+            return 0
+        if action == "Inspect selected":
+            show_details(selected)
+            continue
+        if action == "Terminate selected (SIGTERM)":
+            break
+    targets = prepare_targets(selected, scan_processes())
+    code, _ = gum("confirm", f"Terminate {len(selected)} session(s), up to {len(targets)} processes?",
+                  "--default=false", "--affirmative", "Terminate", "--negative", "Cancel")
+    if code:
+        return 0
+    targets = prepare_targets(selected, scan_processes())
+    roots = {c.root.pid for c in selected}
+    for process in targets:
+        if process.pid in roots:
+            log_signal(process, signal.SIGTERM)
+    survivors = wait_survivors(targets, grace)
+    for process in survivors:
+        if process.pid not in roots:
+            log_signal(process, signal.SIGTERM)
+    survivors = wait_survivors(survivors, grace)
+    if not survivors:
+        print("Selected processes exited.")
+        return 0
+    print("Still running: " + ", ".join(str(p.pid) for p in survivors))
+    code, _ = gum("confirm", f"Force-kill these {len(survivors)} surviving processes?",
+                  "--default=false", "--affirmative", "Send SIGKILL", "--negative", "Leave running")
+    if code:
+        print("Surviving processes left running.")
+        return 1
+    for process in survivors:
+        log_signal(process, signal.SIGKILL)
+    remaining = wait_survivors(survivors, grace)
+    if remaining:
+        print("Could not stop PIDs: " + ", ".join(str(p.pid) for p in remaining), file=sys.stderr)
+        return 1
+    print("Selected processes exited.")
+    return 0
+
+
+def nonnegative(value):
+    number = float(value)
+    if not math.isfinite(number) or number < 0:
+        raise argparse.ArgumentTypeError("must be a finite, non-negative number")
+    return number
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="orphaned-playwright", description=(
+        "Review potential abandoned Playwright processes with Gum. By default: current user's "
+        "detached roots (PPID 1), at least 2 hours old. These are candidates, not confirmed orphans."),
+        epilog=("Only recognized Playwright CLI daemons and Chrome/Chromium browsers with Playwright "
+                "temporary profiles are included, together with their descendants. Custom browser profiles "
+                "without a live recognized daemon may not be detected. No unattended killing or profile deletion. "
+                "Requires Python 3.9+; interactive mode also requires Gum. Exit: 0 success/cancel, "
+                "1 survivors or interrupted, 2 error."))
+    parser.add_argument("--list", action="store_true", help="read-only report; does not require Gum")
+    parser.add_argument("--json", action="store_true", help="read-only JSON report; implies --list")
+    parser.add_argument("--all", action="store_true", help="include younger roots and roots with a live parent")
+    parser.add_argument("--min-age-hours", type=nonnegative, default=2, help="minimum root age (default: 2; ignored by --all)")
+    parser.add_argument("--grace", type=nonnegative, default=3, help="seconds per graceful shutdown stage (default: 3)")
+    args = parser.parse_args()
+    if os.getuid() == 0:
+        raise RuntimeError("Run as your regular user, without sudo; only your own processes are considered.")
+    processes = scan_processes()
+    candidates = find_candidates(processes, os.getuid(), args.min_age_hours * 3600, args.all,
+                                 ancestors(os.getpid(), processes))
+    if args.json:
+        print(json.dumps(dict(candidates=[describe(c) for c in candidates],
+                              assessment="heuristic; age and parent PID do not prove abandonment"), indent=2))
+        return 0
+    if not candidates:
+        print("No matching Playwright candidates. Use --all to include younger or attached sessions.")
+        return 0
+    if args.list:
+        show_details(candidates)
+        return 0
+    return interact(candidates, args.grace)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print("Interrupted. Rescan to check for surviving processes.", file=sys.stderr)
+        sys.exit(1)
+    except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as error:
+        print(f"Error: {error}", file=sys.stderr)
+        sys.exit(2)
+PYTHON_END
