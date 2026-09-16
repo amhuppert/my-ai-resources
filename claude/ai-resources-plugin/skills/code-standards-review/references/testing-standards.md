@@ -63,7 +63,7 @@ Design for proper dependency injection so that tests can substitute dependencies
 1. **No mock needed** — Pure functions, deterministic logic. Test with real inputs and assert outputs
 2. **Injected dependency** — Pass a test double through constructor, factory parameter, or React context. The production code accepts an interface; tests provide a simple object implementing it
 3. **Third-party library mock (jest.mock)** — Replace a module's exports when the library performs side effects that cannot be controlled through injection (e.g., file system, network, timers). Acceptable when necessary, but recognize the tradeoff: tested code diverges from production code
-4. **Mocking own modules (jest.mock on internal code)** — Almost always a design smell. If internal code needs to be mocked, the architecture likely lacks proper abstraction boundaries or dependency injection
+4. **Mocking own modules (jest.mock on internal code)** — Acceptable for pragmatic reasons: when it greatly simplifies the tests and the tests still exercise important logic. The cost is coupling to internals (see "Connection to mocking" above), so keep the mock shallow. A mock that reproduces the logic it replaces, or a test left verifying only plumbing, is the signal to add an injection point instead
 
 ### jest.mock and Third-Party Modules
 
@@ -83,26 +83,27 @@ Having legitimate use cases for `jest.mock` on third-party modules does not mean
 
 Even when jest.mock is warranted, prefer wrapping the side-effecting code in a thin adapter that can be injected, limiting jest.mock to the adapter's test file rather than spreading it across the codebase.
 
-### When jest.mock Is a Smell
+### When an Own-Module jest.mock Is a Finding
 
-- Mocking own service modules to test a component — indicates the component should receive the service via injection
-- Mocking utility functions to isolate a unit — indicates the utility should be a parameter or the test should be an integration test
-- Mocking data access layers inline — indicates missing service abstraction
-- Any mock that requires understanding internal implementation details of the mocked module
+An own-module mock is a finding when any of these hold; otherwise it is an accepted tradeoff, worth at most a note:
 
-### What Counts as Problematic Mocking
+- An injection point already exists for the dependency (a service in context, a parameter) and the test mocks the module instead of using it
+- The mock setup reproduces the logic of the module it replaces
+- With the mock in place, the test no longer exercises important logic — it fails the confidence test below
+
+The recommended change in each case is the injection point the mock is standing in for: a parameter, a service in context, or a thin adapter around the side effect.
+
+### What Counts as Module Mocking
 
 The concern is specifically **jest.mock module replacement** — using Jest's power to blow away real production code and substitute entirely different implementations. This is distinct from mock data and injected test doubles, which are fine:
 
-- **Fine**: Creating mock data objects and passing them as props or function arguments
-- **Fine**: Using `jest.fn()` and passing it as a parameter or through context (this is just dependency injection)
-- **Fine**: Building a mock service object that satisfies an interface and injecting it via context
-- **Problematic**: `jest.mock('./myModule')` — replacing an entire module so the test never runs the real code
-- **Problematic**: `jest.mock('../services/userService')` — substituting internal service code with fake implementations
+- **Injected double**: Creating mock data objects and passing them as props or function arguments
+- **Injected double**: Using `jest.fn()` and passing it as a parameter or through context (this is just dependency injection)
+- **Injected double**: Building a mock service object that satisfies an interface and injecting it via context
+- **Module replacement**: `jest.mock('./myModule')` or `jest.mock('../services/userService')` — the test never runs the real module. Judge it by the finding conditions above
 
 ### Over-Mocking Indicators
 
-- `jest.mock()` calls on internal/own modules (even one is a smell)
 - Changing an implementation detail (not behavior) breaks multiple test files
 - Mock setup duplicates the implementation logic it replaces
 - Tests pass with mocks but production code fails — the mocks diverged from reality
@@ -130,7 +131,7 @@ None of these assertions prove the production code works.
 
 - **Meaningful transformation**: Production code transforms, filters, combines, or validates data. The test verifies the transformation, not the plumbing
 - **Behavioral assertions**: Test asserts observable outcomes (return values, state changes, side effects) rather than internal call sequences
-- **Minimal module mocking**: Reserve `jest.mock` for third-party side effects. Use injected test doubles (mock data, `jest.fn()` passed as parameters, mock objects via context) for everything else
+- **Minimal module mocking**: Prefer injected test doubles (mock data, `jest.fn()` passed as parameters, mock objects via context); the mocking hierarchy above says when a `jest.mock` is warranted
 - **Integration over isolation**: When the cost of real dependencies is low (in-memory databases, lightweight services), prefer integration tests over heavily-mocked unit tests
 
 ### The Confidence Test
@@ -169,7 +170,6 @@ When reviewing tests, evaluate:
 
 - [ ] Does each test provide real confidence that production code works?
 - [ ] Are tests asserting behavior (outputs, state) rather than implementation (call order, internal structure)?
-- [ ] Is jest.mock used only for third-party side effects, not internal modules?
-- [ ] Are own modules injected rather than jest.mock'd?
+- [ ] Is each jest.mock on an own module justified — no existing injection point bypassed, mock kept shallow, important logic still exercised?
 - [ ] Would the test catch a real regression, or only break on harmless refactors?
 - [ ] Do tests survive refactoring of implementation details?

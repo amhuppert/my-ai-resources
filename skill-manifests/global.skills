@@ -7,7 +7,6 @@ source mattpocock/skills
 skill improve-codebase-architecture
 skill resolving-merge-conflicts
 skill handoff
-skill writing-for-agents
 
 source wondelai/skills
 skill software-design-philosophy
@@ -18,3 +17,4 @@ skill accessibility
 # This repository's global skills
 source https://github.com/amhuppert/my-ai-resources/tree/main/claude/ai-resources-plugin
 skill wait-what
+skill writing-for-frontier-agents
