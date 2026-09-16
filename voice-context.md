@@ -62,31 +62,19 @@ A centralized AI workflow resources repository that provides Claude Code slash c
 
 - **/ai-resources:add-design-agent** - Create a new design workflow agent for the /design workflow
 - **/ai-resources:shama-add-context** - Add terms or context to Shama voice config files
-- **/ai-resources:approve** - Approve an implementation plan for immediate execution
-- **/ai-resources:break-into-subtasks** - Break frontend features into parallelizable work items
 - **/ai-resources:change-review-guide** - Write a reviewer's guide to a set of code changes: purpose, fundamental decisions, review path, diff noise
+- **/ai-resources:characterize-codebase** - Characterize what a codebase is built for: design envelope vs operating envelope, overbuilt and underbuilt findings
 - **/ai-resources:cheat-sheet** - Generate a concise reference document for a tool or technology
-- **/ai-resources:commit** - Commit staged changes with an AI-generated commit message
 - **/ai-resources:compress** - Optimize and compress AI instructions for token efficiency
-- **/ai-resources:config-audit** - Audit Claude Code and Cursor IDE configurations for gaps
-- **/ai-resources:create-plan-anthropic** - Create a detailed, decision-complete implementation plan
 - **/ai-resources:create-reference** - Create an AI-optimized reference document for a tool or API
 - **/ai-resources:create-requirements** - Write a PRD or requirements document
-- **/ai-resources:cursor-rules-synchronizer** - Sync Cursor Rules (.mdc files) to CLAUDE.md
-- **/ai-resources:cursor-rules** - Create or edit Cursor rule files in .cursor/rules/
 - **/ai-resources:design** - Orchestrate a multi-agent collaborative software design workflow
-- **/ai-resources:fix-merge-conflicts** - Resolve git merge conflicts
 - **/ai-resources:init-design-config** - Initialize DESIGN-AGENTS.md configuration file
 - **/ai-resources:shama-init-config** - Initialize Shama voice config for a project
-- **/ai-resources:jog-users-memory** - Provide a quick summary of current progress after returning
 - **/ai-resources:latex** - Create or convert documents to LaTeX format
-- **/ai-resources:local-commit** - Commit to the local private repository via lgit
-- **/ai-resources:local-init** - Initialize a new local private repository in the current directory
 - **/ai-resources:reflection** - Reflect on conversation to suggest CLAUDE.md improvements
-- **/ai-resources:skill-creator** - Create or update a Claude Code skill
 - **/ai-resources:steer** - Create a navigation steering document from codebase exploration
 - **/ai-resources:understand-objective** - Research and clarify a development objective
-- **/ai-resources:worktree** - Create a git worktree for parallel Claude Code sessions
 
 ### Agents (ai-resources Plugin)
 

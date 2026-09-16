@@ -17,11 +17,11 @@ inclusion: always
 ## Naming Conventions
 
 - Files: kebab-case (`install-user.ts`); TypeScript: camelCase functions, PascalCase types/Zod schemas
-- Skills: `namespace:kebab-case` (`ai-resources:fix-merge-conflicts`); CLI: kebab-case subcommands (`ai install`)
+- Skills: `namespace:kebab-case` (`ai-resources:change-review-guide`); CLI: kebab-case subcommands (`ai install`)
 
 ## Key Interfaces
 
 - `typescript/lib/installer-utils.ts` - File sync; CLAUDE.md comment-marker merging
 - `typescript/scripts/install-user.ts` / `install-project.ts` - User-level vs project-level installation
-- `typescript/lib/claude-code-settings.ts` - Zod schemas for Claude Code settings validation
+- `typescript/lib/claude-code-settings.ts` - Zod schemas for the `hooks` section of Claude Code settings files
 - `claude/CLAUDE-project.md` - Standard-instructions template merged between `<!-- Begin standard instructions -->` / `<!-- End of standard instructions -->` markers

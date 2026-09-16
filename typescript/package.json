@@ -1,7 +1,7 @@
 {
   "name": "my-ai-resources-ts",
   "version": "1.0.0",
-  "description": "TypeScript types and utilities for Claude Code settings.json configuration",
+  "description": "Installers, codemods, and CLI utilities for the AI resources in this repository",
   "type": "module",
   "private": true,
   "scripts": {
@@ -11,7 +11,6 @@
     "build:notify": "bun run scripts/build-notify.ts",
     "install-user": "bun run scripts/ai.ts install --scope user",
     "install-project": "bun run scripts/ai.ts install --scope project",
-    "init-document-map": "bun run scripts/ai.ts init-document-map",
     "type-check": "tsc --noEmit",
     "json-to-schema": "bun run scripts/json-to-zod-to-json-schema.ts",
     "test": "bun test",
@@ -32,9 +31,9 @@
   "keywords": [
     "claude",
     "claude-code",
-    "settings",
+    "codex",
     "typescript",
-    "configuration"
+    "cli"
   ],
   "devDependencies": {
     "@types/bun": "latest",

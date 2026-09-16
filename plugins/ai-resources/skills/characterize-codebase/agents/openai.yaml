@@ -1,0 +1,6 @@
+interface:
+  display_name: "Characterize Codebase"
+  short_description: "Characterize what a codebase is built for: infer its design..."
+  default_prompt: "Use $characterize-codebase to characterize what a codebase is built for: infer its design envelope from the mechanisms in the code, compare it with the operating envelope it actually faces, and report where the code is overbuilt or underbuilt."
+policy:
+  allow_implicit_invocation: false

@@ -74,39 +74,12 @@ const HooksSchema = z
   .passthrough();
 
 /**
- * Permissions configuration for Claude Code
- */
-const PermissionsSchema = z.object({
-  /** Array of allowed permission rules (e.g., "Bash(npm run lint)", "WebFetch") */
-  allow: z.array(z.string()).optional(),
-  /** Array of denied permission rules (e.g., "Bash(curl:*)", "WebFetch") */
-  deny: z.array(z.string()).optional(),
-  /** Additional directories that can be accessed */
-  additionalDirectories: z.array(z.string()).optional(),
-  /** Default permission mode */
-  defaultMode: z.string().optional(),
-  /** Disable bypass permissions mode */
-  disableBypassPermissionsMode: z.literal("disable").optional(),
-});
-
-/**
- * Main Claude Code settings configuration.
- * Uses .passthrough() to preserve fields not in our schema (e.g. enabledPlugins,
- * extraKnownMarketplaces) so the installer doesn't silently strip them.
+ * Claude Code settings file shape, narrowed to the `hooks` section the hook
+ * installer manages. `.passthrough()` preserves every other key (permissions,
+ * env, enabledPlugins, …) verbatim on the read-modify-write round trip.
  */
 export const ClaudeCodeSettingsSchema = z
   .object({
-    /** Path to script for generating auth value */
-    apiKeyHelper: z.string().optional(),
-    /** Days to retain chat transcripts (default: 30) */
-    cleanupPeriodDays: z.number().positive().optional(),
-    /** Environment variables */
-    env: z.record(z.string(), z.string()).optional(),
-    /** Include "co-authored-by Claude" in git commits (default: true) */
-    includeCoAuthoredBy: z.boolean().optional(),
-    /** Permissions configuration */
-    permissions: PermissionsSchema.optional(),
-    /** Hooks configuration */
     hooks: HooksSchema.optional(),
   })
   .passthrough();
@@ -117,29 +90,3 @@ export type HookEvent = z.infer<typeof HookEventSchema>;
 export type HookConfig = z.infer<typeof HookConfigSchema>;
 export type HookMatcher = z.infer<typeof HookMatcherSchema>;
 export type ClaudeCodeSettings = z.infer<typeof ClaudeCodeSettingsSchema>;
-
-/**
- * Validate Claude Code settings
- * TODO: We don't need this function, just use the Zod schema directly.
- */
-export function validateSettings(settings: unknown): ClaudeCodeSettings {
-  return ClaudeCodeSettingsSchema.parse(settings);
-}
-
-/**
- * Parse Claude Code settings with error handling
- * TODO: We don't need this function, just use the Zod schema directly.
- */
-export function parseSettings(settings: unknown): {
-  success: boolean;
-  data?: ClaudeCodeSettings;
-  error?: z.ZodError;
-} {
-  const result = ClaudeCodeSettingsSchema.safeParse(settings);
-  return {
-    success: result.success,
-    data: result.success ? result.data : undefined,
-    error: result.success ? undefined : result.error,
-  };
-}
-

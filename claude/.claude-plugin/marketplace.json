@@ -14,11 +14,6 @@
       "name": "agentic-engineering-principles",
       "source": "./agentic-engineering-principles-plugin",
       "description": "Principles for building reliable agent workflows and tools"
-    },
-    {
-      "name": "memory-bank",
-      "source": "./memory-bank-plugin",
-      "description": "Structured memory management for AI agents using SQLite-backed features, paths, requirements, and objectives"
     }
   ]
 }

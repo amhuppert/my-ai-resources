@@ -69,17 +69,6 @@ For sessions involving more than a few interactions, **delegate to a subagent**.
  Report back pass/fail."
 ```
 
-## Runtime Debugging
-
-When browser automation reveals unexpected behavior — console errors, wrong UI state, failed interactions — combine Playwright with the **web-debugger** skill for runtime inspection:
-
-1. Reproduce the issue with Playwright
-2. Use `get_logs` to check structured app logs (browser + server)
-3. Use `get_snapshot` to inspect application state at the failure point
-4. Fix and verify with Playwright
-
-See the `web-debugger` skill for full tool reference.
-
 ## Self-Improvement
 
 Watch for inefficiency or struggle:

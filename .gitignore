@@ -1,6 +1,4 @@
 node_modules
-web-debugger-mcp/bin
-claude/ai-resources-plugin/servers
 PROMPT.md
 
 scripts/list-servers

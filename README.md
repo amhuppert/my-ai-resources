@@ -12,7 +12,7 @@ My personal AI workflow, config, prompts, etc. for Claude Code and Codex.
 - `memory-bank/` - Working notes and implementation plans from AI-assisted development
 - `prompts/` - Saved LLM prompts and prompt templates
 - `scripts/` - CLI utility scripts (including local skill installation)
-- `typescript/` - TypeScript tooling for installation and settings management
+- `typescript/` - TypeScript tooling for installation and plugin generation
 - `.claude/` - Claude Code project-level configuration for this repository
 
 ## Installation
@@ -33,15 +33,12 @@ Installs user-wide configurations that apply across all projects:
 - `scripts/install-skills` → `~/.local/bin/install-skills` - Local skill installer for Claude Code and Codex
 - `scripts/notify` → `~/.local/bin/notify` - Command-completion notifier for macOS and Linux
 - `scripts/orphaned-playwright` → `~/.local/bin/orphaned-playwright` - Review and close abandoned browser automation sessions with Gum
-- `claude/settings.json` → Claude Code user settings (via TypeScript installer with deep merge)
-- MCP server registration for Claude Code:
-  - `context7` (third-party library documentation)
 - `ai-resources` and `agentic-engineering-principles` plugins - Installed for Claude Code and Codex from local marketplaces
 
 **Requirements:**
 
-- `bun` runtime (for settings installation)
-- `claude` CLI (for MCP server registration and plugin installation)
+- `bun` runtime (for building the installed utilities and Codex plugins)
+- `claude` CLI (for plugin installation)
 - `codex` CLI (optional; required for Codex plugin installation)
 - `ffplay` (optional, for notification sounds in projects)
 

@@ -11,7 +11,6 @@ import {
   commandExists,
   execCommand,
 } from "@/lib/installer-utils.js";
-import { installSettingsFromFile } from "@/scripts/install-settings.js";
 import {
   type CommandExecutor,
   type InstallConfig,
@@ -99,29 +98,6 @@ async function main(
       executor,
       true,
     );
-  }
-
-  if (selectedItems.has("claude-settings")) {
-    console.log("Installing Claude Code user-level settings...");
-    if (await commandExists("bun", executor)) {
-      try {
-        installSettingsFromFile(
-          join(SCRIPT_DIR, "claude", "settings.json"),
-          config,
-        );
-        console.log("Claude Code settings installed successfully");
-      } catch (error) {
-        console.log("Warning: Failed to install Claude Code settings");
-        console.error(error);
-      }
-    } else {
-      console.log(
-        "Warning: bun not found, skipping Claude Code settings installation",
-      );
-      console.log(
-        "Install bun to enable settings installation: https://bun.sh",
-      );
-    }
   }
 
   const installsAiResources = selectedItems.has("ai-resources-plugin");
