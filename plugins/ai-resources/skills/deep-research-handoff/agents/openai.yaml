@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deep Research Handoff"
+  short_description: "Create a self-contained prompt for ChatGPT Deep Research."
+  default_prompt: "Use $deep-research-handoff to create a self-contained prompt for ChatGPT Deep Research."
