@@ -1,4 +1,0 @@
-interface:
-  display_name: "Agent Feedback Tiers"
-  short_description: "Define a three-tier feedback vocabulary — hint, reminders,..."
-  default_prompt: "Use $agent-feedback-tiers to define a three-tier feedback vocabulary — hint, reminders, instruction — for steering agents from tool output, with strict tier contracts and an evidence-gated admission rule for reminders."

@@ -127,10 +127,11 @@ cd typescript
 bun run build:codex-plugin
 ```
 
-The generator removes Claude-only frontmatter, adds Codex
-`agents/openai.yaml` metadata, and writes the results to the matching
-directories under `plugins/`. Do not edit those generated skill copies
-directly.
+The generator runs skill-sync (`skill-sync plugin`) to strip Claude-only
+frontmatter and write Codex packages to the matching directories under
+`plugins/`. Do not edit those generated skill copies directly. Requires
+Node.js 24+ and skill-sync at `~/github/skill-sync` (or set `SKILL_SYNC`
+to the launcher path).
 
 `ai install --scope user` can install both `ai-resources` and
 `agentic-engineering-principles` for Claude Code and Codex.

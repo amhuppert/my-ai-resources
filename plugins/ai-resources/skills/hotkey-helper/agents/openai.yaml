@@ -1,6 +1,2 @@
-interface:
-  display_name: "Hotkey Helper"
-  short_description: "Use when picking or vetting a keyboard shortcut on macOS."
-  default_prompt: "Use $hotkey-helper to apply the Hotkey Helper workflow to this request."
 policy:
   allow_implicit_invocation: false

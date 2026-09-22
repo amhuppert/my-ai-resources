@@ -1,6 +1,2 @@
-interface:
-  display_name: "Assess Project Context"
-  short_description: "Assess / rate the default project context (CLAUDE.md,..."
-  default_prompt: "Use $assess-project-context to assess / rate the default project context (CLAUDE.md, onboarding)."
 policy:
   allow_implicit_invocation: false

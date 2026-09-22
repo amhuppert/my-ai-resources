@@ -1,6 +1,2 @@
-interface:
-  display_name: "Add Design Agent"
-  short_description: "Create a research or review agent for the /design workflow."
-  default_prompt: "Use $add-design-agent to create a research or review agent for the /design workflow."
 policy:
   allow_implicit_invocation: false

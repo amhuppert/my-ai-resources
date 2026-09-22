@@ -1,6 +1,2 @@
-interface:
-  display_name: "Compare Reports"
-  short_description: "Compare two reports written by different AI agents from the..."
-  default_prompt: "Use $compare-reports to compare two reports written by different AI agents from the same prompt — score both across accuracy, prompt adherence, organization, readability, and usefulness, then produce a polished self-contained HTML comparison report that declares a winner."
 policy:
   allow_implicit_invocation: false

@@ -1,6 +1,2 @@
-interface:
-  display_name: "Changelog Review"
-  short_description: "Review the Claude Code changelog and summarize recent..."
-  default_prompt: "Use $changelog-review to review the Claude Code changelog and summarize recent changes and their significance."
 policy:
   allow_implicit_invocation: false

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Understand Objective"
-  short_description: "Use to thoroughly understand a software development..."
-  default_prompt: "Use $understand-objective to use to thoroughly understand a software development objective before design & implementation: research, identify ambiguities, ask clarifying questions."

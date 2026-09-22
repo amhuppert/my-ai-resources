@@ -17,4 +17,4 @@
 - `ai install --scope user` - Install binary utilities, agent-docs
 - `ai install --scope project` - Install plugin, project configs
 - `cd typescript && bun run build` - Compile TypeScript tools
-- `cd typescript && bun run build:codex-plugin` - Regenerate the Codex plugin from the shared skills
+- `cd typescript && bun run build:codex-plugin` - Regenerate Codex plugins via skill-sync from the shared skills

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Logging For Agent Debugging"
-  short_description: "Design structured logging that AI agents can actually debug..."
-  default_prompt: "Use $logging-for-agent-debugging to design structured logging that AI agents can actually debug from — a stable documented event vocabulary, ambient trace context, scoped routing with a global timeline, documented query gotchas, a bounded log-analysis CLI, and forensic per-run logs for long agent executions."

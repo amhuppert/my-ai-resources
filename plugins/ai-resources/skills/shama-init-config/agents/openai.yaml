@@ -1,6 +1,2 @@
-interface:
-  display_name: "Shama Init Config"
-  short_description: "Initialize Shama voice-to-text config for the project —..."
-  default_prompt: "Use $shama-init-config to initialize Shama voice-to-text config for the project — create voice.json, voice-vocabulary.md, voice-context.md, and register the project in Shama's registry.toml."
 policy:
   allow_implicit_invocation: false

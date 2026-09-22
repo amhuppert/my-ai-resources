@@ -1,6 +1,2 @@
-interface:
-  display_name: "Create Reference"
-  short_description: "Create or update an AI-optimized reference document for a..."
-  default_prompt: "Use $create-reference to create or update an AI-optimized reference document for a tool, library, framework, or API via thorough research."
 policy:
   allow_implicit_invocation: false

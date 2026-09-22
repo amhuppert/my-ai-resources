@@ -1,4 +1,0 @@
-interface:
-  display_name: "Browser Automation"
-  short_description: "Automate browser interaction with Playwright: open pages,..."
-  default_prompt: "Use $browser-automation to automate browser interaction with Playwright: open pages, take screenshots, verify UI, test flows, debug pages, inspect elements."

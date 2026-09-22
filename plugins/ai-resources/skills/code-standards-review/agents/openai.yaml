@@ -1,4 +1,0 @@
-interface:
-  display_name: "Code Standards Review"
-  short_description: "Review a codebase for adherence to code standards."
-  default_prompt: "Use $code-standards-review to review a codebase for adherence to code standards."

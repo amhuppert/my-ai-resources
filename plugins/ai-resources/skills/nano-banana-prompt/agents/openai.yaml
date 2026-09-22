@@ -1,6 +1,2 @@
-interface:
-  display_name: "Nano Banana Prompt"
-  short_description: "Create a high-quality image generation prompt for Google's..."
-  default_prompt: "Use $nano-banana-prompt to create a high-quality image generation prompt for Google's Nano Banana 2 (NB2) model on Gemini."
 policy:
   allow_implicit_invocation: false

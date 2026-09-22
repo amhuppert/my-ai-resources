@@ -1,6 +1,2 @@
-interface:
-  display_name: "Change Review Guide"
-  short_description: "Write a reviewer's guide to a set of code changes: purpose,..."
-  default_prompt: "Use $change-review-guide to write a reviewer's guide to a set of code changes: purpose, the fundamental decisions, a file-by-file review path, and the diff noise to skip."
 policy:
   allow_implicit_invocation: false

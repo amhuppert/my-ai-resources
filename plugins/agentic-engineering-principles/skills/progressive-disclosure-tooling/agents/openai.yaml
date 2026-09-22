@@ -1,4 +1,0 @@
-interface:
-  display_name: "Progressive Disclosure Tooling"
-  short_description: "Structure a CLI or tool surface as a progressive-disclosure..."
-  default_prompt: "Use $progressive-disclosure-tooling to structure a CLI or tool surface as a progressive-disclosure graph where every subcommand's --help is a self-contained mini-skill, and derive every guidance surface from one typed registry so documentation drift becomes structurally impossible."

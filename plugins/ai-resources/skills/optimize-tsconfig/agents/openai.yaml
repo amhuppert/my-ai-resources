@@ -1,6 +1,2 @@
-interface:
-  display_name: "Optimize Tsconfig"
-  short_description: "Optimize tsconfig.json for build speed, watch mode, and tsc..."
-  default_prompt: "Use $optimize-tsconfig to optimize tsconfig.json for build speed, watch mode, and tsc memory."
 policy:
   allow_implicit_invocation: false

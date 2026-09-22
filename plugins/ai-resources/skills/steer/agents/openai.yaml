@@ -1,6 +1,2 @@
-interface:
-  display_name: "Steer"
-  short_description: "Reflect on codebase navigation effectiveness at end of..."
-  default_prompt: "Use $steer to reflect on codebase navigation effectiveness at end of conversation."
 policy:
   allow_implicit_invocation: false

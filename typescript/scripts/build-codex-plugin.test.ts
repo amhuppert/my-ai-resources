@@ -7,30 +7,59 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import {
   buildCodexPlugin,
-  convertSkillFrontmatter,
-  createOpenAiYaml,
+  resolveSkillSyncPath,
 } from "./build-codex-plugin";
 
-describe("buildCodexPlugin", () => {
+const skillSyncPath = resolveSkillSyncPath();
+const skillSyncAvailable = existsSync(skillSyncPath);
+
+describe("resolveSkillSyncPath", () => {
+  const originalSkillSync = process.env.SKILL_SYNC;
+
+  afterEach(() => {
+    if (originalSkillSync === undefined) {
+      delete process.env.SKILL_SYNC;
+    } else {
+      process.env.SKILL_SYNC = originalSkillSync;
+    }
+  });
+
+  test("defaults to ~/github/skill-sync/bin/skill-sync.mjs", () => {
+    delete process.env.SKILL_SYNC;
+    expect(resolveSkillSyncPath()).toBe(
+      join(homedir(), "github", "skill-sync", "bin", "skill-sync.mjs"),
+    );
+  });
+
+  test("respects SKILL_SYNC env var", () => {
+    process.env.SKILL_SYNC = "/custom/skill-sync.mjs";
+    expect(resolveSkillSyncPath()).toBe("/custom/skill-sync.mjs");
+  });
+});
+
+describe.skipIf(!skillSyncAvailable)("buildCodexPlugin via skill-sync", () => {
   let tempDir: string;
   let sourcePluginDir: string;
   let codexPluginDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "build-codex-plugin-"));
+    tempDir = mkdtempSync(join(homedir(), "build-codex-plugin-"));
     sourcePluginDir = join(tempDir, "claude-plugin");
     codexPluginDir = join(tempDir, "codex-plugin");
 
     mkdirSync(join(sourcePluginDir, ".claude-plugin"), { recursive: true });
     mkdirSync(join(sourcePluginDir, "skills", "commit"), { recursive: true });
-    mkdirSync(join(codexPluginDir, ".codex-plugin"), { recursive: true });
     writeFileSync(
       join(sourcePluginDir, ".claude-plugin", "plugin.json"),
-      JSON.stringify({ name: "ai-resources", version: "1.2.3" }),
+      JSON.stringify({
+        name: "ai-resources",
+        version: "1.2.3",
+        description: "Test plugin",
+      }),
     );
     writeFileSync(
       join(sourcePluginDir, "skills", "commit", "SKILL.md"),
@@ -52,26 +81,29 @@ describe("buildCodexPlugin", () => {
       join(sourcePluginDir, "skills", "commit", "references", "guide.md"),
       "# Commit guide",
     );
-    writeFileSync(
-      join(codexPluginDir, ".codex-plugin", "plugin.json"),
-      JSON.stringify({ name: "ai-resources", version: "0.1.0" }),
-    );
   });
 
   afterEach(() => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  test("builds normalized skills and synchronizes the plugin version", () => {
-    buildCodexPlugin(sourcePluginDir, codexPluginDir);
+  test("builds converted skills and a root plugin.json manifest", () => {
+    buildCodexPlugin(sourcePluginDir, codexPluginDir, { skillSyncPath });
 
     const manifest = JSON.parse(
-      readFileSync(
-        join(codexPluginDir, ".codex-plugin", "plugin.json"),
-        "utf-8",
-      ),
-    ) as { version: string };
+      readFileSync(join(codexPluginDir, "plugin.json"), "utf-8"),
+    ) as {
+      $schema?: string;
+      name: string;
+      version: string;
+      description?: string;
+    };
+    expect(manifest.name).toBe("ai-resources");
     expect(manifest.version).toBe("1.2.3");
+    expect(manifest.description).toBe("Test plugin");
+    expect(manifest.$schema).toBe(
+      "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+    );
 
     const skillPath = join(codexPluginDir, "skills", "commit");
     const skill = readFileSync(join(skillPath, "SKILL.md"), "utf-8");
@@ -81,7 +113,6 @@ describe("buildCodexPlugin", () => {
     expect(
       readFileSync(join(skillPath, "agents", "openai.yaml"), "utf-8"),
     ).toContain("allow_implicit_invocation: false");
-    expect(existsSync(join(skillPath, "SKILL.md"))).toBe(true);
     expect(existsSync(join(skillPath, "references", "guide.md"))).toBe(true);
   });
 
@@ -91,42 +122,8 @@ describe("buildCodexPlugin", () => {
       "---\ntitle: Missing name and description\n---\nBody",
     );
 
-    expect(() => buildCodexPlugin(sourcePluginDir, codexPluginDir)).toThrow(
-      "string name and description",
-    );
-  });
-});
-
-describe("Codex skill conversion", () => {
-  test("supports reserved YAML characters and truncates long descriptions", () => {
-    const converted = convertSkillFrontmatter(
-      [
-        "---",
-        "name: expo-ui",
-        `description: \`@expo/ui\` ${"x".repeat(1100)}`,
-        "allowed-tools: Bash",
-        "---",
-        "Body",
-      ].join("\n"),
-    );
-
-    expect(converted).toContain("`@expo/ui`");
-    expect(converted).not.toContain("allowed-tools");
-    expect(converted).toContain("Body");
-    expect(converted).not.toContain("x".repeat(1025));
-  });
-
-  test("creates Codex UI metadata and explicit-only policy", () => {
-    const output = createOpenAiYaml(
-      "react-scan",
-      "This skill should be used when diagnosing React rendering issues.",
-      true,
-    );
-
-    expect(output).toContain('display_name: "React Scan"');
-    expect(output).toContain(
-      'default_prompt: "Use $react-scan to apply the React Scan workflow to this request."',
-    );
-    expect(output).toContain("allow_implicit_invocation: false");
+    expect(() =>
+      buildCodexPlugin(sourcePluginDir, codexPluginDir, { skillSyncPath }),
+    ).toThrow("skill-sync plugin failed");
   });
 });

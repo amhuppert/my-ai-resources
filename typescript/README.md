@@ -6,7 +6,7 @@ Codex resources, compiled to standalone executables with Bun.
 ## Features
 
 - **`ai` CLI**: User- and project-level installation, skill scaffolding, worktree creation, and hook installation
-- **Codex Plugin Generation**: Builds the Codex packaging from the canonical Claude skill sources
+- **Codex Plugin Generation**: Builds Codex packages from the canonical Claude skill sources via skill-sync
 - **Codemods**: `ts-morph`-backed import rewriting across a TypeScript project
 - **Schema Utilities**: JSON → Zod → JSON Schema conversion
 

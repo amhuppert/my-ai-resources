@@ -1,4 +1,0 @@
-interface:
-  display_name: "Agent Structured Output"
-  short_description: "Covers how to get reliable machine-readable output from AI..."
-  default_prompt: "Use $agent-structured-output to covers how to get reliable machine-readable output from AI agents — separate the thinking turn from the formatting turn, keep schemas flat and bounded, offload substantive content to files and return a small manifest, inject orchestrator-owned fields after parsing, and validate the manifest and the referenced files at the boundary."

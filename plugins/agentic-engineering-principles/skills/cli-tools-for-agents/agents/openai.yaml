@@ -1,4 +1,0 @@
-interface:
-  display_name: "Cli Tools For Agents"
-  short_description: "Design a purpose-built project CLI as the primary tool..."
-  default_prompt: "Use $cli-tools-for-agents to design a purpose-built project CLI as the primary tool surface for AI coding agents, instead of in-process tool or MCP servers."

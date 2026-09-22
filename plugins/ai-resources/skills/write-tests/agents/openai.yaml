@@ -1,4 +1,0 @@
-interface:
-  display_name: "Write Tests"
-  short_description: "Write automated tests, or decide whether code earns one."
-  default_prompt: "Use $write-tests to write automated tests, or decide whether code earns one."

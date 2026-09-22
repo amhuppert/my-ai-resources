@@ -1,6 +1,2 @@
-interface:
-  display_name: "Create Requirements"
-  short_description: "Create a PRD / product requirements document with app..."
-  default_prompt: "Use $create-requirements to create a PRD / product requirements document with app summary, design principles, and detailed requirements."
 policy:
   allow_implicit_invocation: false

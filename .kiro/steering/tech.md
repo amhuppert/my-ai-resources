@@ -14,7 +14,7 @@ Hybrid plugin + installation architecture: skills, agents, and hooks ship via th
 # Build: compile TypeScript to standalone executables
 cd typescript && bun run build
 
-# Regenerate the Codex plugin from the shared skills
+# Regenerate Codex plugins via skill-sync from the shared skills
 cd typescript && bun run build:codex-plugin
 
 # Install user-level: agent-docs, scripts

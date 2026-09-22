@@ -1,6 +1,2 @@
-interface:
-  display_name: "Reflection"
-  short_description: "Reflect on the conversation and propose improvements to..."
-  default_prompt: "Use $reflection to reflect on the conversation and propose improvements to durable AI-agent instruction files such as CLAUDE.md and AGENTS.md."
 policy:
   allow_implicit_invocation: false

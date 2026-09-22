@@ -1,6 +1,2 @@
-interface:
-  display_name: "Shama Add Context"
-  short_description: "Add terms, context, or instructions to Shama voice-to-text..."
-  default_prompt: "Use $shama-add-context to add terms, context, or instructions to Shama voice-to-text files for clipboard mode (Ctrl+Opt+Space) or shell-command mode (Ctrl+Opt+S), at project or global level."
 policy:
   allow_implicit_invocation: false

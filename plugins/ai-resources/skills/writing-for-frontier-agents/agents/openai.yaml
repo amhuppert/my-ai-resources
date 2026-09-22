@@ -1,4 +1,0 @@
-interface:
-  display_name: "Writing For Frontier Agents"
-  short_description: "Write or review agent instructions."
-  default_prompt: "Use $writing-for-frontier-agents to write or review agent instructions."

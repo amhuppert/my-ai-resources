@@ -1,6 +1,2 @@
-interface:
-  display_name: "Wait What"
-  short_description: "Use Wait What workflows in Codex"
-  default_prompt: "Use $wait-what to stop."
 policy:
   allow_implicit_invocation: false

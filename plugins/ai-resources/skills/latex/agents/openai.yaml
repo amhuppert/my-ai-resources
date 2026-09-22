@@ -1,6 +1,2 @@
-interface:
-  display_name: "Latex"
-  short_description: "Generate LaTeX documents (or convert markdown to LaTeX) with..."
-  default_prompt: "Use $latex to generate LaTeX documents (or convert markdown to LaTeX) with professional typography."
 policy:
   allow_implicit_invocation: false
