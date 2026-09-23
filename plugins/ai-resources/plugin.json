@@ -2,5 +2,5 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "ai-resources",
   "description": "AI-enhanced git workflows, development utilities, and multi-agent design workflows",
-  "version": "1.52.0"
+  "version": "1.53.0"
 }
