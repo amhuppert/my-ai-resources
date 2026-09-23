@@ -8,9 +8,6 @@ skill improve-codebase-architecture
 skill resolving-merge-conflicts
 skill handoff
 
-source wondelai/skills
-skill software-design-philosophy
-
 source addyosmani/web-quality-skills
 skill accessibility
 
@@ -18,3 +15,4 @@ skill accessibility
 source https://github.com/amhuppert/my-ai-resources/tree/main/claude/ai-resources-plugin
 skill wait-what
 skill writing-for-frontier-agents
+skill software-design-philosophy

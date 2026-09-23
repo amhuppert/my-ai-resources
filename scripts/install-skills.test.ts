@@ -331,11 +331,11 @@ skill create-plan
         { source: "vercel-labs/skills", skills: ["find-skills"] },
         {
           source: "mattpocock/skills",
-          skills: ["improve-codebase-architecture", "writing-great-skills"],
-        },
-        {
-          source: "wondelai/skills",
-          skills: ["software-design-philosophy"],
+          skills: [
+            "improve-codebase-architecture",
+            "resolving-merge-conflicts",
+            "handoff",
+          ],
         },
         {
           source: "addyosmani/web-quality-skills",
@@ -344,7 +344,11 @@ skill create-plan
         {
           source:
             "https://github.com/amhuppert/my-ai-resources/tree/main/claude/ai-resources-plugin",
-          skills: ["create-plan"],
+          skills: [
+            "wait-what",
+            "writing-for-frontier-agents",
+            "software-design-philosophy",
+          ],
         },
       ]);
     });
