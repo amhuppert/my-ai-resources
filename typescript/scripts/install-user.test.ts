@@ -73,7 +73,7 @@ describe("install-user", () => {
     }
   });
 
-  test("builds and installs both plugins for Claude Code and Codex", async () => {
+  test("builds and installs the ai-resources plugin for Claude Code and Codex", async () => {
     await main(mockConfig, mockExecutor, allUserItems);
 
     expect(
@@ -97,22 +97,6 @@ describe("install-user", () => {
         (call) =>
           call.command === "codex" &&
           call.args.join(" ") === "plugin add ai-resources@my-ai-resources",
-      ),
-    ).toBe(true);
-    expect(
-      mockExecutor.calls.some(
-        (call) =>
-          call.command === "claude" &&
-          call.args.join(" ") ===
-            "plugin install agentic-engineering-principles@ai-resources --scope user",
-      ),
-    ).toBe(true);
-    expect(
-      mockExecutor.calls.some(
-        (call) =>
-          call.command === "codex" &&
-          call.args.join(" ") ===
-            "plugin add agentic-engineering-principles@my-ai-resources",
       ),
     ).toBe(true);
   });

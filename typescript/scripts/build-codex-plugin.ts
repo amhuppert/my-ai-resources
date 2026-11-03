@@ -59,8 +59,4 @@ if (import.meta.main) {
     join(repoRoot, "claude", "ai-resources-plugin"),
     join(repoRoot, "plugins", "ai-resources"),
   );
-  buildCodexPlugin(
-    join(repoRoot, "claude", "agentic-engineering-principles-plugin"),
-    join(repoRoot, "plugins", "agentic-engineering-principles"),
-  );
 }

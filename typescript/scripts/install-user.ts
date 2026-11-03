@@ -101,11 +101,8 @@ async function main(
   }
 
   const installsAiResources = selectedItems.has("ai-resources-plugin");
-  const installsAgenticEngineeringPrinciples = selectedItems.has(
-    "agentic-engineering-principles-plugin",
-  );
 
-  if (installsAiResources || installsAgenticEngineeringPrinciples) {
+  if (installsAiResources) {
     console.log("Building Codex plugins from the shared skill sources...");
     const buildResult = await executor.exec(
       "bun",
@@ -146,41 +143,6 @@ async function main(
       command: "codex",
       marketplaceArgs: ["plugin", "marketplace", "add", SCRIPT_DIR],
       installArgs: ["plugin", "add", "ai-resources@my-ai-resources"],
-      executor,
-    });
-  }
-
-  if (installsAgenticEngineeringPrinciples) {
-    await installMarketplacePlugin({
-      client: "Claude Code",
-      displayName: "Agentic Engineering Principles",
-      command: "claude",
-      marketplaceArgs: [
-        "plugin",
-        "marketplace",
-        "add",
-        join(SCRIPT_DIR, "claude"),
-      ],
-      installArgs: [
-        "plugin",
-        "install",
-        "agentic-engineering-principles@ai-resources",
-        "--scope",
-        "user",
-      ],
-      executor,
-    });
-
-    await installMarketplacePlugin({
-      client: "Codex",
-      displayName: "Agentic Engineering Principles",
-      command: "codex",
-      marketplaceArgs: ["plugin", "marketplace", "add", SCRIPT_DIR],
-      installArgs: [
-        "plugin",
-        "add",
-        "agentic-engineering-principles@my-ai-resources",
-      ],
       executor,
     });
   }

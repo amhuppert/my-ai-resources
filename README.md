@@ -33,7 +33,7 @@ Installs user-wide configurations that apply across all projects:
 - `scripts/install-skills` → `~/.local/bin/install-skills` - Local skill installer for Claude Code and Codex
 - `scripts/notify` → `~/.local/bin/notify` - Command-completion notifier for macOS and Linux
 - `scripts/orphaned-playwright` → `~/.local/bin/orphaned-playwright` - Review and close abandoned browser automation sessions with Gum
-- `ai-resources` and `agentic-engineering-principles` plugins - Installed for Claude Code and Codex from local marketplaces
+- `ai-resources` plugin - Installed for Claude Code and Codex from local marketplaces
 
 **Requirements:**
 
@@ -133,8 +133,9 @@ frontmatter and write Codex packages to the matching directories under
 Node.js 24+ and skill-sync at `~/github/skill-sync` (or set `SKILL_SYNC`
 to the launcher path).
 
-`ai install --scope user` can install both `ai-resources` and
-`agentic-engineering-principles` for Claude Code and Codex.
+`ai install --scope user` can install `ai-resources` for Claude Code and Codex.
+The `agentic-engineering-principles` plugin now lives in
+[cli-for-agents](https://github.com/amhuppert/cli-for-agents).
 
 ### Local Skill Installation
 

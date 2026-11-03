@@ -9,11 +9,6 @@
       "name": "ai-resources",
       "source": "./ai-resources-plugin",
       "description": "AI-enhanced git workflows and development utilities"
-    },
-    {
-      "name": "agentic-engineering-principles",
-      "source": "./agentic-engineering-principles-plugin",
-      "description": "Principles for building reliable agent workflows and tools"
     }
   ]
 }
