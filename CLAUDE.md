@@ -10,11 +10,6 @@ Project context via Kiro steering files in `.kiro/steering/`.
 - @.kiro/steering/tech.md - Tech stack, architecture, key commands
 - @.kiro/steering/structure.md - Codebase structure and conventions
 
-# Spec-Driven Development
-
-Kiro-style SDD: specs live in `.kiro/specs/`, steering (persistent project context) in `.kiro/steering/`. Drive the requirements → design → tasks → implementation workflow with the `/kiro:*` commands; each phase needs human approval (`-y` fast-tracks intentionally). Check progress anytime with `/kiro:spec-status {feature}`.
-
-
 <!-- Begin standard instructions -->
 
 ## Role

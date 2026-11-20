@@ -41,19 +41,13 @@ Wait for feedback from the human on each suggestion before proceeding. If the hu
 4. Output Format:
    Present your final output in the following structure:
 
-<analysis>
+```
 [List the issues identified and potential improvements]
-</analysis>
 
-<improvements>
 [For each approved improvement:
 1. Section being modified
 2. New or modified instruction text
 3. Explanation of how this addresses the identified issue]
-</improvements>
-
-<final_instructions>
-[Present the complete, updated set of instructions for Claude, incorporating all approved changes]
-</final_instructions>
+```
 
 Remember, your goal is to enhance the agent's performance and consistency while maintaining the core functionality and purpose of the AI assistant. Be thorough in your analysis, clear in your explanations, and precise in your implementations.

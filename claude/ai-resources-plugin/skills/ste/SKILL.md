@@ -2,6 +2,7 @@
 name: ste
 description: Rewrite supplied text or the preceding assistant message in ASD-STE100 Simplified Technical English (STE).
 argument-hint: "[text to rewrite]"
+disable-model-invocation: true
 ---
 
 # Simplified Technical English

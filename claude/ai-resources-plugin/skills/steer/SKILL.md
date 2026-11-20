@@ -1,6 +1,6 @@
 ---
 name: steer
-description: "Reflect on codebase navigation effectiveness at end of conversation. Surfaces dead ends, inefficiencies, missing context. Does not write files — pair with /kiro:steering-custom to persist."
+description: "Reflect on codebase navigation effectiveness at end of conversation. Surfaces dead ends, inefficiencies, missing context. Does not write files."
 disable-model-invocation: true
 argument-hint: "[topic-name]"
 allowed-tools: Read, Glob, Grep
@@ -8,13 +8,11 @@ allowed-tools: Read, Glob, Grep
 
 # Steer Reflection
 
-Reflect on the current conversation to evaluate codebase navigation effectiveness. Present findings so the user can decide what to persist via `/kiro:steering-custom`.
+Reflect on the current conversation to evaluate codebase navigation effectiveness. 
 
 ## Arguments
 
 Topic name: use the topic supplied in the user's invocation.
-
-If no topic name provided, derive one from the conversation's primary task using kebab-case (e.g., `api-client`, `installer-scripts`, `mcp-server`).
 
 ## Step 1: Reflect on Navigation
 
@@ -31,38 +29,12 @@ Analyze the full conversation history. For each question below, cite specific ex
 
 ## Step 2: Synthesize Actionable Guidance
 
-Based on the reflection, draft a concise summary of navigation guidance that could become a steering document. Present it using this structure:
+Based on the reflection, draft a concise summary of navigation guidance that could become a steering document. 
 
-<constraints>
-- Maximum 40 lines
-- Include only actionable navigation guidance, not general observations
-- Use specific file paths and directory names
-- Scope to the feature/task — not the whole codebase
-</constraints>
-
-<template>
-# {Topic Title}
-
-## Key Files
-
-- `path/to/file` - what it contains and when it's relevant
-
-## Navigation Tips
-
-- Concise, actionable tips for finding what you need for this type of task
-
-## Common Pitfalls
-
-- Things that look relevant but aren't
-- Non-obvious file locations or naming conventions
-</template>
-
-Omit any section from the template that has no meaningful content. Do not pad with generic advice.
+Do not pad instructions with generic advice.
 
 ## Step 3: Present and Suggest Next Steps
 
-Present the full reflection and synthesized guidance to the user. Then suggest:
-
-> To persist these insights as a steering document, run `/kiro:steering-custom` and reference the topic **{topic-name}**.
+Present the full reflection and synthesized guidance to the user.
 
 Do NOT write any files. The user decides what to persist and when.
