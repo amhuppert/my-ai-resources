@@ -1,39 +1,27 @@
 ---
 name: steer
-description: Reflect on codebase navigation effectiveness at end of
-  conversation. Surfaces dead ends, inefficiencies, missing context. Does not
-  write files.
+description: Reflect on codebase navigation effectiveness at the end of a
+  conversation. Surfaces dead ends, wasted searches, and missing context without
+  modifying files.
 ---
 
-# Steer Reflection
+# Steer reflection
 
-Reflect on the current conversation to evaluate codebase navigation effectiveness. 
+Evaluate how efficiently the codebase was navigated during this conversation and draft concise navigation notes that would prevent the same detours next time. If the user names a topic or area, focus the reflection there.
 
-## Arguments
+Do not create or edit any files; return the reflection and draft guidance in chat so the user decides what to keep.
 
-Topic name: use the topic supplied in the user's invocation.
+## 1. Audit navigation from conversation history
 
-## Step 1: Reflect on Navigation
+Review the session and cite concrete file paths, globs, and searches for four questions:
 
-Analyze the full conversation history. For each question below, cite specific examples from the conversation:
+1. **Efficiency:** roughly how many navigation calls (file reads, greps, globs) were productive vs. wasted?
+2. **Dead ends:** specific searches that missed or files read that turned out irrelevant.
+3. **Missing context:** concrete facts that would have avoided those detours if known upfront (key entry points found late, non-obvious directory layout, misleading naming conventions, undocumented links between modules).
+4. **Targeted fixes:** specific improvements that would cut navigation cost on similar tasks.
 
-1. **Efficiency** — How many tool calls were spent on navigation (file reads, searches, globs)? How many were productive vs. wasted?
-2. **Dead ends** — List specific instances of searching for something and not finding it, or reading files that turned out to be irrelevant.
-3. **Missing context** — What information, if available at the start, would have made navigation significantly easier? Consider:
-   - Key file paths discovered late
-   - Directory structures that weren't obvious
-   - Naming conventions that caused confusion
-   - Relationships between files that weren't documented
-4. **Improvement opportunities** — What concrete changes would make this type of task easier next time?
+## 2. Draft reusable navigation notes
 
-## Step 2: Synthesize Actionable Guidance
+Turn only the highest-value findings into brief, ready-to-paste navigation guidance suited for `AGENTS.md`, `CLAUDE.md`, or a project guide. Omit generic advice and anything already obvious from a quick directory listing.
 
-Based on the reflection, draft a concise summary of navigation guidance that could become a steering document. 
-
-Do not pad instructions with generic advice.
-
-## Step 3: Present and Suggest Next Steps
-
-Present the full reflection and synthesized guidance to the user.
-
-Do NOT write any files. The user decides what to persist and when.
+Done when every dead end and recommendation cites actual paths or searches from the conversation, the draft notes contain zero generic padding, and no files were modified.

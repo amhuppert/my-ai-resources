@@ -1,81 +1,40 @@
 ---
 name: cheat-sheet
-description: "Create a 1-2 page cheat sheet / quick reference for a tool, language, or framework."
+description: "Create a 1 to 2 page cheat sheet or quick reference for a tool, language, or framework (Markdown or PDF)."
 argument-hint: "<topic> [--pdf] [--output <path>]"
-allowed-tools: Read, Write, WebSearch, WebFetch, Agent, AskUserQuestion, Skill
+allowed-tools: Read, Write, WebSearch, WebFetch, Agent, AskUserQuestion, Bash(which:*), Bash(xelatex:*), Bash(lualatex:*), Bash(pdflatex:*)
 disable-model-invocation: true
 ---
 
-# Cheat Sheet Creator
+# Cheat sheet creator
 
-Create concise, high-quality cheat sheets for any tool, technology, language, framework, or concept. Output a practical 1-2 page reference document focusing on the most commonly used commands, features, and key information users look up repeatedly.
+Write a compact 1 to 2 page quick reference covering the commands, syntax, and patterns users look up repeatedly for a given topic. Density beats completeness: cut rare flags, installation steps, history, and internals.
 
-<topic>
-Use the topic and output preferences supplied in the user's invocation.
-</topic>
+## Inputs
 
-## Step 1: Parse the Request
+Extract from the user's invocation:
 
-Extract from the arguments:
+- **Topic** (required)
+- **Format:** Markdown by default, or PDF if `--pdf` or PDF output is requested
+- **Output path:** custom path if `--output` is given; otherwise the current working directory
 
-- **Topic**: The subject of the cheat sheet (required)
-- **Format**: Markdown file (default) or PDF (if `--pdf` flag or user requests PDF)
-- **Output path**: Custom save location (if `--output` specified), otherwise save to the current working directory
+Ask one focused question only if the topic is too broad to pick a useful scope (for example, "Git" could target daily commands, rebasing/history repair, or config). If the scope is clear enough to choose a sensible default, proceed.
 
-If the topic is ambiguous or too broad, ask the user to clarify scope. For example, "Git" could mean basic commands, advanced workflows, or configuration — ask which aspect to focus on.
+## Research and selection
 
-## Step 2: Research the Topic
+Verify commands, flags, and syntax against current official documentation rather than relying on memory, especially for fast-moving tools. Read 2 or 3 authoritative primary pages when web access is available.
 
-Conduct focused research to identify the most practical, commonly-referenced information.
+Before writing, decide what stays out:
 
-1. **Search for official documentation**: Quick-start guides, command references, API summaries
-2. **Search for existing cheat sheets**: Find what others consider essential for this topic
-3. **Search for common usage patterns**: Tutorials, Stack Overflow answers, blog posts showing frequent use cases
-4. **Fetch key pages**: Read 2-3 authoritative sources in full with the active client's browsing capability for precise syntax, flags, and options
+- Keep the top 5 to 10 everyday operations, critical syntax patterns, and genuine gotchas.
+- Group into 4 to 8 sections ordered from most frequent to least frequent.
+- Drop installation guides, background prose, internal mechanics, duplicate ways to do the same thing, and bottom-20% flags.
 
-Prioritize sources that reveal the most commonly used features, typical workflows, and critical gotchas.
+## Formatting and output
 
-## Step 3: Plan the Cheat Sheet
+Read [`references/formatting-guide.md`](references/formatting-guide.md) for section layouts, entry examples, length targets (roughly 60 to 120 lines), and LaTeX settings for PDF output.
 
-Before writing, distill the research into a concrete plan:
+- **Markdown (default):** save to `<topic>-cheat-sheet.md` (kebab-case) at the output path, and report the saved path.
+- **PDF (`--pdf`):** write `<topic>-cheat-sheet.tex` using the compact LaTeX layout settings in [`references/formatting-guide.md`](references/formatting-guide.md), then compile it with an installed TeX engine (`xelatex`, `lualatex`, or `pdflatex`). If no TeX engine is installed, save the `.tex` file, tell the user which compiler is missing, and show the exact compile command.
 
-1. Select the 5-10 most commonly used commands/features to include
-2. Identify critical syntax patterns users frequently reference
-3. Group entries into 4-8 logical sections, ordered from most to least common
-4. Decide what to **exclude** — avoid comprehensive coverage; focus on high-value items only
-
-## Step 4: Write the Cheat Sheet
-
-Follow the formatting guidelines in `references/formatting-guide.md` for structure templates, entry formatting rules, length targets, content priorities, and exclusion rules.
-
-Key principles:
-
-- Start with a one-sentence description of the topic
-- Organize into clear sections with headers, most important first
-- Target 1-2 printed pages — prefer density over completeness
-- One line per entry — actionable, brief, code-formatted where appropriate
-
-## Step 5: Save the Output
-
-### Markdown Output (Default)
-
-Save the cheat sheet as a markdown file:
-
-- Filename: `<topic>-cheat-sheet.md` (kebab-case)
-- Location: Current working directory, or custom path if `--output` specified
-- Report the saved file path to the user
-
-### PDF Output (When Requested)
-
-When the user requests PDF output (via `--pdf` flag or explicit request):
-
-1. Use the `latex` skill to create the cheat sheet as a `.tex` file
-2. Apply the cheat-sheet-specific LaTeX adjustments from `references/formatting-guide.md` (compact margins, small font, two-column layout, reduced spacing)
-3. Compile to PDF using the latex skill's compilation workflow
-4. Report the saved PDF path to the user
-
-## Additional Resources
-
-### Reference Files
-
-- **`references/formatting-guide.md`** — Detailed formatting rules, section templates, and examples of well-structured cheat sheet entries
+Done when every command or syntax entry is verified against primary docs (or flagged if unverifiable), the document fits 1 to 2 printed pages without filler, and the saved output path is reported.

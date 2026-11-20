@@ -1,95 +1,58 @@
 ---
 name: nano-banana-prompt
-description: "Create a high-quality image generation prompt for Google's Nano Banana 2 (NB2) model on Gemini."
+description: "Write an image-generation prompt and settings recommendation for Google's Nano Banana 2 (Gemini 3.1 Flash Image) model."
 argument-hint: "<image description or concept>"
 allowed-tools: Read, AskUserQuestion
 disable-model-invocation: true
 ---
 
-# Nano Banana 2 Prompt Generator
+# Nano Banana 2 prompt generator
 
-Generate optimized prompts for Google's Nano Banana 2 (Gemini 3.1 Flash Image) model. Transform user concepts into detailed, well-structured prompts that leverage NB2's strengths: natural language understanding, thinking mode, text rendering, character consistency, and image search grounding.
+Turn a user's concept into one ready-to-use prompt for Google's Nano Banana 2 (`gemini-3.1-flash-image-preview`), paired with recommended thinking mode, aspect ratio, and resolution.
 
-<user-request>
-Use the image concept and constraints supplied in the user's invocation.
-</user-request>
+## 1. Extract intent
 
-## Step 1: Understand the User's Intent
+Pull subject, visual medium/style, mood, intended use (web, print, social, mockup), and special requirements (in-image text, character consistency across shots, specific aspect ratio, image editing) from the invocation.
 
-Extract from the user's request:
+Ask brief clarifying questions only when the concept is too thin to make sensible defaults (for example, just "a cat"). A concrete brief like "a cyberpunk street at night" is enough to proceed.
 
-- **Subject**: The primary subject(s) of the image
-- **Style**: Desired visual style (photograph, illustration, painting, 3D render, etc.)
-- **Mood/Atmosphere**: Emotional tone or feeling
-- **Use case**: What the image is for (social media, print, product mockup, etc.)
-- **Special requirements**: Text rendering, character consistency, specific aspect ratio, etc.
+## 2. Draft the prompt
 
-If the request is too vague to produce a quality prompt (e.g., just "a cat"), ask the user to clarify intent. Ask about style preference, mood, and intended use — but only ask what's genuinely ambiguous. A request like "a cyberpunk cityscape at night" has enough to work with.
+Read [`references/prompting-guide.md`](references/prompting-guide.md) when you need style/camera/lighting vocabulary, aspect-ratio or resolution tables, thinking-mode tradeoffs, or templates for text rendering, multi-image character consistency, and conversational editing.
 
-## Step 2: Compose the Prompt
+Write full natural-language sentences rather than comma-separated keyword tags. NB2 is a reasoning model; brief it like a creative director. Keep the prompt to 2 to 5 focused sentences covering these elements in order:
 
-Read `references/prompting-guide.md` for style vocabulary, composition terms, lighting terms, and prompt formula templates. Then construct the prompt following these core principles:
+1. **Medium and style:** lead with the visual format ("A cinematic photograph of...", "A watercolor illustration of...").
+2. **Subject:** concrete physical traits, clothing, color, and materials ("navy tweed blazer", "brushed steel", "weathered oak") rather than generic labels.
+3. **Action:** what is happening in the frame.
+4. **Setting:** environment and atmospheric detail.
+5. **Composition:** camera angle, shot framing, depth of field.
+6. **Lighting:** source, quality, direction, and color temperature.
+7. **Mood:** overall tone.
 
-### Prompt Structure
+Key rules:
 
-Build prompts using **natural language sentences**, not comma-separated keyword tags. NB2 is a reasoning model — brief it like a creative director, not a search engine.
+- Describe what is present, never what is absent ("an empty street", not "no cars").
+- Put exact in-image text in double quotes and name its typography (e.g., `a neon sign reading "Open 24 Hours" in cursive script`).
+- Match thinking mode to complexity: `Minimal` for simple single-subject shots, `High` for multi-element scenes or readable text, `Dynamic` for infographics, data visuals, or multi-character consistency.
 
-Assemble these elements in order:
+## 3. Return the result
 
-1. **Style/Medium** — Lead with the visual format: "A cinematic photograph of...", "A watercolor illustration of...", "A minimalist vector graphic of..."
-2. **Subject** — Describe who/what with specific physical details (age, clothing, material, color, texture)
-3. **Action** — What is happening in the scene
-4. **Setting/Environment** — Where the scene takes place, with atmospheric details
-5. **Composition** — Camera angle, framing, depth of field (see reference guide for terms)
-6. **Lighting** — Light source, quality, color temperature
-7. **Mood/Atmosphere** — Emotional tone reinforcement
+Produce one prompt unless the user asks for variations:
 
-### Critical Rules
-
-- **Describe what to include**, never what to exclude ("empty street" not "no cars")
-- **Use specific descriptors** over generic ones ("navy blue tweed blazer" not "nice jacket")
-- **Include materiality** when relevant ("brushed steel", "crumpled linen", "weathered oak")
-- **Wrap text in quotes** when the image should contain readable text (e.g., a sign reading "Open 24 Hours")
-- **Specify typography** for text elements ("bold sans-serif", "hand-lettered script", "neon cursive")
-
-### Thinking Mode Recommendation
-
-Append a thinking mode recommendation based on prompt complexity:
-
-| Complexity | Thinking Mode | When to Use |
-|---|---|---|
-| Simple | Minimal (default) | Single subject, clear style, no text |
-| Moderate | High | Multi-element scenes, text rendering, specific composition |
-| Complex | Dynamic | Infographics, multi-character consistency, data visualization |
-
-## Step 3: Output the Result
-
-Present the output in this format:
-
-~~~markdown
+```markdown
 ## Nano Banana 2 Prompt
 
 **Prompt:**
-> [The full optimized prompt text]
+> [2 to 5 natural-language sentences]
 
 **Recommended Settings:**
-- **Thinking mode:** [Minimal / High / Dynamic]
-- **Aspect ratio:** [ratio, e.g., 16:9, 1:1, 9:16]
-- **Resolution:** [1K / 2K / 4K based on use case]
+- Thinking mode: [Minimal / High / Dynamic]
+- Aspect ratio: [e.g., 16:9, 1:1, 9:16]
+- Resolution: [0.5K / 1K / 2K / 4K]
 
 **Tips:**
-- [1-3 specific tips for iterating on this particular prompt]
-~~~
+- [1 to 3 targeted iteration notes for this prompt]
+```
 
-### Output Guidelines
-
-- Produce exactly **one prompt** unless the user asks for variations
-- Keep prompts to **2-5 sentences** — detailed but not bloated
-- If the user's concept would benefit from image search grounding (real landmarks, known products, public figures), note this capability
-- If the concept involves multiple images with consistent characters, note that NB2 supports up to 5-person consistency with reference images
-
-## Additional Resources
-
-### Reference Files
-
-- **`references/prompting-guide.md`** — Comprehensive Nano Banana 2 prompting reference including style vocabulary, composition terms, lighting terms, text rendering patterns, editing workflows, and example prompt formulas
+Mention NB2's image search grounding when the concept features real landmarks, products, or public figures, and note its 5-person reference-image consistency when the user needs recurring characters across multiple shots.

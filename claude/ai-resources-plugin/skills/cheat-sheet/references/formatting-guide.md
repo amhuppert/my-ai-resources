@@ -1,173 +1,93 @@
-# Cheat Sheet Formatting Guide
+# Cheat sheet formatting guide
 
-Detailed formatting rules and examples for producing high-quality cheat sheets.
+Layout templates, entry rules, and LaTeX settings for 1 to 2 page quick references.
 
-## Section Templates
+## Section templates
 
-### Command-Based Topics (CLI tools, Git, Docker, etc.)
+### Command-based topics (CLI tools, Git, Docker)
+
+Use tables for commands so flags and effects scan cleanly:
 
 ```markdown
 # [Topic] Cheat Sheet
 
-[One-sentence description of what the tool does.]
+[One-sentence summary of what the tool does.]
 
-## [Most Common Category]
+## [Most common category]
 
 | Command | Description |
-|---|---|
+| --- | --- |
 | `command` | What it does |
 | `command --flag` | What the flag does |
-
-## [Next Category]
-
-...
 ```
 
-Use tables for command references — compact and scannable.
+### Concept-based topics (languages, frameworks, APIs)
 
-### Concept-Based Topics (Languages, Frameworks, APIs)
+Use bold terms with short definitions and tight syntax blocks:
 
-```markdown
+````markdown
 # [Topic] Cheat Sheet
 
-[One-sentence description.]
+[One-sentence summary.]
 
-## [Core Concept]
+## [Core concept]
 
-- **term** — Brief definition
-- **term** — Brief definition
+- **term:** brief one-line definition
+- **term:** brief one-line definition
 
 ### Syntax
 
-\```language
+```language
 example code
-\```
-
-## [Next Concept]
-
-...
 ```
+````
 
-Use bold terms with dash separators for concept definitions. Use code blocks for syntax examples.
+Combine tables and short lists per section when a topic mixes CLI usage and concepts.
 
-### Mixed Topics
+## Entry rules
 
-Combine tables for commands and bullet lists for concepts as appropriate per section.
+Keep each entry to one line and pack the high-value flags or patterns inline.
 
-## Entry Formatting Rules
+- **Commands:** Good: `| \`git log --oneline -10\` | Show last 10 commits, one line each |`. Bad: a two-sentence paragraph explaining what `git log` is and listing flags in prose.
+- **Concepts:** Good: `- **closure:** function that captures variables from its enclosing scope`. Bad: a multi-sentence textbook definition.
+- **Code snippets:** Show only the pattern, not surrounding boilerplate. Add a short comment or expected output only when non-obvious:
 
-### Command Entries
+  ```bash
+  # Rebase last 3 commits onto main
+  git rebase --onto main HEAD~3
+  ```
 
-- Show the command in a code block or inline code
-- Include the most important flags/options inline
-- Keep the description to one line
+## Length, order, and cuts
 
-**Good:**
-```markdown
-| `git log --oneline -10` | Show last 10 commits, one line each |
-```
+Target 1 to 2 printed pages (about 60 to 120 lines), 4 to 8 sections, and 3 to 8 entries per section. Eight well-chosen items beat twenty mediocre ones. If a draft runs long, cut the least frequent items first.
 
-**Bad:**
-```markdown
-| `git log` | This command shows the commit history. You can use various flags like --oneline to show each commit on one line, or -10 to limit output. |
-```
+Order sections from highest daily frequency downward:
 
-### Concept Entries
+1. Most common operations (what users run 80% of the time)
+2. Frequent config snippets (only if looked up often)
+3. Intermediate operations
+4. High-value shortcuts and flag combos
+5. Genuine gotchas (skip if none are truly tricky)
 
-- Bold the term name
-- Use an em-dash or colon separator
-- One line per concept
+Exclude installation steps, tool history, internal mechanics, duplicate ways to achieve the same result, rare flags, and version quirks unless ignoring them breaks common usage.
 
-**Good:**
-```markdown
-- **closure** — A function that captures variables from its enclosing scope
-```
+## LaTeX settings for PDF output
 
-**Bad:**
-```markdown
-- Closure: A closure is a programming concept where a function retains access to variables from its parent scope even after the parent function has returned. This is commonly used in JavaScript and other languages.
-```
-
-### Code Examples
-
-- Keep examples minimal — show the pattern, not a full program
-- Annotate with brief inline comments only when non-obvious
-- Show input and expected output when the output is non-obvious
-
-**Good:**
-```markdown
-\```bash
-# Rebase last 3 commits onto main
-git rebase --onto main HEAD~3
-\```
-```
-
-**Bad:**
-```markdown
-\```bash
-# First, make sure you are on your feature branch
-git checkout feature-branch
-# Now, let's rebase. The --onto flag allows us to specify
-# a new base for our commits. HEAD~3 means we want to
-# take the last 3 commits and move them.
-git rebase --onto main HEAD~3
-# After rebasing, you may need to force push
-git push --force-with-lease
-\```
-```
-
-## Length and Density Guidelines
-
-- Target 1-2 printed pages (roughly 60-120 lines of content)
-- Prefer density over completeness — 8 well-chosen items beat 20 mediocre ones
-- Each section: 3-8 entries
-- Total sections: 4-8
-- If content exceeds 2 pages, cut the least commonly used items
-
-## Section Ordering
-
-1. **Most common operations** — What users do 80% of the time
-2. **Configuration/setup patterns** — Common config snippets (only if frequently referenced)
-3. **Intermediate operations** — Next tier of useful commands/features
-4. **Shortcuts and tips** — Time-saving tricks, common flag combos
-5. **Gotchas / common mistakes** — Only include if genuinely tricky
-
-Not all sections are needed. Adapt to the topic.
-
-## What to Exclude
-
-- Installation instructions (not a reference concern)
-- History or background of the tool
-- Detailed explanations of how things work internally
-- Rarely-used commands or features (the bottom 20%)
-- Multiple ways to do the same thing (pick the best one)
-- Version-specific behavior (unless critical to avoid breakage)
-
-## LaTeX-Specific Formatting (PDF Output)
-
-When generating PDF output via LaTeX, apply these adjustments for print-friendly cheat sheets:
-
-### Page Layout
+Use a compact two-column layout at 9pt or 10pt so dense entries fit 1 to 2 pages cleanly:
 
 ```latex
+\documentclass[a4paper, 9pt]{scrartcl}
 \usepackage[a4paper, margin=1.5cm]{geometry}
 \usepackage{multicol}
-\setlength{\columnsep}{1cm}
-```
-
-### Compact Spacing
-
-```latex
 \usepackage{enumitem}
-\setlist{nosep, leftmargin=*}
 \usepackage{titlesec}
+\usepackage{listings}
+
+\setlength{\columnsep}{1cm}
+\setlist{nosep, leftmargin=*}
 \titlespacing*{\section}{0pt}{1ex}{0.5ex}
 \titlespacing*{\subsection}{0pt}{0.75ex}{0.25ex}
-```
 
-### Code Listings
-
-```latex
 \lstset{
   basicstyle=\small\ttfamily,
   breaklines=true,
@@ -178,20 +98,4 @@ When generating PDF output via LaTeX, apply these adjustments for print-friendly
 }
 ```
 
-### Font Size
-
-Use 9pt or 10pt document font size:
-
-```latex
-\documentclass[a4paper, 9pt]{scrartcl}
-```
-
-### Two-Column Layout
-
-Wrap the main content in a `multicols` environment when the cheat sheet has many short entries:
-
-```latex
-\begin{multicols}{2}
-... content ...
-\end{multicols}
-```
+Wrap the body in `\begin{multicols}{2} ... \end{multicols}` when most entries are short.

@@ -1,53 +1,39 @@
 ---
 name: reflection
-description: Reflect on the conversation and propose improvements to durable
-  AI-agent instruction files such as CLAUDE.md and AGENTS.md.
+description: Reflect on the current conversation and propose targeted edits to
+  durable AI-agent instruction files (AGENTS.md, CLAUDE.md, and overrides).
 ---
 
-# Agent Instructions Optimizer
+# Reflect on agent instructions
 
-Analyze and improve the durable instructions for the active AI coding client. Follow these steps carefully:
+Review the current conversation alongside the active durable instruction files, identify concrete friction or missing conventions, and propose minimal edits that prevent the same mistakes next time.
 
-1. Analysis Phase:
-   Review the chat history in your context window.
+## 1. Read conversation and durable instruction files
 
-Then locate and read the instruction files that exist for the active client:
+Review the full conversation history, then locate and read the durable instruction files active for this client:
 
-- User-level instructions such as `~/.claude/CLAUDE.md` or `~/.codex/AGENTS.override.md`
-- Project-level `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`, or `AGENTS.override.md`
-- Any closer nested instruction files relevant to the files discussed in the conversation
+- User-level instructions (such as `~/.claude/CLAUDE.md` or `~/.codex/AGENTS.override.md`)
+- Project-level `AGENTS.md`, `AGENTS.override.md`, `CLAUDE.md`, or `CLAUDE.local.md`
+- Any closer nested instruction files covering directories touched in this session
 
-Analyze the chat history and instructions to identify areas that could be improved. Look for:
+Look for evidence-backed gaps, not generic advice:
 
-- Inconsistencies in the agent's responses
-- Misunderstandings of user requests
-- Areas where Claude could provide more detailed or accurate information
-- Opportunities to enhance the agent's ability to handle specific types of queries or tasks
+- Repeated misunderstandings or wrong assumptions made during the session
+- Conventions the user had to correct manually that are not obvious from the codebase itself
+- Stale, contradictory, or redundant instructions in existing files that caused detours or bloat
 
-2. Interaction Phase:
-   Present your findings and improvement ideas to the human. For each suggestion:
-   a) Explain the current issue you've identified
-   b) Propose a specific change or addition to the instructions
-   c) Describe how this change would improve Claude's performance
+Skip anything already discoverable cheaply from the repo (`package.json`, directory layout, `--help`), and skip one-off task quirks that will not recur.
 
-Wait for feedback from the human on each suggestion before proceeding. If the human approves a change, move it to the implementation phase. If not, refine your suggestion or move on to the next idea.
+## 2. Propose edits and wait for approval
 
-3. Implementation Phase:
-   For each approved change:
-   a) Clearly state the section of the instructions you're modifying
-   b) Present the new or modified text for that section
-   c) Explain how this change addresses the issue identified in the analysis phase
+Present each proposed change to the user before editing any instruction file. For every proposal, include:
 
-4. Output Format:
-   Present your final output in the following structure:
+- **Target file and section** (keep each rule in one authoritative place)
+- **Observed issue:** the specific moment in the session that motivates the change
+- **Exact proposed diff or replacement text** (add, clarify, or delete)
 
-```
-[List the issues identified and potential improvements]
+Wait for the user to approve, refine, or reject each proposal. Do not modify instruction files without approval.
 
-[For each approved improvement:
-1. Section being modified
-2. New or modified instruction text
-3. Explanation of how this addresses the identified issue]
-```
+## 3. Apply approved changes
 
-Remember, your goal is to enhance the agent's performance and consistency while maintaining the core functionality and purpose of the AI assistant. Be thorough in your analysis, clear in your explanations, and precise in your implementations.
+Apply only the approved edits, keeping them concise and consistent with the surrounding file's style. Report each modified file and a one-line summary of what changed.

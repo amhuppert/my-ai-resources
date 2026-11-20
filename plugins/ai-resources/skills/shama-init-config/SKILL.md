@@ -1,108 +1,64 @@
 ---
 name: shama-init-config
-description: Initialize Shama voice-to-text config for the project — create
-  voice.json, voice-vocabulary.md, voice-context.md, and register the project in
-  Shama's registry.toml.
+description: "Initialize Shama voice-to-text config for the current project:
+  create voice.json, voice-vocabulary.md, voice-context.md, and register the
+  project in Shama's registry.toml."
 ---
 
-# Initialize Shama Project Config
+# Initialize Shama project config
 
-Create a local `voice.json` config, a `voice-vocabulary.md` vocabulary file, and a `voice-context.md` context file in the current directory, then register the project in Shama's app-level `registry.toml` so the app can find it. These cover the clipboard-mode baseline (Control+Option+Space); advanced options — cleanup instructions and shell-command mode (Control+Option+S) — are listed in Step 3 and can be added later via `/shama-add-context`.
+Create `voice.json`, `voice-vocabulary.md`, and `voice-context.md` in the current project directory, then register the project in Shama's `registry.toml`. This scaffolds the clipboard-mode baseline (`Ctrl+Opt+Space`); cleanup instructions and shell-command mode (`Ctrl+Opt+S`) can be added later via `/shama-add-context`.
 
-Shama is the resident macOS voice-to-text app. You don't run it per-directory: it runs in the background and switches between projects you've registered in `registry.toml`, selected from its tray menu.
+Shama runs in the background on macOS (and Linux) and switches between registered projects from its tray menu. Its transcription step (OpenAI) reads `voice-vocabulary.md` as term hints; its clipboard cleanup step (Claude) reads `voice-context.md` plus the vocabulary file.
 
-## How Shama uses these files
+## 1. Gather project terminology
 
-- **Transcription step (OpenAI)** — uses `voice-vocabulary.md` as vocabulary hints to help the transcription model accurately recognize domain-specific words.
-- **Cleanup step (Claude, clipboard mode)** — uses `voice-context.md` for project knowledge (descriptions, terminology, naming conventions). The vocabulary file is included as additional reference.
+Inspect existing files (skip any that do not exist):
 
-## Step 1: Gather project information
+- `README.md`, `package.json`, `Cargo.toml`, `pyproject.toml`, or equivalent manifests
+- `AGENTS.md`, `CLAUDE.md`, and project config files
+- Source headers, exported types, and domain identifiers likely to be misspelled in dictation
+- Project commands, skills, and agents so spoken names transcribe accurately:
+  - `.claude/commands/*.md` (frontmatter `name` and `description`)
+  - Every plugin matching `**/.claude-plugin/plugin.json` (skip `node_modules`, `dist`, and build output): scan `{plugin-dir}/skills/*/SKILL.md` and `{plugin-dir}/agents/**/*.md` (fallback to filename without `.md` if `name` is absent)
 
-Research the current project to collect:
+Collect: a 1 to 2 sentence project summary, exact-cased technologies/libraries (e.g. `Bun`, `Commander.js`), non-obvious domain terms and acronyms, casing conventions, frequent abstractions, and available commands/skills/agents.
 
-1. **Project purpose** — What is being built? (1-2 sentences from README, package.json, or similar)
-2. **Technologies and libraries** — Language, runtime, frameworks, key dependencies with their names exactly as written (e.g., "Bun" not "bun", "Commander.js" not "commander")
-3. **Domain terminology** — Non-obvious terms, acronyms, abbreviations, or jargon found in the codebase (variable names, function names, class names, config keys that a speech transcriber might misspell)
-4. **Naming conventions** — camelCase, PascalCase, snake_case patterns and specific examples of important identifiers
-5. **Key concepts** — Architectural patterns, custom abstractions, or domain entities that appear frequently
-6. **Claude Code commands, skills, and agents** — All slash commands, plugin skills, and agents available in the project. The user may reference these by name while dictating.
+## 2. Write `voice-vocabulary.md` and `voice-context.md`
 
-Sources to check (read what exists, skip what doesn't):
+### `voice-vocabulary.md`
 
-- `README.md`, `package.json`, `Cargo.toml`, `pyproject.toml`, or equivalent
-- `CLAUDE.md`, `.kiro/steering/product.md`, `.kiro/steering/tech.md`
-- Source file headers and type definitions for domain terminology
-- Config files for tool names and conventions
+Plain text, one bare term per line, exact capitalization, zero markdown or descriptions. Include technologies, key types/functions, acronyms, slash command names (`/shama-init-config`), and words speech recognition tends to mishear. Skip ubiquitous words (`JavaScript`, `React`, `Git`) unless they have unusual project casing.
 
-For Claude Code commands, skills, and agents, scan these locations:
+### `voice-context.md`
 
-- `.claude/commands/*.md` — Project-level slash commands. Read YAML frontmatter for `name` and `description`.
-- Find plugin directories by globbing for `**/.claude-plugin/plugin.json` (skip `node_modules`, `dist`, and other build artifact directories). For each plugin found:
-  - `{plugin-dir}/skills/*/SKILL.md` — Plugin skills. Read YAML frontmatter for `name` and `description`.
-  - `{plugin-dir}/agents/**/*.md` — Plugin agents. Read YAML frontmatter for `name` and `description`. Use the filename (without `.md`) as the agent name if no `name` field exists.
-
-## Step 2a: Generate voice-vocabulary.md
-
-Write `voice-vocabulary.md` in the current directory: a flat list of terms, one per line, with no markdown structure, headers, or descriptions — just each bare term with its exact spelling and capitalization. Include:
-
-- Technology and library names
-- Key type names, function names, and identifiers from the codebase
-- Acronyms and abbreviations
-- Slash command names (e.g., `/shama-init-config`)
-- Domain terms the transcription model might mishear or misspell
-
-Example:
-
-```
-TypeScript
-Zod
-Bun
-Commander.js
-Claude Code
-CLAUDE.md
-ResolvedFileRef
-ConfigSchema
-/shama-init-config
-/shama-add-context
-```
-
-## Step 2b: Generate voice-context.md
-
-Write `voice-context.md` in the current directory with the following structure:
+Use this compact layout (aim for under 80 lines across the project sections because the whole file is injected into every cleanup prompt; the Commands & Skills section may run longer as needed):
 
 ```markdown
 # Voice Context
 
 ## Project
 
-{1-2 sentence description of the project}
+{1 to 2 sentence project description}
 
 ## Technologies
 
-{Bulleted list of technologies, libraries, and tools with exact spelling. Include the name as it should appear in text.}
+- {Exact Name} ({short role})
 
 ## Terminology
 
-{Bulleted list of project-specific terms, acronyms, and jargon. Format: **Term** - brief definition. Focus on words a speech transcriber is likely to mishear or misspell.}
+- **{Term}** - {brief definition, acronym expansion, or common mishearing}
 
 ## Naming Conventions
 
-{Brief note on casing conventions and important identifiers that should be preserved exactly.}
+- {Casing rules and exact identifier conventions}
 
-## Claude Commands & Skills
+## Commands & Skills
 
-{List all slash commands, skills, and agents available in the project. Group by type (Commands, Skills, Agents). Format each as: **/{name}** - one-line description.}
+{Group by Commands, Skills, Agents (omit empty groups). Format: **/{name}** - one-line description.}
 ```
 
-Guidelines for both files:
-
-- Focus on terms that are ambiguous when spoken aloud (e.g., "Zod" might be transcribed as "zod", "god", or "sod"); omit widely known terms (JavaScript, React, Git) unless they have unusual capitalization in the project
-- List acronyms with their expansions in the context file
-- Keep the context file concise — the entire file is injected into every cleanup prompt. Aim for under 80 lines across the project sections (Technologies, Terminology, Naming Conventions); the Claude Commands & Skills section may exceed this as needed
-
-## Step 3: Generate voice.json
-
-Write `voice.json` in the current directory:
+## 3. Write `voice.json`
 
 ```json
 {
@@ -111,46 +67,29 @@ Write `voice.json` in the current directory:
 }
 ```
 
-This sets the context and vocabulary file paths for clipboard mode. Any keys not set here fall back to the global config at `~/.voice/voice.json`, then to Shama's built-in defaults.
+Any omitted key falls back to `~/.voice/voice.json`, then Shama defaults. Optional keys (not scaffolded here; add later with `/shama-add-context` when needed): `instructionsFile`, `shellContextFile`, `shellVocabularyFile`, `shellInstructionsFile`, `claudeModel`, `shellClaudeModel`, `maxRecordingDuration`, `beepEnabled`, and `notificationEnabled`.
 
-Additional optional keys (not scaffolded by default — add via `/shama-add-context` if and when needed):
+## 4. Register in `registry.toml`
 
-- `instructionsFile` — formatting rules controlling *how* clipboard cleanup formats text (bullet style, code preservation, structural rules)
-- `shellContextFile`, `shellVocabularyFile`, `shellInstructionsFile` — for voice-driven shell-command mode (Control+Option+S)
-- `claudeModel` / `shellClaudeModel` — override the cleanup model for each mode
-- `maxRecordingDuration` (seconds), `beepEnabled`, `notificationEnabled` — per-project scalar overrides (local wins over global)
+Shama only discovers projects listed in its app registry:
 
-## Step 4: Register the project in Shama's registry
+- **macOS:** `~/Library/Application Support/Shama/registry.toml`
+- **Linux:** `$XDG_CONFIG_HOME/shama/registry.toml` (fallback `~/.config/shama/registry.toml`)
 
-Shama only sees projects listed in its app-level registry. Add this project to it.
-
-1. Locate the registry file:
-   - macOS: `~/Library/Application Support/Shama/registry.toml`
-   - Linux: `$XDG_CONFIG_HOME/shama/registry.toml` (fallback `~/.config/shama/registry.toml`)
-2. Derive the entry fields:
-   - `id` — a unique, stable, kebab-case identifier. Default to the project directory name (e.g., `my-ai-resources`).
-   - `name` — a human-readable name shown in the tray menu (e.g., from `package.json` `name`, the repo name, or a title-cased directory name).
-   - `project_root` — the **absolute** path to the current directory (Shama resolves `<project_root>/voice.json`). Use `~/`-prefixed or absolute; `~` and env vars are expanded.
-3. Read the existing `registry.toml` if it exists:
-   - If a `[[project]]` entry already points at this project (same `id`, or a `project_root`/`voice_json` resolving here), do not add a duplicate. Tell the user it's already registered; offer to update its `name` if it changed. (Shama ignores duplicate `id`s — it keeps the first and logs a warning.)
-   - If the file or its parent directory does not exist, create them (`mkdir -p` the parent, then create the file).
-4. Append a `[[project]]` entry:
+1. Derive `id` (unique kebab-case, default to directory name), `name` (tray display name from manifest or title-cased directory name), and `project_root` (absolute or `~/` path to cwd; Shama resolves `<project_root>/voice.json`).
+2. Read the existing `registry.toml` if present (otherwise create parent directories and the file).
+3. If an entry already matches this `id`, `project_root`, or `voice_json`, do not add a duplicate (Shama ignores duplicate `id`s and logs a warning). Tell the user it is already registered and offer to update `name` if it changed.
+4. Otherwise append:
    ```toml
    [[project]]
-   id = "my-ai-resources"
-   name = "My AI Resources"
-   project_root = "/Users/alex/github/my-ai-resources"
+   id = "my-app"
+   name = "My App"
+   project_root = "/path/to/my-app"
    ```
-   Each entry must specify exactly one of `project_root` or `voice_json`. Use `project_root` here since `voice.json` lives at the project root. Use `voice_json = "/abs/path/voice.json"` instead only when the config lives elsewhere.
+   Each entry takes exactly one of `project_root` or `voice_json` (use `voice_json` only when `voice.json` sits outside the project root).
 
-Shama polls `registry.toml` by mtime every ~5 seconds while idle, so the project appears in the tray menu within seconds — no app restart needed.
+Shama polls `registry.toml` by mtime every ~5 seconds while idle, so the new project appears in the tray menu without restarting the app.
 
-## Step 5: Confirm
+## 5. Confirm
 
-After creating the files and registering the project, display:
-
-- The generated `voice-vocabulary.md` and `voice-context.md` content
-- Confirmation that `voice.json` was created
-- Confirmation that the project was registered in `registry.toml` (show the `[[project]]` entry), or that it was already registered
-- A note that cleanup instructions and shell-mode files are not scaffolded — point to `/shama-add-context` for adding them later
-- Remind the user: select this project from Shama's tray menu to make it active, then record with Control+Option+Space
+Done when `voice-vocabulary.md`, `voice-context.md`, and `voice.json` are written and `registry.toml` contains a non-duplicate entry for this project. Show the generated vocabulary/context content, the `[[project]]` entry (or existing registration), note that cleanup instructions and shell mode can be added later via `/shama-add-context`, and remind the user to select the project in Shama's tray menu before recording with `Ctrl+Opt+Space`.

@@ -1,46 +1,46 @@
 ---
 name: review-guide-html
 description: Render a change-review-guide as an interactive, self-contained HTML
-  page (and optionally regenerated markdown) from a YAML content file, with the
-  file index and stats pulled from git.
+  page (and optionally regenerated markdown) from a YAML content file, pulling
+  the file index and stats from git.
 ---
 
-# Review Guide HTML
+# Review guide HTML
 
-Turns an existing review guide into the interactive HTML design: sticky section nav, the review path as a persistent checklist with a progress bar, file chips that copy on click, and a filterable index of every changed file that jumps to the stop covering it. The judgement comes from the markdown guide written by `/change-review-guide`; the file list, statuses, and line counts come from git; the renderer refuses to build while any changed file is unassigned.
+Turn an existing markdown review guide into the interactive HTML format: sticky section nav, persistent checklist with progress bar, click-to-copy file chips, and a filterable index of every changed file linked to the stop covering it. The markdown guide written by `/change-review-guide` owns the judgement; git supplies the file list, statuses, and line counts; the renderer refuses to build while any changed file remains unassigned.
 
-Tooling, relative to this skill:
+Tooling relative to this skill:
 
-- `scripts/render-review-guide.mjs` — Node 18+, no dependencies. `init` scaffolds the YAML from a git range; `render` validates and writes the outputs.
-- `references/content-schema.md` — every key, the inline markup subset, and the file-assignment rules. Read it before writing the YAML.
-- `references/example-scheduled-exports.yaml` — a complete worked example (23 files, 6 stops, 3 skim clusters). Open it when a section's shape is unclear.
+| File | Purpose |
+| --- | --- |
+| `scripts/render-review-guide.mjs` | Node 18+ script (no deps). `init` scaffolds YAML from git; `render` validates and builds outputs |
+| [`references/content-schema.md`](references/content-schema.md) | Every YAML key, inline markup subset, and file-assignment rules. Read before editing YAML |
+| [`references/example-scheduled-exports.yaml`](references/example-scheduled-exports.yaml) | Complete worked example (23 files, 6 stops, 3 skim clusters). Open when a section shape is unclear |
 
 ## Steps
 
-1. **Locate the source guide and the range.** The argument names the markdown guide; otherwise take the most recent `*-review-guide.md` in the working tree. Base and head come from its Scope line; when the guide does not say, base is the main branch and head is `HEAD`.
-
-2. **Scaffold.** From the repository root:
-
+1. **Locate the guide and git range.** Use the markdown guide named in the argument, or the most recent `*-review-guide.md` in the working tree. Read `base` and `head` from its Scope line; if unspecified, default to the main branch and `HEAD`.
+2. **Scaffold the YAML** from the repository root:
    ```bash
    node <skill>/scripts/render-review-guide.mjs init --base <base> --head <head> --out <slug>-review-guide.yaml
    ```
-
-   The file lands beside the markdown guide with every changed file listed under `unassigned`.
-
-3. **Port the content.** Fill each section from the markdown guide one to one, following `references/content-schema.md`: Purpose paragraphs and callouts, ranked fundamentals with `forces`, stops in the guide's order with `lead`, `scrutinize` bullets and any sub-stops as `parts`, skim clusters with `spot_check`, and open questions with a `tag`. Move every path out of `unassigned` into the stop or cluster the guide names for it; use globs for clusters and explicit paths to pull a file out of a glob. The step is done when `unassigned` is empty and this prints `ok`:
-
+   This places the YAML beside the markdown guide with every changed file under `unassigned`.
+3. **Port the guide one-to-one** following [`references/content-schema.md`](references/content-schema.md):
+   - Purpose paragraphs and callouts
+   - Ranked fundamentals with `forces`
+   - Stops in the guide's exact order (`lead`, `scrutinize` bullets, optional `parts`)
+   - Skim clusters with `spot_check`, and open questions with `tag`
+   - Move every path out of `unassigned` into its stop or skim cluster (use globs for clusters and explicit paths to pull a file out of a glob).
+4. **Validate before rendering:**
    ```bash
    node <skill>/scripts/render-review-guide.mjs render <slug>-review-guide.yaml --check
    ```
-
-   Each `error:` line names one problem; fix them all rather than the first.
-
-4. **Render.** Drop `--check`. Add `--md` when the user wants the markdown regenerated from the YAML; it overwrites `<slug>-review-guide.md` so the two formats stay in sync. Confirm the output opens: it is a single file with no external resources.
-
-5. **Report** the output paths in one line, plus any file that had no home in the guide and where you put it.
+   Fix every reported `error:` line until `unassigned` is empty and `--check` prints `ok`.
+5. **Render.** Re-run without `--check`. Pass `--md` if the user wants `<slug>-review-guide.md` regenerated from the YAML so both formats stay in sync. Verify the HTML file was written (it is standalone with no external assets).
+6. **Report** the output path(s) in one line, plus any changed file absent from the markdown guide and which cluster you placed it in.
 
 ## Rules
 
-- The markdown guide owns the judgement. Port it; do not re-review the diff. A file in `unassigned` that the guide never mentions goes in the closest skim cluster, and the report says so.
-- Ids are yours to choose (`s1…`, `k-specs`); `forces` and nav links resolve against them, so keep them stable once the guide is shared.
-- Store the YAML and outputs where the markdown guide lives; the YAML is the source for regeneration after the branch changes.
+- **Port, do not re-review.** The markdown guide owns the judgement. If an unassigned file was never mentioned in the guide, place it in the closest skim cluster and mention that in the report.
+- **Keep ids stable** (`s1`, `k-specs`): `forces` references and nav links target them, so avoid renaming ids once shared.
+- **Keep the YAML beside the markdown guide** as the source for future regenerations after the branch updates.

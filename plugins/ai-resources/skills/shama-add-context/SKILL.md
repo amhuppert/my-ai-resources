@@ -1,160 +1,85 @@
 ---
 name: shama-add-context
-description: Add terms, context, or instructions to Shama voice-to-text files
-  for clipboard mode (Ctrl+Opt+Space) or shell-command mode (Ctrl+Opt+S), at
-  project or global level.
+description: Add terms, project context, or formatting rules to Shama
+  voice-to-text files for clipboard mode (Ctrl+Opt+Space) or shell-command mode
+  (Ctrl+Opt+S), at project or global level.
 ---
 
-# Add Shama Context
+# Add Shama context
 
-Add new entries to Shama's vocabulary, context, or instructions files when the transcriber misrecognizes words, the cleanup step formats text incorrectly, or shell-mode generates the wrong command.
+Update Shama's vocabulary, context, or instructions files when speech transcription mishears terms, clipboard cleanup formats text poorly, or shell-command mode outputs the wrong style of command.
 
-Shama is the resident macOS voice-to-text app. It reads a per-project `voice.json` plus an optional global `voice.json`; the file keys below point at the markdown files that feed its pipelines.
+## How Shama loads these files
 
-Two context levels: **project-level** (default) — files specific to the current project, stored alongside the project's `voice.json` — and **global-level** — files shared across all projects, stored alongside `~/.voice/voice.json`. For each file key, Shama takes the union of global then project values: global file-list entries come first, project entries are appended (duplicates by resolved path removed). A project-level entry adds to — it does not replace — the global one.
+Shama is a resident macOS voice-to-text app that reads a global `~/.voice/voice.json` and a per-project `voice.json`. For every file key, Shama merges global entries first and appends project entries (deduplicated by resolved path), so project entries add to global ones rather than replacing them.
 
-Two modes, each with its own trio of files:
+Two modes, three files each:
 
-- **Clipboard mode** (Control+Option+Space) — `contextFile`, `vocabularyFile`, `instructionsFile`
-- **Shell-command mode** (Control+Option+S) — `shellContextFile`, `shellVocabularyFile`, `shellInstructionsFile`
+| Mode | Shortcut | `voice.json` keys |
+| --- | --- | --- |
+| Clipboard (default) | `Ctrl+Opt+Space` | `contextFile`, `vocabularyFile`, `instructionsFile` |
+| Shell command | `Ctrl+Opt+S` | `shellContextFile`, `shellVocabularyFile`, `shellInstructionsFile` |
 
-Each pipeline consumes different files:
+Match the failing stage to the right file type:
 
-- **Transcription step (OpenAI)** — the relevant vocabulary file: a flat list of terms sent as hints for accurate word recognition. Affects what words the transcriber produces.
-- **Cleanup step (Claude, clipboard mode)** — `contextFile` (project knowledge) and `instructionsFile` (how-to formatting rules). Affects how transcribed text is corrected and structured.
-- **Shell-command generation (Claude, shell mode)** — `shellContextFile` (background for command generation) and `shellInstructionsFile` (rules for command output). Affects what shell command is produced.
+- **Wrong word recognized** (OpenAI transcription) -> vocabulary file (flat list of term hints).
+- **Right word, wrong cleanup or project knowledge** (Claude clipboard cleanup) -> `contextFile` (domain facts/terminology) or `instructionsFile` (formatting/behavior rules).
+- **Wrong shell tool, OS flag, or layout** (Claude shell generation) -> `shellContextFile` (project paths/workflows) or `shellInstructionsFile` (command output rules).
 
-Identify which stage is failing:
+## 1. Locate target level and files
 
-- Wrong word recognized → vocabulary (or shell-vocabulary)
-- Right word, wrong formatting / structure → context or instructions
-- Shell command wrong style, tool choice, or OS flags → shell-context or shell-instructions
+Use **global-level** only when the user explicitly says "global", "global config", "global context", or `~/.voice/`. Otherwise default to **project-level**.
 
-## Step 1: Determine the target level and locate the files
+- **Global-level:** read `~/.voice/voice.json`, resolve configured paths relative to `~/.voice/`, and read any existing target files. If `~/.voice/voice.json` is missing or defines none of the six keys, tell the user and offer to create the needed file(s) (see Step 3).
+- **Project-level:** read `./voice.json` for configured keys. If `./voice.json` does not exist, check the conventional filenames in the current directory (`voice-context.md`, `voice-vocabulary.md`, `voice-instructions.md`, `voice-shell-context.md`, `voice-shell-vocabulary.md`, `voice-shell-instructions.md`). If no Shama project files exist at all, tell the user Shama is not configured here, suggest running `/shama-init-config` first, and stop.
 
-Use global-level if the user explicitly mentions "global", "global context", "global config", "global Shama context", or `~/.voice/`. Otherwise default to project-level.
+## 2. Pick mode and target file(s)
 
-### Global-level resolution
+Default to clipboard mode. Switch to shell-command mode when the user mentions "shell", "terminal", `Ctrl+Opt+S`, or shell-mode dictation.
 
-1. Read `~/.voice/voice.json` to find any of the six file keys above
-2. Resolve all configured paths relative to `~/.voice/`
-3. If `~/.voice/voice.json` does not exist or has none of these keys configured, inform the user that global Shama config has no context files yet and offer to create one — see "Creating a missing file" in Step 3
-4. Read the contents of any files that exist
+Ask for clarification only if the request is too vague to act on (ask for the misheard word or bad command, the expected output, and any brief context).
 
-### Project-level resolution (default)
+**Clipboard mode:**
 
-1. Read `voice.json` in the current directory to find any of the six file keys
-2. If `voice.json` does not exist, check for the conventional filenames in the current directory:
-   - `voice-context.md`, `voice-vocabulary.md`, `voice-instructions.md`
-   - `voice-shell-context.md`, `voice-shell-vocabulary.md`, `voice-shell-instructions.md`
-3. If no project files exist at all, inform the user that Shama is not configured for this project and suggest running `/shama-init-config` first. Stop here.
-4. Read the contents of any files that exist
+| Scenario | Vocabulary | Context | Instructions |
+| --- | --- | --- | --- |
+| Misheard term | Add exact term | Add term + definition + common mishearings | Skip |
+| New terminology | Add exact term | Add term + definition | Skip |
+| Naming convention | Skip | Add under Naming Conventions | Skip |
+| Project knowledge | Skip | Add to matching section | Skip |
+| Formatting or cleanup rule | Skip | Skip | Add rule |
 
-## Step 2: Determine the mode and target file(s)
+**Shell-command mode:**
 
-Default to clipboard mode. Use shell-command mode when the user mentions "shell", "shell mode", "shell command", "terminal", "Control+Option+S", or shell-mode dictation.
+| Scenario | Shell vocabulary | Shell context | Shell instructions |
+| --- | --- | --- | --- |
+| Misheard term in shell dictation | Add exact term | Add term + definition | Skip |
+| Tool or binary name | Add exact term | Add description if non-obvious | Skip |
+| Preferred tool, style, or OS flag | Skip | Skip | Add rule |
+| Project paths or shell workflows | Skip | Add to matching section | Skip |
 
-If the user's request is too vague to act on, ask for:
+## 3. Edit or create the file(s)
 
-- The word or phrase as it was incorrectly transcribed (or the wrong shell command)
-- The correct form it should produce
-- Optionally, a brief definition or context note
+- **Vocabulary (`voice-vocabulary.md` / `voice-shell-vocabulary.md`):** one bare term per line with exact spelling and capitalization, no markdown or descriptions:
+  ```text
+  Zod
+  CLAUDE.md
+  ResolvedFileRef
+  ```
+- **Context (`voice-context.md` / `voice-shell-context.md`):** match the existing section style (`Technologies`, `Terminology`, `Naming Conventions`). Include common mishearings on correction notes:
+  ```markdown
+  - **Zod** - Runtime validation library (not "god", "sod", or "zawed")
+  - **lgit** - Git wrapper for .local directory (not "legit" or "l-git")
+  ```
+- **Instructions (`voice-instructions.md` / `voice-shell-instructions.md`):** behavioral and formatting rules only, never project facts (e.g., `- Preserve fenced code blocks verbatim`, `- Prefer rg over grep`).
+- **Missing target file:** create it using the conventional name relative to the project root (or `~/.voice/` for global) with a minimal heading plus the new entry, then register its path under the matching key in `voice.json` (creating `voice.json` if needed).
 
-Then pick the file(s) for the scenario:
+Keep context and instructions files compact because Shama injects them on every recording. Aim for under ~80 lines on project-level files (suggest pruning stale entries if a file approaches that), expand acronyms in context files, and skip ubiquitous terms (`JavaScript`, `React`, `Git`) unless they are actively being misheard.
 
-### Clipboard mode (Control+Option+Space)
+## 4. Confirm
 
-| Scenario | Vocabulary file | Context file | Instructions file |
-|---|---|---|---|
-| **Misheard term** | Add correct term | Add term with description and common mishearings | — |
-| **New terminology** | Add correct term | Add term with description | — |
-| **Naming convention** | — | Add to Naming Conventions section | — |
-| **Project context** | — | Add to appropriate section | — |
-| **Cleanup formatting / style rule** | — | — | Add rule |
+Done when the target file(s) (and `voice.json`, if a new file was created) have been updated cleanly. Report:
 
-### Shell-command mode (Control+Option+S)
-
-| Scenario | Shell vocabulary file | Shell context file | Shell instructions file |
-|---|---|---|---|
-| **Misheard term in shell request** | Add correct term | Add term with description | — |
-| **Tool or binary name** | Add correct term | Add binary description if non-obvious | — |
-| **Preferred tool / style** (e.g., "prefer `rg` over `grep`") | — | — | Add rule |
-| **OS-specific behavior** | — | — | Add rule |
-| **Project shell context** (paths, common workflows) | — | Add to appropriate section | — |
-
-## Step 3: Add the entries
-
-### Vocabulary file entries (clipboard or shell)
-
-One term per line — no markdown formatting, no descriptions, just the bare term with correct spelling and capitalization:
-
-```
-Zod
-CLAUDE.md
-ResolvedFileRef
-```
-
-### Context file entries (clipboard mode)
-
-Add to the appropriate section, following the existing format:
-
-- **Technologies**: `- {Name} ({brief description})`
-- **Terminology**: `- **{Term}** - {brief definition or correction note}`
-- **Naming Conventions**: `- {convention description}`
-
-When adding a misheard word correction, include the common misheard form in the definition to help Claude recognize and correct it:
-
-```markdown
-- **Zod** - Runtime validation library (not "god", "sod", or "zawed")
-- **lgit** - Git wrapper for .local directory (not "legit" or "l-git")
-```
-
-### Instructions file entries (clipboard mode)
-
-The instructions file controls *how* cleanup is performed. Add formatting rules, style preferences, or behavioral overrides — not project knowledge:
-
-```markdown
-- Always preserve fenced code blocks verbatim — do not edit, reformat, or summarize their contents
-- Prefer hyphen-style bullet points (`-`) over asterisks (`*`)
-- When listing steps, use numbered lists; when listing options, use bullets
-```
-
-### Shell-context file entries (shell mode)
-
-Background information for the shell-command generator: project paths, repo layout, preferred tools, common workflows. Same structural format as the clipboard-mode context file but oriented toward shell usage.
-
-### Shell-instructions file entries (shell mode)
-
-Rules for shell-command output:
-
-```markdown
-- Prefer `rg` (ripgrep) over `grep` for content searches
-- Prefer `fd` over `find` when available
-- Quote paths that may contain spaces using double quotes
-```
-
-### Creating a missing file
-
-If the target file does not yet exist:
-
-1. Pick a conventional filename relative to the project root (or `~/.voice/` for global): `voice-instructions.md`, `voice-shell-context.md`, `voice-shell-vocabulary.md`, `voice-shell-instructions.md`
-2. Create the file with a minimal scaffold (top-level heading appropriate to the file's role, then the first entry)
-3. Register the new file path under the corresponding key in the relevant `voice.json` — the project's for project-level, `~/.voice/voice.json` for global (create the `voice.json` if it does not exist)
-
-### Guidelines
-
-- Keep each context / instructions file concise — every relevant file is injected into the prompt for its pipeline. For project-level files, aim for under ~80 lines; if a file is approaching that, suggest removing less relevant entries before adding new ones
-- Match the formatting style of existing entries, with exact capitalization for each term
-- For acronyms, include the expansion in the context file
-- Omit widely known terms (JavaScript, React, Git) unless they are specifically being misheard
-
-## Step 4: Confirm
-
-After editing, display:
-
-- Whether the project-level or global-level files were updated (and their paths)
-- Which mode the change targets (clipboard or shell)
-- Which file(s) were modified (vocabulary, context, instructions, or their shell-mode equivalents)
-- The specific entries that were added
-- If a `voice.json` (`~/.voice/voice.json` for global) was updated to register a new file, mention that
-- A brief reminder: changes take effect on the next Shama recording (Shama captures file contents per recording — no app restart needed)
+- Level (project or global), mode (clipboard or shell), and modified file path(s)
+- Exact entries added (and whether `voice.json` was updated)
+- Note that changes take effect on the next recording with no app restart needed

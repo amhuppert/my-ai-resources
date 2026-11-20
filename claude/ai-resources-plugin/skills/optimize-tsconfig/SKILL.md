@@ -1,90 +1,48 @@
 ---
 name: optimize-tsconfig
-description: "Optimize tsconfig.json for build speed, watch mode, and tsc memory. Use for slow tsc, too many file watchers, or TypeScript performance audits."
+description: "Audit and optimize tsconfig.json for faster TypeScript builds, lower tsc memory, and fewer file watchers."
 argument-hint: "[path/to/tsconfig.json]"
 allowed-tools: Read, Edit, Write, Bash(tsc:*), Bash(npx tsc:*), Glob, Grep, AskUserQuestion
 disable-model-invocation: true
 ---
 
-# TypeScript Configuration Performance Optimizer
+# Optimize `tsconfig.json`
 
-Audit and optimize TypeScript configuration for faster builds, reduced memory usage, and fewer file watchers. Produces targeted, project-specific recommendations — not a generic checklist.
+Audit TypeScript configuration for faster type checking, lower memory usage, and fewer watch-mode file watchers. Produce project-specific recommendations backed by measured diagnostics rather than a generic checklist.
 
-<target>
-Use the tsconfig path supplied in the user's invocation, if any.
-</target>
+## 1. Inspect configs and capture baseline
 
-## Step 1: Discover TypeScript Configs
+If the user named a config path, inspect it; otherwise find `**/tsconfig*.json` across the project. Follow every `extends` chain so you evaluate the effective configuration and know what is inherited vs. overridden.
 
-If no path was provided, search the project for `**/tsconfig*.json`.
-
-Read each tsconfig, including any extended configs (follow `extends` chains to understand the full effective configuration). Note which settings are inherited vs. overridden.
-
-## Step 2: Gather Diagnostics
-
-Run `tsc --extendedDiagnostics` for each tsconfig to establish a baseline:
+Run a baseline check for each target config:
 
 ```bash
 npx tsc -p path/to/tsconfig.json --extendedDiagnostics --noEmit
 ```
 
-Record key metrics: Files checked, total time, memory used, program size. These are the numbers to improve.
+Record files checked, total time, memory used, and program size. If watch mode is the complaint, inspect `watchOptions` and ask the user for a live watcher count (from `lsof`, `/proc/PID/fdinfo`, or Watchman) only if they have it handy.
 
-If the concern is watch mode specifically, check the current `watchOptions` (or lack thereof) and ask the user to provide a file watcher count if available (e.g., from `lsof`, `/proc/PID/fdinfo`, or a tool like `watchman`).
+## 2. Evaluate against tiered recommendations
 
-## Step 3: Analyze and Recommend
+Read [`references/tsconfig-performance.md`](references/tsconfig-performance.md) for the exact option syntax, tradeoffs, diagnostic commands, and TypeScript code patterns affecting compile speed.
 
-Consult `references/tsconfig-performance.md` for the full catalog of optimization settings, tradeoffs, and impact rankings.
+Group only the settings that apply to this project into three tiers:
 
-Evaluate each potential optimization against the project's current config. Categorize recommendations into tiers:
+- **Tier 1 (zero functional tradeoff):** `watchOptions.excludeDirectories`, `watchOptions.watchFile: "useFsEvents"`, `skipLibCheck: true`, `incremental: true` (with `tsBuildInfoFile` in the build output dir).
+- **Tier 2 (low-risk, minor tradeoffs):** `isolatedModules: true`, tighter `exclude` patterns (including `node_modules` explicitly whenever `exclude` is set; separate `tsconfig.test.json` if tests inflate the main program), `watchOptions.fallbackPolling: "dynamicPriorityPolling"`.
+- **Tier 3 (situational tradeoffs):** explicit `types` array (only when unused `@types/*` packages demonstrably bloat the program), `isolatedDeclarations` (TS 5.5+), `noCheck` (TS 5.6+, split pipelines only), composite project references (monorepos with 5+ packages), editor-only tsserver memory flags.
 
-### Tier 1: No-Tradeoff Wins
-Settings that improve performance with zero functional impact. Apply these unconditionally:
+Do not recommend disabling `strict` mode, dropping `@types` packages the project actually uses, or broad `exclude` globs that break type resolution.
 
-- **`watchOptions.excludeDirectories`** — Exclude `**/node_modules` and build output dirs from watch. Typical reduction: 90%+ of file watchers eliminated.
-- **`watchOptions.watchFile: "useFsEvents"`** — Use OS-native file events instead of polling.
-- **`skipLibCheck: true`** — Skip type-checking `.d.ts` files. Almost always safe.
-- **`incremental: true`** — Cache compiler state for faster rebuilds. Add `tsBuildInfoFile` pointing to build output dir.
+## 3. Apply changes (when requested) and verify
 
-### Tier 2: Low-Risk, High-Impact
-Settings with minor tradeoffs that are appropriate for most projects:
+- If the user asked for an **audit**, present the baseline metrics and tiered recommendations without editing files.
+- If the user asked to **optimize/apply**: apply Tier 1 changes directly, and explain tradeoffs and confirm before applying Tier 2 or Tier 3 settings.
 
-- **`isolatedModules: true`** — Enables fast transpilers (SWC, esbuild). May require removing const enums or namespace merging patterns.
-- **`exclude` patterns** — Ensure test files, build output, and hidden directories are excluded from the main program. Consider a separate `tsconfig.test.json` for test files.
-- **`watchOptions.fallbackPolling: "dynamicPriorityPolling"`** — Best fallback when FS events are unavailable.
+After editing:
 
-### Tier 3: Situational
-Settings that require deliberate tradeoff decisions — present these with clear context:
+1. Run `npx tsc -p <path> --extendedDiagnostics --noEmit` to confirm a clean compile and capture after-metrics.
+2. Report before vs. after metrics (files, time, memory, and watcher counts if measured).
+3. If `watchOptions` changed, remind the user to restart `tsc --watch` for the new settings to take effect.
 
-- **`types` array** — Restricting auto-included `@types` reduces program size but requires manual maintenance when adding dependencies. Recommend only when there's clear evidence of unnecessary types being pulled in.
-- **`isolatedDeclarations`** (TS 5.5+) — Enables parallel `.d.ts` generation but requires explicit annotations on all exports.
-- **`noCheck`** (TS 5.6+) — Skips type checking for emit-only builds. Only for split build pipelines.
-- **Project references** — For monorepos with 5+ packages, splitting into composite projects reduces per-project work. Significant setup effort.
-- **Editor memory flags** (`disableReferencedProjectLoad`, etc.) — Only for large monorepos where VS Code runs out of memory.
-
-### What NOT to Recommend
-
-- Disabling `strict` mode for performance — the impact is negligible and the safety loss is real.
-- Removing useful `@types` packages unless they are clearly irrelevant to the project.
-- Overly aggressive `exclude` patterns that might break type resolution.
-
-## Step 4: Apply Changes
-
-Present the tiered recommendations to the user. For Tier 1, suggest applying immediately. For Tier 2-3, explain the tradeoff and ask for confirmation.
-
-When applying changes:
-1. Edit each tsconfig to add the recommended settings
-2. Run `tsc --noEmit` to verify the project still compiles cleanly
-3. If watch mode was the concern, note that the user will need to restart `tsc --watch` to pick up the new `watchOptions`
-
-## Step 5: Verify Improvement
-
-Re-run `tsc --extendedDiagnostics` and compare against the Step 2 baseline. Report the before/after metrics.
-
-If watch mode was the concern and the user can measure watcher counts, compare those as well.
-
-## Additional Resources
-
-### Reference Files
-
-- **`references/tsconfig-performance.md`** — Complete catalog of performance-related tsconfig settings with explanations, tradeoffs, impact rankings, diagnostic commands, and code patterns that affect compiler performance
+Done when every target tsconfig's effective config was inspected, baseline diagnostics were measured, recommendations match the actual config (no inapplicable options), and any applied edits pass `tsc --noEmit` with before/after numbers reported.

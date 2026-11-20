@@ -1,65 +1,55 @@
 ---
 name: write-tests
-description: "Write automated tests, or decide whether code earns one. Covers mocking strategy (inject a test double before jest.mock), behavioral assertions, and code that resists testing."
+description: "Write automated tests or decide whether code earns one. Covers mocking strategy (inject a test double before jest.mock), behavioral assertions, and code that resists testing."
 ---
 
-# Write Tests
+# Write tests
 
-A good test breaks when the code is wrong, not when its internals are refactored.
+A good test breaks when behavior is wrong, not when internals change.
 
-## Step 1: Decide what earns a test
+## 1. Decide what earns a test
 
-Test business logic and domain rules, edge cases that have caused or could cause bugs, integration points between systems, complex conditional flows, and critical regression paths.
+Write tests for business logic and domain rules, edge cases that have caused or could cause bugs, system integration points, complex branching, and critical regression paths.
 
-Pass-through functions with no logic, framework behavior the framework already tests, static configuration, and trivial details likely to change (exact CSS classes, specific log messages) earn none.
+Skip pass-through functions with no logic, framework behavior already tested upstream, static config, and fragile details likely to shift (exact CSS classes, specific log wording).
 
-Done when every candidate passes one question: if this test broke, would it signal a bug rather than a refactor?
+Keep a candidate only if a failure in that test would signal a real bug rather than a harmless refactor.
 
-## Step 2: Name the contract
+## 2. Name the contract
 
-Every function, component, or service has a **contract**: its arguments and return values, props and rendered output, observable side effects (API calls made, events emitted), and error conditions. Internal state, helper functions, call order, imports, and intermediate data shapes are outside it.
+Every function, component, or service has a **contract**: arguments and return values, props and rendered output, observable side effects (API calls made, events emitted), and error behavior. Internal state, private helpers, internal call order, imports, and intermediate shapes stay outside it.
 
-Done when every assertion you plan reaches the code only through the contract.
+Every planned assertion must observe the code solely through its contract.
 
-## Step 3: Choose a mocking strategy per dependency
+## 3. Pick a mocking rung per dependency
 
-Prefer the highest rung that fits:
+Use the highest rung that fits (where `jest.mock` refers to Jest or your test runner's module-mocking API):
 
-1. **No mock.** Pure functions and deterministic logic: pass real inputs, assert outputs.
-2. **Injected test double.** The production code takes the dependency through a **seam** (constructor parameter, factory argument, React context); the test supplies a plain object satisfying the interface, its methods `jest.fn()`s where useful, through that same seam. This is ordinary dependency injection, not module mocking.
-3. **`jest.mock` on a third-party module.** For libraries whose side effects no seam can control: file system, native modules, global singletons, network, timers, browser APIs in Node. Use the real library when it is pure, fast, and deterministic. Wrap the side-effecting call in a thin adapter that the rest of the code takes through a seam, so `jest.mock` stays in the adapter's own test file.
-4. **`jest.mock` on an own module.** Acceptable for pragmatic reasons: when it greatly simplifies the tests and the tests still exercise important logic. The cost is coupling. The mock must know how the module is used internally (what it returns, when, in what shape), so the test breaks on refactors and can drift from production. Keep the mock shallow; a mock that reproduces the logic it replaces is the signal to add a seam instead.
+1. **No mock.** Pure functions and deterministic logic: pass real inputs and assert outputs.
+2. **Injected test double.** Production code accepts the dependency through a **seam** (constructor/function parameter, factory argument, React context); the test supplies a plain object matching the interface (with `jest.fn()` methods where helpful) through that seam. This is ordinary dependency injection, not module mocking.
+3. **`jest.mock` on a third-party module.** For libraries with side effects no seam controls: filesystem, native modules, global singletons, network, timers, browser APIs in Node. Keep the real library whenever it is pure, fast, and deterministic. Wrap the side effect in a thin adapter taken through a seam so `jest.mock` stays isolated to the adapter's test file.
+4. **`jest.mock` on an own module.** Acceptable pragmatically when it meaningfully simplifies tests and the suite still exercises real logic. The price is coupling: the mock encodes how the module is called internally, so it breaks on refactors and can drift from production. Keep it shallow; if the mock starts re-implementing the module it replaces, add a seam instead.
 
 ### When no seam exists
 
-Hard-coded dependencies and direct imports of own services leave no seam for rung 2. Add one (constructor parameter, factory argument, context entry, a thin adapter around the side effect, or a split that exposes the pure logic) when the mock would otherwise reproduce the module's logic or leave the test verifying only plumbing; otherwise rung 4 is acceptable. When the seam needs a refactor beyond the current task, raise the design issue and recommend incremental refactoring toward seams rather than locking the coupling in with a mock-heavy suite.
+Hard-coded dependencies and direct imports of internal services leave no seam for rung 2. Introduce a seam (parameter, factory argument, context entry, thin adapter, or extracting pure logic) when a module mock would duplicate real logic or leave the test verifying only plumbing; otherwise rung 4 is acceptable. If adding a seam requires refactoring beyond the current task, flag the design issue and suggest incremental seams rather than cementing a mock-heavy suite.
 
-Done when every dependency of the code under test has a rung, and for every own-module `jest.mock` you can name the logic the test still exercises.
+Every dependency under test should map to an explicit rung, and for every own-module `jest.mock`, you should be able to point to the non-trivial logic still exercised.
 
-## Step 4: Write behavioral assertions, then run the confidence test
+## 4. Write behavioral assertions and run the confidence test
 
-Every assertion reads "when X happens, Y results": a return value, rendered output, a state change, or a side effect visible through the contract. Assert a call sequence only when the sequence is itself part of the contract, such as an event being emitted.
+Phrase every assertion as "when X happens, Y results": return value, rendered output, state change, or contract-level side effect. Assert call order only when sequence itself is part of the contract (such as ordered events).
 
-**Confidence test.** A test passes it when replacing the production code with `return mockValue` would make the test fail. A test that would keep passing verifies the mock, not the code. The usual shapes:
+Run the **confidence test** on each test: if replacing the production code with `return mockValue` would still let the test pass, it tests the mock rather than the code. Watch for three failure shapes:
 
-- Mock echo: the mock returns X and the test asserts X.
-- Interaction-only: the assertions are solely about what mocked functions were called with.
-- Mock-driven: changing the mock's return value is the only way to change the outcome.
+- **Mock echo:** mock returns `X`, test asserts `X`.
+- **Interaction-only:** assertions check only mock call arguments with no observable outcome.
+- **Mock-driven:** changing the mock's return value is the only way to change the test outcome.
 
-Rewrite such a test to check a real transformation (the code filters, combines, validates, or maps data and the test checks that result), or delete it.
+Rewrite any failing test to assert a real transformation (filtering, combining, validating, mapping) or delete it.
 
-Done when every test passes the confidence test.
+## Reference notes
 
-## Reference
-
-### Unit vs. integration
-
-Prefer an integration test when the dependencies are cheap (in-memory databases, pure libraries, lightweight services): one often buys more confidence than a dozen heavily-mocked unit tests. Drop to a unit test when isolating the unit localizes failures, the real dependency is expensive or non-deterministic, or the unit's internal logic is complex enough to exercise alone.
-
-### React components
-
-Query rendered output by user-facing semantics (role, label, text) with Testing Library. Assert what the user sees and what the component causes: callbacks invoked, API calls made through injected mock services. Hooks called, child components rendered, and CSS classes or inline styles are outside the contract unless the style is the behavior under test.
-
-### Error paths
-
-Error handling is part of the contract. Drive it with real error inputs: a thrown error from an injected double, invalid arguments, a simulated failure through an injected client. Assert the error type or the contract-level outcome; assert the exact message only when the message is part of the contract.
+- **Unit vs. integration:** prefer an integration test when real dependencies are cheap (in-memory DB, pure libraries, light services); one solid integration test often beats a dozen mocked unit tests. Drop to a unit test to localize failures, avoid slow/flaky dependencies, or exercise dense internal logic directly.
+- **React components:** query rendered output by user-facing semantics (role, label, text) with Testing Library. Assert visible UI and observable outcomes (callbacks invoked, calls through injected mock services). Ignore hooks called, child components rendered, and CSS classes or inline styles unless styling is the behavior under test.
+- **Error paths:** error behavior belongs to the contract. Trigger it with real failure inputs (rejected injected double, bad arguments, simulated client error). Assert the error type or contract outcome; assert exact message strings only when callers or users depend on them.

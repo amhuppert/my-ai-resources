@@ -1,187 +1,43 @@
 ---
 name: code-standards-review
-description: "Review a codebase for adherence to code standards. Uses specialized agents with progressive disclosure to determine which standards apply."
+description: "Audit a codebase or directory against project code standards: general quality, TypeScript safety, tests, file colocation, dependency injection, Zustand, and TanStack Query."
 ---
 
-# Code Standards Review Skill
+# Code standards review
 
-## Overview
+Audit the requested scope (entire project by default, or the directory/files the user named) against only the standards that apply to its stack. This is an assessment unless the user explicitly asks you to implement fixes; do not modify code during a review.
 
-This skill provides comprehensive code standards audits using specialized agents. It automatically determines which code standards apply to your codebase and launches focused review agents only for applicable standards, reporting findings in a user-friendly format with recommendations.
+## 1. Detect applicable standards
 
-**The skill provides:**
+Inspect `package.json`, config files, and the directory layout inside the requested scope, then load only the matching references from `references/`:
 
-- Scope control (entire project or specific directory)
-- Automatic detection of applicable standards
-- Parallel agent-based reviews
-- Summary-first reporting with user review/approval phase
-- Detailed findings organized by standard
+| Scope / stack signal | Load reference | Mode |
+| --- | --- | --- |
+| Every codebase | [`references/general-code-standards.md`](references/general-code-standards.md) | Compliance |
+| Any codebase with feature modules or UI | [`references/colocation-standards.md`](references/colocation-standards.md) | Compliance |
+| TypeScript files present | [`references/typescript-general.md`](references/typescript-general.md) | Compliance |
+| Tests exist or logic warrants tests | [`references/testing-standards.md`](references/testing-standards.md) | Compliance |
+| React / TypeScript app with services or external APIs | [`references/dependency-injection.md`](references/dependency-injection.md) | Prescriptive |
+| React / TypeScript app with shared client state | [`references/zustand-reference.md`](references/zustand-reference.md) | Prescriptive |
+| React / TypeScript app fetching server data | [`references/tanstack-query-key-factory-reference.md`](references/tanstack-query-key-factory-reference.md) | Prescriptive |
 
-## How It Works
+**Prescriptive** standards apply even when the codebase does not yet use that pattern: flag both violations in existing usage and high-value places to adopt the pattern (for example, direct `fetch` calls inside components where DI + TanStack Query belong, or prop-drilled/global state suited to a focused Zustand store). Do not load standards that do not match the stack (for example, skip Zustand and TanStack Query for a pure CLI or backend service).
 
-### Phase 1: Scope Analysis
+## 2. Run the review
 
-When invoked, the skill first determines:
+- For small scopes, review the loaded standards directly in one pass.
+- For large scopes with multiple applicable standards, if the environment supports subagents, dispatch parallel read-only subagents (one per standard or subsystem), giving each the scope path and its exact reference file. Keep deduplication and severity ranking in the lead agent.
+- Cross-check testing findings against dependency injection: heavy `jest.mock` usage on internal modules is often a symptom of missing DI seams.
 
-- **Scope**: Entire project (default) or user-specified directory via optional argument
-- **Technology Stack**: Detected file types (TypeScript, React, Zustand, etc.)
-- **Applicable Standards**: Which standards apply based on detected technologies
+## 3. Report findings
 
-### Phase 2: Progressive Disclosure
+Organize the report summary-first:
 
-The skill uses progressive disclosure to launch only relevant agents:
+1. **Scope and standards checked:** exact path reviewed, standards applied, and standards skipped (with reason).
+2. **Findings by severity** (`Critical`, `High`, `Medium`):
+   - Exact `file:line` reference (verify every line against current code before citing).
+   - Standard and specific rule violated, or prescriptive adoption opportunity.
+   - Current pattern vs. recommended change, plus concise rationale.
+3. **Prioritized fix order:** group related root causes (such as adding DI seams before rewriting brittle mocks) so the user can pick what to fix first.
 
-**Detected Automatically:**
-
-**All Codebases:**
-
-- **General Standards Reviewer** - Always runs (code quality, comments, error handling, YAGNI)
-
-**TypeScript Projects:**
-
-- **TypeScript Type Safety Reviewer** - Validates or identifies type safety issues
-- **Testing Reviewer** - Audits test quality, mocking strategy, and test value vs. maintenance cost
-- **Zustand Reviewer** - Validates existing stores OR identifies where Zustand should be used (prescriptive pattern)
-- **Dependency Injection Reviewer** - Validates existing DI OR identifies where DI should be introduced (prescriptive pattern)
-
-**React Projects:**
-
-- **Colocation Reviewer** - Organization and file structure (any codebase type)
-- **TanStack Query Reviewer** - Validates existing queries OR identifies where TanStack Query should be used (prescriptive pattern)
-
-The system scans for file types and project characteristics to determine relevance. The Zustand, Dependency Injection, and TanStack Query reviewers run on applicable projects even if those patterns aren't currently used, identifying opportunities for best-practice adoption.
-
-### Phase 3: Parallel Reviews
-
-When applicable standards are determined, specialized agents are launched in parallel:
-
-- **General Standards Reviewer** - Code quality, control flow, comments, error handling, YAGNI
-- **Colocation Reviewer** - Organization and file structure
-- **TypeScript Type Safety Reviewer** - Type safety standards
-- **Testing Reviewer** - Test quality, mocking strategy, test value vs. maintenance cost
-- **Zustand Reviewer** - State management best practices (validates existing or identifies where to use)
-- **Dependency Injection Reviewer** - Service layer and DI patterns (validates existing or identifies where to use)
-- **TanStack Query Reviewer** - Data fetching patterns (validates existing or identifies where to use)
-
-Each agent provides prescriptive guidance:
-
-- Reviews existing implementations against best practices
-- Identifies opportunities for improvement or adoption of preferred patterns
-- Provides specific recommendations with rationale
-
-Each finding includes:
-
-- Specific file paths and line numbers
-- Current vs. recommended patterns
-- Rationale and severity levels
-- Implementation guidance
-
-### Phase 4: Summary Report
-
-Findings are aggregated into a summary report showing:
-
-- **Standards Overview**: Which standards were checked
-- **Critical Issues**: Most important violations requiring immediate attention
-- **High Priority Issues**: Important issues to address
-- **Medium Priority Issues**: Good-to-have improvements
-- **Agent-specific Findings**: Detailed results from each reviewer
-
-### Phase 5: User Review & Action Planning
-
-The user is presented with findings and asked:
-
-1. Which issues should be addressed?
-2. What priority order for fixes?
-3. Request for approval to generate detailed recommendations
-
-## Usage
-
-### Basic Usage (Entire Project)
-
-```
-To audit your entire project against code standards, invoke the skill with:
-
-"Review my codebase for code standards"
-or
-"Audit my project for standards violations"
-```
-
-### Scoped Usage (Specific Directory)
-
-```
-To audit a specific directory, include the path:
-
-"Review my /src/features directory for standards"
-or
-"Audit /src/components for code standards violations"
-or
-"Check the /app/products scope against standards"
-```
-
-### Outcome
-
-The skill produces:
-
-1. **Summary Report** - Overview of findings by severity
-2. **Detailed Findings** - Per-agent results with specific recommendations
-3. **Action Plan** - Prioritized list of changes to make
-4. **Implementation Guide** - Specific steps to fix each category of issue
-
-## Standards Covered
-
-### Always Reviewed (All Codebases)
-
-- **General Code Standards** - Control flow, comments, error handling, YAGNI principle
-
-### TypeScript Projects
-
-- **TypeScript** - Type safety and strict typing (prescriptive: identifies unsafe patterns)
-- **Testing** - Test quality, mocking strategy, and test value vs. maintenance cost
-- **Zustand** - State management best practices (prescriptive: identifies where to use or improve)
-- **Dependency Injection** - Service layer and context patterns (prescriptive: identifies where to use or improve)
-
-### React Projects
-
-- **Colocation** - File organization and structural patterns (any architecture)
-- **TanStack Query** - Query key factories and caching patterns (prescriptive: identifies where to use or improve)
-
-Each standard has comprehensive reference documentation available in the skill's `references/` directory for detailed guidance. The Testing reviewer works in conjunction with the Dependency Injection reviewer — proper DI eliminates most mocking needs. The Zustand, Dependency Injection, and TanStack Query agents are **prescriptive reviewers** that identify both violations of existing implementations AND opportunities to adopt these preferred patterns even if not currently used.
-
-## Standards Referenced
-
-- `@references/colocation-standards.md` - Code organization principles
-- `@references/general-code-standards.md` - Quality and design principles
-- `@references/testing-standards.md` - Test quality, mocking strategy, test value
-- `@references/zustand-reference.md` - State management best practices
-- `@references/dependency-injection.md` - Service layer patterns
-- `@references/typescript-general.md` - Type safety standards
-- `@references/tanstack-query-key-factory-reference.md` - Query pattern best practices
-
-## Key Features
-
-### Progressive Disclosure
-
-Only launches agents for standards applicable to detected technologies. A vanilla JavaScript project won't get Zustand or TypeScript reviews.
-
-### Parallel Execution
-
-Multiple agents work simultaneously, dramatically reducing review time while maintaining quality.
-
-### Severity-Based Prioritization
-
-Findings are categorized as Critical (must fix), High (important), or Medium (nice-to-have), helping you prioritize effort.
-
-### User Review Phase
-
-Before implementation, you're shown summary findings and asked which issues to address, ensuring you're aligned with recommendations.
-
-### Detailed Reporting
-
-Each finding includes:
-
-- File path and line number
-- Current pattern vs. recommended pattern
-- Rationale for the recommendation
-- Implementation effort estimate
-
-The skill provides everything needed for a comprehensive standards audit and actionable recommendations for improvement.
+Done when every applicable standard has been checked against the target scope, every finding cites verified `file:line` evidence, no inapplicable standards were forced onto the stack, and no source files were modified unless the user requested implementation.

@@ -1,77 +1,67 @@
 # Framework: React
 
-Load this reference when the project uses React (any version). Load alongside the scenario-specific reference. Load `nextjs.md` in addition if the project uses Next.js.
+Load alongside the scenario reference for any React project. Also load [`nextjs.md`](nextjs.md) if the app uses Next.js.
 
-## Measurement Before Memoization
+## Measure before memoizing
 
-**Do not add `React.memo` / `useMemo` / `useCallback` without measuring first.** Memoization has runtime cost (equality check on every render + the stored reference). On components that render in <0.1 ms, memoization is a net loss.
+Do not add `React.memo`, `useMemo`, or `useCallback` without measuring first. Memoization adds prop comparison and memory overhead on every render; for components rendering in <0.1 ms, it is a net loss.
 
-The order of operations is always:
+Follow this order:
 
-1. Observe the render (react-scan overlay or `onRender` callback).
-2. Confirm the render is unnecessary (props structurally equal, no meaningful state change).
-3. Identify the root cause (see `rerenders.md` classification table).
-4. Apply the *minimum* memoization — usually stabilizing one prop in the parent, not wrapping the child.
+1. Observe the render count (`react-scan` or `onRender`).
+2. Confirm the render is unnecessary (props structurally equal, no real state change).
+3. Classify the root cause (see [`rerenders.md`](rerenders.md)).
+4. Apply the smallest fix, usually stabilizing a single prop in the parent rather than wrapping the child.
 
-## Concurrent React Primitives (Preferred Over Debouncing)
+## Concurrent primitives over UI debouncing
 
-For expensive state updates driven by user input, reach for these before writing a debounce:
+For slow UI updates driven by typing or filters, prefer React concurrent primitives over `debounce`:
 
-- **`useTransition`** — marks a state update as non-urgent. React can interrupt it to paint a faster update.
-- **`useDeferredValue`** — returns a deferred copy of a value that lags behind the live one during busy periods.
-- **`startTransition`** (non-hook form) — same as `useTransition` for imperative call sites.
+- `useTransition` / `startTransition`: marks a state update non-urgent so React can interrupt it to paint keystrokes or clicks immediately.
+- `useDeferredValue`: keeps an expensive consumer lagging slightly behind fast-changing input state.
 
-Classic example: a search input with a heavy filtered list. Wrap the list update in `startTransition` so typing stays responsive.
+Keep debouncing for *network* throttling, not local UI responsiveness.
 
-Debouncing is still correct for *network* throttling (don't fire a request per keystroke). It is usually wrong for UI throttling.
+## Temporary `<Profiler>` trace marks
 
-## `<Profiler>` API
-
-The cleanest temporary instrumentation. Emit `performance.measure()` from `onRender` so marks land in every trace the agent captures:
+Emit `performance.measure()` from React's `<Profiler>` so component render spans show up directly in Chrome traces:
 
 ```tsx
-<Profiler id="ProductList" onRender={(id, phase, actualDuration) => {
-  performance.measure(`${id}:${phase}`, { start: performance.now() - actualDuration });
-}}>
+<Profiler
+  id="ProductList"
+  onRender={(id, phase, actualDuration) => {
+    performance.measure(`${id}:${phase}`, {
+      start: performance.now() - actualDuration,
+    });
+  }}
+>
   <ProductList />
 </Profiler>
 ```
 
-Now the trace shows `ProductList:mount` / `ProductList:update` marks directly alongside browser events.
+## Tooling status
 
-## Tool Recommendations
+- **Use:** `react-scan` (primary runtime render inspector for React 18/19) and React DevTools (flamegraph fiber names on Chrome 144+ / React 19.2+).
+- **Avoid on new projects:** `why-did-you-render` (maintenance-only since Jan 2025) and Million.js / `@million/lint` (deprecated).
 
-- **`react-scan`** — primary runtime render inspector. Supported, actively maintained, works on React 18 + 19. See `rerenders.md` for the workflow.
-- **React DevTools** — for flamegraph component attribution. Chrome 144 + React 19.2 expose fiber names on chrome-devtools-mcp flamegraphs via the DevTools Extensibility API.
-- **`why-did-you-render`** — maintenance-only since Jan 2025. Still works on React 19 but funnel new projects to `react-scan`.
-- **Million.js / `@million/lint`** — deprecated. Do not recommend. Author moved to `react-scan`.
+## RSC and streaming SSR gotchas
 
-## RSC / Streaming SSR Gotchas
+- **Streaming LCP:** the LCP element may arrive in a late RSC chunk (`text/x-component`). Do not trust `querySelector` at `DOMContentLoaded` (see [`nextjs.md`](nextjs.md)).
+- **Late hydration:** a `'use client'` subtree arriving late in the RSC stream hydrates late, inflating input delay on early interactions.
+- **`Suspense` fallbacks:** depending on whether the LCP element sits inside or outside the boundary, a fallback can help or hurt perceived LCP.
+- **`use()`:** throws a Promise by design; it must sit inside a `Suspense` boundary or it triggers an unhandled rejection.
 
-Relevant when the React app uses Server Components (most Next.js 13+ apps):
+## Common React perf bugs
 
-- **LCP element may stream in a later chunk.** See `nextjs.md` for RSC payload debugging. `querySelector` at DOMContentLoaded is unreliable for identifying the LCP element.
-- **Client components inside a server component** hydrate in the order the RSC payload arrives. A `'use client'` boundary that appears late in the payload hydrates late and can cause input-delay INP issues on first interaction.
-- **`Suspense` boundaries** affect LCP — the fallback may paint first, with the real content streaming in. Whether this helps or hurts LCP depends on whether the LCP element is inside or outside the boundary.
-- **`use()` for data fetching** throws a promise. Throwing in a component under Suspense is correct; throwing outside is an unhandled rejection.
+| Bug | Signal | Fix |
+| --- | --- | --- |
+| `useEffect` with unstable object/array dependency | Rapid render + effect loop in trace | Memoize the dependency or depend on primitives |
+| Store selector returning a fresh object | Subscriber re-renders on every unrelated store write | Select primitives or pass `shallow` equality |
+| Unmemoized context provider `value={{...}}` | All consumers re-render on every provider render | Memoize `value` with `useMemo` or split the context |
+| Controlled `<input>` inside heavy parent | Processing phase dominates typing INP | Move input state down or pass `useDeferredValue` |
+| Array index as `key` on dynamic list | Entire list reconciles on insert/reorder | Use a stable item `id` |
+| Inline `onClick` passed to memoized child | `React.memo` bypassed every render | `useCallback` in parent (only when child is genuinely expensive) |
 
-## Common React-Specific Perf Bugs
+## Know when the bug is not React
 
-| Bug | Trace signal | Fix |
-|-----|-------------|-----|
-| `useEffect` with object/array dep causing infinite loop | Trace shows rapid repeated render + effect | Stabilize dep with `useMemo`, or destructure primitives into the dep array |
-| Zustand/Redux selector returning new reference | Component re-renders on every store change | Use `shallow` equality, or select primitives |
-| Context provider value not memoized | Every consumer re-renders on every parent render | Wrap provider `value` in `useMemo` |
-| Controlled input with heavy parent | Typing causes whole-tree re-render; INP processing phase dominates | `useDeferredValue` on the value, or move input state into the input-owning component |
-| List without stable `key` | Whole list reconciles on any change | Stable `id` as `key`, never index for dynamic lists |
-| Inline function as `onClick` passed to memoized child | Memo bails out | `useCallback` at parent — but only if the child is actually expensive |
-
-## Boundary: When Not to Fix in React
-
-Some perf problems can't be fixed at the React layer:
-
-- A 1200 ms server response is not a React problem; see `lcp.md` (`DocumentLatency`).
-- A 400 kB third-party script is not a React problem; see `bundle.md`.
-- Large-image LCP is not a React problem (though JSX controls `fetchpriority`); see `lcp.md`.
-
-Recognize the layer. Fixing at the wrong layer produces motion without progress.
+Do not tune React when the bottleneck lives in another layer: a 1,200 ms TTFB belongs to `DocumentLatency` ([`lcp.md`](lcp.md)), a 400 kB third-party bundle belongs to [`bundle.md`](bundle.md), and an unoptimized hero image belongs to [`lcp.md`](lcp.md).

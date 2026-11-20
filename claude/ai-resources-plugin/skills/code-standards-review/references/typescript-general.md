@@ -1,15 +1,12 @@
-# TypeScript Standards
+# TypeScript standards
 
-### Type Safety
+## Type safety
 
-- NEVER use `@ts-ignore` or `@ts-expect-error` unless explicitly directed
-- NEVER use `any`
-- Use `unknown` for truly unknown types
-- Always fix type errors properly (NEVER bypass the type checker)
-- If unable to fix type error, stop and ask for help
-- Minimize the use of type assertions (`as` keyword)
-- Use optional chaining (`?.`) and nullish coalescing (`??`) when appropriate (not `||`)
+- Do not use `any`. Use `unknown` for truly unknown values and narrow them before use.
+- Do not bypass the type checker with `@ts-ignore` or `@ts-expect-error` unless the user explicitly directs it. Fix the underlying type error; if blocked, stop and ask.
+- Minimize type assertions (`as`); prefer type guards, generics, or schema parsing (`Zod`).
+- Use optional chaining (`?.`) and nullish coalescing (`??`) rather than `||` when `0`, `""`, or `false` are valid values.
 
-### Conventions
+## Conventions
 
-- Use plain functions over classes, unless explicitly directed to use a class
+- Prefer plain functions and factory functions over classes unless a class is explicitly requested or required by a framework API.

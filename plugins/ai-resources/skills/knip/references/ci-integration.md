@@ -1,13 +1,13 @@
-# CI Integration
+# Knip CI integration
 
-How to wire knip into a CI pipeline so dead code doesn't regress, without making the build painful to land changes against.
+Wire knip into CI so dead code cannot creep back in without blocking adoption on legacy repos.
 
-## The canonical two-check pattern
+## Two-check CI pattern
 
-Run knip twice in CI: once in **production mode**, once in default mode. They catch different things.
+Run both production mode and default mode because they catch different problems:
 
-- **`--production`** catches issues in shipping code: unused production deps, unused exports of shipped code, unused production files. These affect bundle size and end users.
-- **default** catches dev-tooling waste: unused devDependencies, unused test helpers, unused scripts.
+- `npx knip --production --strict` (or `--strict` alone, which implies `--production`): catches unused shipped files, exports, production dependencies, and hoisted phantom deps in monorepos.
+- `npx knip`: catches unused `devDependencies`, test helpers, and dev scripts.
 
 ```yaml
 name: CI
@@ -22,119 +22,55 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Production mode
-        run: npx knip --production --strict
-      - name: Default mode
-        run: npx knip
+      - name: Cache knip
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.cache/knip
+          key: knip-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: knip-
+      - name: Production check
+        run: npx knip --strict --cache --reporter github-actions
+      - name: Default check
+        run: npx knip --cache --reporter github-actions
 ```
 
-In a monorepo, `--strict` (alias `--isolate-workspaces`) catches phantom deps that work locally due to hoisting but break at publish time. See [`monorepo.md`](monorepo.md).
+Swap `package-lock.json` for `pnpm-lock.yaml`, `yarn.lock`, or `bun.lock` as appropriate. Caching cuts clean runs by roughly 10 to 40%, or enable `{ "cache": true }` in `knip.json`.
 
-## Gradual adoption with `--max-issues`
+## Gradual adoption (`--max-issues`)
 
-When introducing knip to an existing project with hundreds of pre-existing issues, an all-or-nothing check blocks every PR and the team disables knip within a week. Use `--max-issues` to ratchet down:
+On repositories with pre-existing dead code, ratchet down over several PRs instead of shipping an unenforced `--no-exit-code` job:
 
-```yaml
-- run: npx knip --max-issues 500   # Week 1: baseline
-- run: npx knip --max-issues 300   # Week 3: after first cleanup sprint
-- run: npx knip --max-issues 0     # Week N: clean
+```bash
+npx knip --max-issues 500   # baseline
+npx knip --max-issues 300   # after first cleanup
+npx knip --max-issues 0     # clean
 ```
 
-Each ratchet down is a separate PR. The number only goes down — if a PR adds new dead code, it fails.
-
-Alternative for the very first runs: `--no-exit-code` reports issues without failing the build. Use only as a transitional measure; an unenforced check rots fast.
+Any PR that introduces new dead code fails immediately while cleanup proceeds incrementally.
 
 ## Reporters
 
-| Reporter | Use case |
-|---|---|
-| `symbols` *(default)* | Local terminal — grouped output with symbols |
-| `compact` | CI logs — one line per issue, easier to grep |
-| `github-actions` | GitHub Actions — inline annotations on the changed files |
-| `json` | Machine-readable — for custom processors, dashboards, or bots |
-| `markdown` | Pasting into a PR comment or issue |
-| `codeowners` | Group findings by CODEOWNERS for routing |
+| Reporter | Best for |
+| --- | --- |
+| `symbols` (default) | Local terminal output |
+| `compact` | Greppable CI logs (combine with `--max-show-issues 20`) |
+| `github-actions` | Inline GitHub PR file annotations |
+| `json` | Dashboards, bots, scripts (`--reporter json > knip-report.json`) |
+| `markdown` | PR comments and issues |
+| `codeowners` | Routing findings by `CODEOWNERS` |
 
-Examples:
+## Auto-fix safety and `package.json` scripts
 
-```bash
-# GitHub Actions: inline annotations
-npx knip --reporter github-actions
-
-# CI logs: compact + cap output
-npx knip --reporter compact --max-show-issues 20
-
-# Machine-readable
-npx knip --reporter json > knip-report.json
-```
-
-## Cache
-
-Knip's cache survives between CI runs and typically cuts a clean run by 10–40 %. Cache invalidates when the lockfile changes, so the cache key should be lockfile-hashed:
-
-```yaml
-- name: Cache knip
-  uses: actions/cache@v4
-  with:
-    path: node_modules/.cache/knip
-    key: knip-${{ hashFiles('**/package-lock.json') }}
-    restore-keys: knip-
-
-- run: npx knip --cache
-```
-
-You can also enable caching permanently in `knip.json`:
-
-```json
-{ "cache": true }
-```
-
-For pnpm/yarn/bun, swap `package-lock.json` for the matching lockfile path.
-
-## Auto-fix in CI (be careful)
-
-Do **not** run `npx knip --fix` directly in CI without a review step — it deletes files. Two safer patterns:
-
-1. **Scheduled cleanup PR.** Run `knip --fix --allow-remove-files` on a schedule, push the result as a PR for human review.
-2. **Local-only auto-fix.** Add an `npm run knip:fix` script developers run intentionally. CI only verifies, never mutates.
-
-After any `--fix`, always run the formatter so removed exports don't leave dangling commas:
-
-```bash
-npx knip --fix --format     # knip detects Prettier/Biome/dprint/deno fmt automatically
-# or, explicitly
-KNIP_FORMATTER=biome npx knip --fix --format
-```
-
-## package.json scripts
-
-Adding scripts makes the canonical invocations memorable and lets CI and developers share the same commands:
+Never run `npx knip --fix` automatically on push in CI without human review because it mutates files. Either run it locally via a script or have a scheduled workflow open a cleanup PR. Always pass `--format` (auto-detects Prettier, Biome, dprint, `deno fmt`, or override with `KNIP_FORMATTER=biome`) so deleted exports do not leave stray commas:
 
 ```json
 {
   "scripts": {
     "knip": "knip",
-    "knip:production": "knip --production --strict",
+    "knip:production": "knip --strict",
     "knip:fix": "knip --fix --allow-remove-files --format"
   }
 }
 ```
 
-## Local watch mode
-
-For local development (not CI), watch mode gives immediate feedback while refactoring:
-
-```bash
-npx knip --watch
-npx knip --watch --include exports   # focus on a single issue type
-```
-
-Useful during a cleanup sprint or when learning an unfamiliar codebase.
-
-## Quick CI checklist
-
-1. Two checks: `--production --strict` and default.
-2. Use `actions/cache` keyed on the lockfile, pass `--cache`.
-3. Pick a CI-friendly reporter (`github-actions` on GitHub Actions, `compact` elsewhere).
-4. For pre-existing dead code, ratchet down with `--max-issues`.
-5. Never run `--fix` in CI without a human-review gate.
+For interactive local cleanup sprints, run `npx knip --watch` (optionally scoped with `--include exports`).

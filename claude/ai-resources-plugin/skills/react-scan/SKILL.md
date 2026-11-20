@@ -1,88 +1,54 @@
 ---
 name: react-scan
-description: "Install and use react-scan tooling for component-level React render attribution: \"set up react-scan\", \"diagnose React re-renders\", \"find unnecessary renders\", \"find unstable props\", \"measure component renders programmatically\", or automated render checks with Playwright (react-scan + playwright, lite headless API for CI). Covers install across Next.js/Vite/Remix/script-tag/browser-extension and the render-attribution → fix → validate loop. For trace-based triage of LCP/INP regressions, ForcedReflow, bundle bloat, or memory leaks, use investigate-web-perf instead."
+description: "Install and run react-scan (including react-scan/lite and Playwright render budgets) to attribute React re-renders, diagnose unstable props, and verify fixes. For Chrome trace work on LCP, INP, bundles, or memory, use investigate-web-perf."
 disable-model-invocation: true
 ---
 
-# React Scan + Playwright for React Performance Diagnosis
+# React Scan: component render attribution
 
-`react-scan` instruments React's fiber tree via the same DevTools hook React DevTools uses, observing every commit without any application code change. It reports **which component rendered, how long it took, and what changed** (props / state / context / hooks / parent cascade). Pair it with Playwright and the result is a deterministic, file:line-attributable workflow for re-render bugs that traces alone cannot resolve.
+`react-scan` hooks into React's fiber tree through the same DevTools hook React DevTools uses, reporting **which component rendered, how long it took, and what changed** (props, state, context, hooks, or parent cascade) without modifying app code. Use it for component-level rendering bugs (excessive re-renders, scroll/typing jank dominated by React render time, or Playwright render-budget assertions). For LCP, network/bundle bloat, layout shift, or memory leaks, use `investigate-web-perf` instead.
 
-This skill is the entry point. Detailed setup, integration patterns, API surface, diagnosis classification, and fix recipes live in `references/` and load only when needed.
+## Choose a mode first
 
-## When to Use This Skill
+| Mode | Best for | Setup |
+| --- | --- | --- |
+| Lite (`react-scan/lite`) | Programmatic capture, CI, agent-driven diagnosis (preferred for agents) | `instrument({ onEvent })` or `instrument({ endpoint })` |
+| Playwright + injection | Headless render counting and interaction tests | Inject `auto.global.js` + `scripts/inject-react-scan.js` or lite wrapper |
+| CLI proxy | Quick check against any running local URL with zero code edits | `npx react-scan@latest http://localhost:3000` |
+| Toolbar overlay | Human-driven visual inspection in local dev | `npx react-scan@latest init`, Vite plugin, or script tag |
+| Browser extension | Auditing a deployed app you do not control | Chrome/Firefox extension (not for programmatic capture) |
 
-Use react-scan when the symptom points at **component-level rendering**, not asset delivery or paint:
+## Diagnosis and fix loop
 
-- A component re-renders many more times than its props change
-- A list/grid feels janky on scroll or input despite small per-frame work
-- An interaction (click, keystroke) takes 100–400 ms and the trace shows React render time dominating
-- A user reports "everything re-renders when I type"
-- A Playwright test needs to assert a render-count invariant (e.g., "search input keystroke causes at most 2 renders of `<Results>`")
+1. **Reproduce deterministically.** Pin the build mode, StrictMode state, and interaction sequence before measuring.
+2. **Instrument.** Attach `react-scan` (prefer `react-scan/lite`, or full bundle with `showToolbar: false` so the Preact/Shadow-DOM toolbar does not distort counts). Confirm `window.__REACT_SCAN__.ReactScanInternals` (full) or `window.__REACT_SCAN_LITE__` (lite) is live.
+3. **Capture to disk.** Drive the interaction and collect renders via `onRender(fiber, renders)`, lite `subscribe()`, or `Store.reportData`. Save raw event arrays to disk; never dump full `LiteEvent` JSON into model context.
+4. **Classify.** Inspect `changeDescription` (props, state, context, hooks, parent) and cross-reference source JSX using [`references/diagnosis-patterns.md`](references/diagnosis-patterns.md).
+5. **Hypothesize one change.** Name the exact unstable reference, context boundary, or selector and the expected render-count drop.
+6. **Apply the minimal fix** from [`references/fix-recipes.md`](references/fix-recipes.md). Change one variable per iteration.
+7. **Validate in the same environment.** Re-run the identical Playwright sequence. Accept only if the target component's count drops as predicted, no other component regresses, and per-render time does not worsen.
 
-**Do not** use react-scan as the first move for: LCP regressions, network/bundle issues, layout shift, third-party scripts. Those belong in `investigate-web-perf` (sibling skill in this plugin). Trace-level analysis with the chrome-devtools-mcp Performance Insights complements react-scan: `investigate-web-perf` is canonical for trace work, `react-scan` is canonical for render-count attribution.
+## Hard constraints
 
-## Modes — Pick One Before Acting
+- **Production React vs. minified dev names:** `react-scan` no-ops on production React builds (detected by bippy's `detectReactBuildType`) unless `dangerouslyForceRunInProduction: true` is set. Zero counts usually mean prod React. Populated counts with single-letter names (`_`, `r`, `i`) mean a minified dev build (common on Next.js + Turbopack); fix names with `@react-scan/vite-plugin-react-scan` (`autoDisplayNames: true`) or `babel-plugin-react-display-name` instead of enabling the prod flag.
+- **StrictMode:** dev StrictMode double-invokes mount renders. Disable StrictMode for exact numeric budgets, halve expected mount counts, or measure post-boot update renders only.
+- **Measure before memoizing:** skip `React.memo` on components rendering in <0.1 ms or contributing <2 ms total on a flamegraph; memo comparison overhead can cost more than it saves.
+- **Buffer and count properly:** buffer `onRender` data and flush after the interaction (console logging per commit skews timing), and count `renders.length` rather than callback invocations (one commit can batch multiple renders).
+- **Lite `keepalive` POST limit:** `endpoint` POSTs cap at ~64 KB. Lower `maxFibersPerCommit` (default 5000) or use in-process `subscribe()` on large trees.
 
-| Mode | When | How |
-|---|---|---|
-| **Toolbar overlay** (default) | Local dev, human-driven visual debugging | `npx react-scan@latest init`, or CLI proxy, or script tag |
-| **Lite (`react-scan/lite`)** | Programmatic data collection, CI, agent-driven analysis | `instrument({ onEvent })` or `instrument({ endpoint })` |
-| **CLI proxy** (`npx react-scan@latest URL`) | Quick check of any running app without touching its code | `npx react-scan@latest http://localhost:3000` |
-| **Browser extension** | Audit a deployed app you do not control | Install for Chrome/Firefox, click icon |
-| **Playwright + injection** | Headless render counting in tests | Inject auto.global.js + patch `onRender` (see `references/playwright-integration.md`) |
+## Load references and scripts by task
 
-For agent-driven workflows the order of preference is:
-1. **Lite mode** for structured data extraction (lowest token cost, structured `LiteEvent` records).
-2. **Playwright + injection** when needing to drive interactions while collecting renders.
-3. **Toolbar overlay** only when a human will look at the screen.
+| Need | File |
+| --- | --- |
+| Install in Next.js, Vite, Remix, script tag, lite mode, or check env guards | [`references/setup.md`](references/setup.md) |
+| Inject into Playwright, count renders, enforce CI render budgets | [`references/playwright-integration.md`](references/playwright-integration.md) |
+| Globals (`window.__REACT_SCAN__`), `Options`, `onRender`, `LiteEvent`, `ChangeDescription` | [`references/api-surface.md`](references/api-surface.md) |
+| Classify root causes from `changeDescription` (8 patterns + flowchart) | [`references/diagnosis-patterns.md`](references/diagnosis-patterns.md) |
+| Minimal-diff code fixes per root cause | [`references/fix-recipes.md`](references/fix-recipes.md) |
+| Full step-by-step iteration guide, slow-interaction & long-render variants, report format | [`references/workflow.md`](references/workflow.md) |
+| Playwright `addInitScript` helper that disables overlay and awaits lazy attach | [`scripts/inject-react-scan.js`](scripts/inject-react-scan.js) |
+| Example Playwright test collecting per-component lite counts to JSON on disk | [`scripts/playwright-render-collector.ts`](scripts/playwright-render-collector.ts) |
 
-## The Loop
+## Completion criteria
 
-1. **Reproduce deterministically.** Pin the same interaction sequence and the same render-count reset point. React render counts are sensitive to dev/prod, StrictMode (doubled mounts), and concurrent batching — fix these before measuring.
-2. **Instrument.** Add react-scan to the app (or inject via Playwright). Confirm `window.__REACT_SCAN__.ReactScanInternals` is present.
-3. **Capture.** Trigger the interaction. Collect renders via one of: `onRender(fiber, renders)` callback, lite `subscribe()` events, or `Store.reportData` per-fiber map. Save raw payload to disk; do not stream to model context.
-4. **Classify.** For each high-count component, read `changeDescription` (props / state / context / hooks / parent). Cross-reference with source to find the unstable reference. Categories in `references/diagnosis-patterns.md`.
-5. **Hypothesize.** One change at a time. Name the specific unstable reference or context boundary.
-6. **Fix.** Apply the minimal change (see `references/fix-recipes.md`). Do not bulk-add `React.memo`.
-7. **Validate.** Re-run the same Playwright sequence. Compare before/after render counts on the same components. Accept the fix only if the targeted component's count drops by the expected delta AND no other component's count regresses.
-
-## Non-Negotiables
-
-1. **Do not measure react-scan output from a production build by accident.** React Scan no-ops on production builds unless `dangerouslyForceRunInProduction: true` is set. In Playwright against a dev server this works automatically; against any other build, set the flag or you will measure nothing and conclude wrongly. "Production build" here means **React's production build** as detected by bippy's `detectReactBuildType` — not "minified component names." A dev-mode React build can still emit minified single-letter names (e.g., Next.js + Turbopack); counters will work, names will just be unhelpful. If counters stay at zero, suspect prod React; if counters populate but names are `_`/`r`/`i`, you have a minified dev build — fix names via `@react-scan/vite-plugin-react-scan` `autoDisplayNames: true` (Vite) or `babel-plugin-react-display-name` (others) rather than reaching for the prod flag.
-2. **Do not measure with React StrictMode enabled in counts you report as "unnecessary renders".** StrictMode double-invokes function components in development. Either disable StrictMode for the measurement, or divide expected counts by 2, or measure interaction-driven renders only (StrictMode doubles mount renders, not update renders).
-3. **Do not add `React.memo` without a measured render count first.** Memoization has a non-zero cost; on components that render in <0.1 ms it's net negative. Always measure before and after.
-4. **One variable per iteration.** Fixing two unstable refs at once means you cannot attribute the win — and you might fix one while regressing the other.
-5. **Use `react-scan/lite` for programmatic capture, not the full bundle.** Lite has no overlay, no Preact, no toolbar — bundle and runtime overhead are minimal.
-6. **Save raw events to disk.** A single commit can yield hundreds of fiber events. Reference paths in your report; never paste full `LiteEvent` arrays into the model context.
-7. **`react-scan/lite` `keepalive` POSTs cap at ~64 KB.** If using the `endpoint` option for large trees, tune `maxFibersPerCommit` (default 5000) downward or use in-process `subscribe()` instead.
-
-## Quick Decision Tree
-
-- "Set up react-scan in this project" → `references/setup.md`
-- "Write a Playwright test that asserts no extra renders" → `references/playwright-integration.md` + `scripts/playwright-render-collector.ts`
-- "What does react-scan expose on `window`?" → `references/api-surface.md`
-- "Component X re-renders too much — why?" → `references/diagnosis-patterns.md` (load `references/api-surface.md` first if you don't yet have a render payload)
-- "I know it's an unstable prop — how do I fix it?" → `references/fix-recipes.md`
-- "Walk me through the whole loop end-to-end" → `references/workflow.md`
-
-## Anti-Patterns
-
-- **Reading `onRender` output during JSX render.** The callback fires on every commit; logging on every fire pollutes the console and skews measurements via console overhead. Buffer, then flush after the interaction completes.
-- **Counting `onRender` calls per component.** A single commit can produce one `Render[]` array with multiple entries — count the array length, not the callback invocations.
-- **Trusting render-count parity between dev and prod.** React skips some scheduler work in production; counts will differ. Validate fixes in the same environment used to measure the problem.
-- **Conflating "rendered" with "expensive".** A component can render 100 times per interaction yet contribute <2 ms total. If trace flamegraph attribution is small, drop it and move to the next.
-- **Using full `react-scan` in a Playwright test.** The overlay attempts to mount Shadow DOM + Preact, which adds noise to render counts and slows tests. Use `react-scan/lite` or full bundle with `showToolbar: false`.
-
-## References
-
-Load on demand:
-
-- **`references/setup.md`** — Install per framework (Next.js App + Pages, Vite, Remix, script tag, CLI init, Vite plugin, browser extension, lite mode); environment guards and dev/prod gating.
-- **`references/playwright-integration.md`** — `addInitScript` injection, the render-counter pattern from react-scan's own E2E suite, lite-mode subscriber, multi-page metrics aggregation, CI gating with budgets, when to disable StrictMode for measurement.
-- **`references/api-surface.md`** — `window.__REACT_SCAN__`, `ReactScanInternals`, `Store.reportData`, `onRender(fiber, renders)` shape, `Render` / `ChangeDescription` types, the lite `LiteEvent` taxonomy and `LiteOptions`.
-- **`references/diagnosis-patterns.md`** — Classification of root causes from `changeDescription`: unstable props, context over-scope, cascade from parent, memo bypass, hook dependency unstable, store selector instability, child-of-list-without-key.
-- **`references/fix-recipes.md`** — Minimal-diff fixes per category: `useMemo` / `useCallback` placement, `React.memo` with custom equality, context split, selector with `shallow`, `useDeferredValue` / `useTransition`, list virtualization, key stabilization, lifting state down.
-- **`references/workflow.md`** — End-to-end loop with prompts: reproduce → instrument → capture → classify → fix → validate, plus the slow-interaction (>150 ms long-render frame) and INP-driven variants.
-- **`scripts/inject-react-scan.js`** — Playwright `addInitScript`-compatible helper that loads `auto.global.js` and disables the overlay for headless measurement.
-- **`scripts/playwright-render-collector.ts`** — Example Playwright test that drives an interaction, collects per-component render counts via the lite subscriber, and writes a JSON report to disk for diff comparison.
+Done when before/after render-count summaries saved to disk come from the identical interaction and environment, the applied diff addresses one classified root cause, the targeted component drops as expected without regressing other components, and raw event dumps stay on disk rather than in chat.

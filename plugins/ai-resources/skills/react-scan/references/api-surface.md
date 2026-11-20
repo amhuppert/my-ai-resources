@@ -1,75 +1,43 @@
-# API Surface — Globals, Types, and Event Shapes
+# `react-scan` API surface and event types
 
-What react-scan exposes on the page, what it emits, and how to read each surface.
+Globals, options, callbacks, and `react-scan/lite` event schemas exposed in the browser.
 
-## Globals on `window`
+## Browser globals and attach timing
 
-| Global | Set by | Contents |
-|---|---|---|
-| `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` | bippy (installed when react-scan loads) | React's DevTools hook. Multiple consumers (React DevTools + react-scan) can coexist. Installed synchronously by `auto.global.js`. |
-| `window.__REACT_SCAN__` | Full bundle `scan()` call | `{ ReactScanInternals, version, ... }`. Primary handle for full-bundle integrations. **Attaches lazily** — see "Attach timing" below. |
-| `window.__REACT_SCAN_VERSION__` | Full bundle | Version string. **Set together with `__REACT_SCAN__`**, not at bundle load. May read `null`/`undefined` before the first React renderer registers. |
-| `window.__REACT_SCAN_LITE__` | `react-scan/lite` `instrument()` | The singleton `LiteHandle`. Subsequent `instrument()` calls return this same handle. |
-| `window.__REACT_SCAN_TOOLBAR_CONTAINER__` | Overlay UI | The shadow-root container element. Useful only for overlay debugging. |
-| `document.getElementById('react-scan-root')` | Overlay UI | Shadow host element. `shadowRoot` is non-null when the toolbar mounted. |
+| Global | Set by | Notes |
+| --- | --- | --- |
+| `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` | bippy (synchronous at script load) | Coexists with React DevTools |
+| `window.__REACT_SCAN__` | Full bundle `scan()` (lazy) | `{ ReactScanInternals, version, ... }`. Set only after React injects a renderer |
+| `window.__REACT_SCAN_VERSION__` | Full bundle (lazy) | Set alongside `__REACT_SCAN__`; may be undefined before React boots |
+| `window.__REACT_SCAN_LITE__` | `react-scan/lite` `instrument()` | Singleton `LiteHandle` returned on repeat calls |
+| `window.__REACT_SCAN_TOOLBAR_CONTAINER__` / `#react-scan-root` | Overlay UI | Shadow DOM container and host when toolbar is enabled |
 
-### Attach timing
+Because `auto.global.js` installs the DevTools listener synchronously at load time and only assigns `window.__REACT_SCAN__` asynchronously when React boots, Playwright scripts must await `window.__REACT_SCAN_READY__` (via `scripts/inject-react-scan.js`) or `page.waitForFunction(() => window.__REACT_SCAN__?.ReactScanInternals)` after navigation.
 
-`auto.global.js` runs in two phases:
-
-1. **Bundle load (synchronous).** Registers a listener on `__REACT_DEVTOOLS_GLOBAL_HOOK__` (creating the hook if it does not yet exist). Does **not** set `__REACT_SCAN__` yet.
-2. **React renderer registration (asynchronous).** When the page's React bundle loads and calls `__REACT_DEVTOOLS_GLOBAL_HOOK__.inject(renderer)`, react-scan finishes setup and **then** assigns `window.__REACT_SCAN__` (and `__REACT_SCAN_VERSION__`).
-
-Implication for Playwright + `addInitScript`: reading `window.__REACT_SCAN__` inside the same addInitScript that loaded the bundle is a race — typically a losing one, because page scripts run after addInitScript. Either:
-
-- Poll/await until `__REACT_SCAN__` appears (see `scripts/inject-react-scan.js`'s `__REACT_SCAN_READY__` Promise), or
-- Inject the bundle via `addInitScript`, then `await page.waitForFunction(() => window.__REACT_SCAN__?.ReactScanInternals)`, then run any configuration via `page.evaluate`.
-
-Symptom when ignored: counters never install, no error, no log. Symptom when configured correctly: counters populate after the first commit following navigation.
-
-## `ReactScanInternals`
+## Full bundle internals and `Options`
 
 ```ts
 interface ReactScanInternals {
   options: Signal<Options>;
-  instrumentation: {
-    isPaused: Signal<boolean>;
-    // other internal fields
-  };
+  instrumentation: { isPaused: Signal<boolean> };
   Store: StoreType;
-  onRender: (fiber, renders) => void;
+  onRender: (fiber: Fiber, renders: Render[]) => void;
   version: string;
   componentAllowList: WeakSet<unknown> | null;
   runInAllEnvironments: boolean;
 }
-```
 
-Mutate options via either the imperative API:
-
-```ts
-setOptions({ showToolbar: false });
-```
-
-Or directly (preserves reactivity):
-
-```ts
-internals.options.value = { ...internals.options.value, showToolbar: false };
-```
-
-## `Options`
-
-```ts
 interface Options {
   enabled?: boolean;                          // default true
-  dangerouslyForceRunInProduction?: boolean;  // default false; required for prod builds
-  log?: boolean;                              // default false; console-logs every commit (verbose)
-  showToolbar?: boolean;                      // default true
+  dangerouslyForceRunInProduction?: boolean;  // default false; required on prod React
+  log?: boolean;                              // default false; verbose console output
+  showToolbar?: boolean;                      // default true; set false in tests
   animationSpeed?: "slow" | "fast" | "off";
-  trackUnnecessaryRenders?: boolean;          // default false; expensive — flags renders that produced no DOM mutation
+  trackUnnecessaryRenders?: boolean;          // default false; expensive (enable only in targeted windows)
   showFPS?: boolean;
   showNotificationCount?: boolean;
-  allowInIframe?: boolean;                    // required for iframe contexts
-  safeArea?: number | { top?, right?, bottom?, left? };
+  allowInIframe?: boolean;
+  safeArea?: number | { top?: number; right?: number; bottom?: number; left?: number };
   useOffscreenCanvasWorker?: boolean;         // default true
   onCommitStart?: () => void;
   onRender?: (fiber: Fiber, renders: Render[]) => void;
@@ -77,175 +45,107 @@ interface Options {
 }
 ```
 
-`trackUnnecessaryRenders` is **off by default** because the analysis requires `didFiberCommit` and `getMutatedHostFibers` checks on every commit. Enable only for the targeted measurement window.
+Update options via `setOptions({ showToolbar: false })` or `internals.options.value = { ...internals.options.value, showToolbar: false }`.
 
-## `onRender(fiber, renders)` Callback
+## `onRender(fiber, renders)` and `Store`
 
-Fires once per commit per matched fiber, with the array of individual renders aggregated within that commit (multiple renders within a 16 ms debounce window collapse into one call).
+Fires once per commit per matched fiber (multiple renders inside a 16 ms window aggregate into `renders`):
 
 ```ts
-type OnRender = (fiber: Fiber, renders: Render[]) => void;
-
 interface Render {
   phase: "mount" | "update" | "unmount";
   componentName: string | null;
-  time: number;       // self time in ms (post-debounce)
-  count: number;      // number of renders aggregated into this entry
+  time: number;          // self time in ms
+  count: number;         // renders merged into this entry
   changes: Change[];
-  unnecessary?: boolean; // present only when trackUnnecessaryRenders is on
-  // ...
+  unnecessary?: boolean; // only when trackUnnecessaryRenders is true
 }
 
 interface Change {
   type: "props" | "state" | "context";
-  name: string;       // e.g. "onClick", "value", "hook[2]", "ThemeContext"
+  name: string;          // e.g. "onClick", "value", "hook[2]", "ThemeContext"
   prevValue: unknown;
   nextValue: unknown;
-  unstable: boolean;  // true if reference changed but values are structurally equal
+  unstable: boolean;     // true when reference changed but structure is equal
 }
 ```
 
-`unstable: true` is the **single most actionable signal** — it means the parent passed a new reference (e.g., inline `{foo: 1}` or `() => {}`) for a logically unchanged value. 90% of unnecessary-render bugs have at least one `unstable: true` change.
+`unstable: true` is the highest-signal field: the parent passed a new object, array, or closure for a logically identical value.
 
-## `Store.reportData`
+- `Store.reportData`: `Map<number, RenderData>` (`count` / `renderCount`, `time` / `selfTime` / `totalTime`, `displayName`) for summarizing hot components without listening to every event.
+- `Store.changesListeners`: per-`fiberId` listener map when watching a single component without full-tree overhead.
 
-```ts
-Store.reportData: Map<number /* fiberId */, RenderData>;
+## `react-scan/lite` events and options
 
-interface RenderData {
-  count: number;          // total renders since instrumentation start
-  time: number;           // total time accumulated across renders
-  renderCount?: number;   // some versions
-  selfTime?: number;
-  totalTime?: number;
-  displayName?: string;
-}
-```
-
-Use this to summarize "which components have rendered the most" without subscribing to every event. Iterate the map and aggregate by display name.
-
-## `Store.changesListeners`
-
-Subscribe per-fiber to receive only that fiber's changes — useful when investigating a specific component without paying for the whole tree.
-
-```ts
-const fiberId = /* obtain from inspector or by traversal */ 42;
-const listeners = Store.changesListeners.get(fiberId) ?? [];
-listeners.push((changes) => {
-  // changes: ChangeDescription
-});
-Store.changesListeners.set(fiberId, listeners);
-```
-
-## `react-scan/lite` Event Taxonomy
-
-The `LiteEvent.kind` discriminant determines which fields are populated.
-
-| Kind | Fires when | Key fields |
-|---|---|---|
-| `renderer-injected` | Each React renderer registers | `rendererId`, `reactVersion`, `bundleType` |
-| `profiling-hooks-status` | After attempting to attach profiling hooks | `available`, `reason`, `error` |
+| `LiteEvent.kind` | Fires when | Key fields |
+| --- | --- | --- |
+| `renderer-injected` | React renderer registers | `rendererId`, `reactVersion`, `bundleType` |
+| `profiling-hooks-status` | After profiling hook attach | `available`, `reason`, `error` |
 | `commit` | Every React commit | `tree`, `lanes`, `laneLabels`, `priorityLevel`, `priorityName`, `didError` |
-| `post-commit` | After commit effects | `lanes` |
-| `fiber-unmount` | Fiber unmount | `componentName` |
-| `commit-start` / `commit-stop` | Per-commit boundaries | `lanes` |
-| `render-start` / `render-stop` / `render-yield` | Per-commit render phase | `lanes` |
-| `render-scheduled` | A state/force update was scheduled | `componentName`, `lanes` |
-| `layout-effects-start` / `-stop` | Layout effect phase | `lanes` |
-| `passive-effects-start` / `-stop` | Passive effect phase | `lanes` |
-| `component-render-start` / `-stop` | Per-component render boundary | `componentName` |
-| `component-{layout,passive}-effect-{mount,unmount}-{start,stop}` | Per-component effect boundary | `componentName` |
-| `state-update` / `force-update` | Update scheduled on a fiber | `componentName`, `lanes` |
-| `component-suspended` | Suspense triggered | `componentName`, `lanes` |
-| `component-errored` | Error boundary caught an error | `componentName` |
+| `post-commit`, `commit-start`, `commit-stop` | Commit lifecycle | `lanes` |
+| `render-start`, `render-stop`, `render-yield` | Render phase boundaries | `lanes` |
+| `render-scheduled`, `state-update`, `force-update` | Update scheduled | `componentName`, `lanes` |
+| `component-render-start`, `component-render-stop` | Per-component render (best for counting) | `componentName` |
+| `component-{layout,passive}-effect-{mount,unmount}-{start,stop}` | Effect lifecycle | `componentName` |
+| `layout-effects-*`, `passive-effects-*` | Commit effect phases | `lanes` |
+| `component-suspended`, `component-errored`, `fiber-unmount` | Suspense, error boundary, unmount | `componentName`, `lanes` |
 
-The `component-render-start` events are the right grain for per-component render counting. The `commit` events with `tree` populated are the right grain for tree-snapshot analysis.
-
-## `LiteFiberSummary` (the `commit.tree` entries)
+### `LiteFiberSummary` and `ChangeDescription`
 
 ```ts
 interface LiteFiberSummary {
   name: string;
   depth: number;
-  tag: number;                       // WorkTag from bippy (FunctionComponent, ClassComponent, etc.)
-  actualDuration: number;            // ms
+  tag: number;
+  actualDuration: number;
   actualStartTime: number;
   selfBaseDuration: number;
   treeBaseDuration: number;
-  fiberId?: number;                  // present with includeFiberIdentity
-  source?: FiberSource | null;       // { fileName, lineNumber, columnNumber } if includeFiberSource
-  ownerName?: string | null;         // parent JSX component name
-  changeDescription?: ChangeDescription | null; // if recordChangeDescriptions
+  fiberId?: number;                              // requires includeFiberIdentity
+  source?: FiberSource | null;                   // requires includeFiberSource
+  ownerName?: string | null;
+  changeDescription?: ChangeDescription | null;  // requires recordChangeDescriptions
 }
 
 interface ChangeDescription {
   isFirstMount: boolean;
-  props: string[] | null;  // names of props whose REFERENCE changed (not value)
-  state: boolean;          // class-component state changed
-  context: boolean;        // any consumed context changed
-  hooks: number[];         // indices into the hook linked list whose memoizedState changed
-  parent: boolean;         // parent also rendered (cascade)
+  props: string[] | null;  // prop names whose reference changed (no prev/next values in lite mode)
+  state: boolean;
+  context: boolean;
+  hooks: number[];         // positional hook indices (count top-to-bottom in source)
+  parent: boolean;         // true when triggered by parent re-render cascade
 }
 ```
 
-Key reading rules:
+### `LiteOptions` and `LiteHandle`
 
-- `props` is a list of **prop names that changed by reference**. To know whether the value is also structurally different requires comparing `prevValue` / `nextValue` — lite mode does not include these (use full bundle `onRender` if you need them).
-- `parent: true` means the render was triggered by a parent re-render, not by a self-scheduled update. This is the single most useful signal for cascade-render diagnosis.
-- `hooks` indices map to position in the hook linked list as React stores them. Without source-map resolution they are not directly useful for fixes; combine with the `source` field to find the component file, then count hooks top-to-bottom in the source.
-- `isFirstMount: true` excludes the render from "unnecessary" analysis — it's the mount.
-
-## `LiteOptions`
+For diagnosis, enable `recordChangeDescriptions: true`, `includeFiberSource: true`, and `includeFiberIdentity: true`. For pure CI render budgets, defaults suffice.
 
 ```ts
 interface LiteOptions {
   onEvent?: (event: LiteEvent) => void;
-  endpoint?: string;        // POST events to URL; requires sessionId
+  endpoint?: string;                      // POST URL; requires sessionId
   sessionId?: string;
   includeFiberTree?: boolean;             // default true
-  includeProfilingHooks?: boolean;        // default true (no-op in prod builds)
-  recordChangeDescriptions?: boolean;     // default false; enable for diagnosis
-  includeFiberSource?: boolean;           // default false; enable to get file:line
-  includeFiberIdentity?: boolean;         // default false; enable for cross-commit correlation
+  includeProfilingHooks?: boolean;        // default true (no-op on prod React)
+  recordChangeDescriptions?: boolean;     // default false
+  includeFiberSource?: boolean;           // default false
+  includeFiberIdentity?: boolean;         // default false
   includeLaneLabels?: boolean;            // default true
-  location?: string;                      // POST `location` field prefix, default "ReactScanLite"
+  location?: string;                      // default "ReactScanLite"
   maxFibersPerCommit?: number;            // default 5000
-  minFiberActualDurationMs?: number;      // default 0; skip below-threshold subtrees
+  minFiberActualDurationMs?: number;      // default 0
 }
-```
 
-For diagnosis workflows, enable:
-
-```ts
-instrument({
-  recordChangeDescriptions: true,
-  includeFiberSource: true,
-  includeFiberIdentity: true,
-});
-```
-
-For pure render-count budget assertions, defaults are sufficient.
-
-## `LiteHandle`
-
-```ts
 interface LiteHandle {
-  stop(): void;                  // idempotent; restores all hook patches
+  stop(): void; // idempotent; does NOT auto-unsubscribe listeners
   isActive(): boolean;
-  subscribe(listener: (event: LiteEvent) => void): () => void; // returns unsubscribe
+  subscribe(listener: (event: LiteEvent) => void): () => void;
 }
 ```
 
-Use `subscribe()` for in-process listeners; multiple subscribers can coexist. The `stop()` call **does not** remove subscribers — call the returned unsubscribe.
+## Limits and DevTools coexistence
 
-## What `react-scan` Does NOT Expose
-
-- **Source maps**. The `source` field reads `_debugSource` (React 16/17/18) or parses `_debugStack` (React 19+). It contains compiled file/line, not the original. If your build maps `.tsx` → `.js`, the line number is the `.js` line. To map back, run source-map resolution yourself (e.g., the `source-map` npm package) against the build's `.map` files.
-- **Hook names**. `ChangeDescription.hooks` contains indices, not names. React 19's `useDebugValue` does not surface to bippy.
-- **Network or paint data**. Out of scope — combine with chrome-devtools-mcp or web-vitals.
-
-## Coexistence with React DevTools
-
-Both react-scan and React DevTools register on `__REACT_DEVTOOLS_GLOBAL_HOOK__`. They coexist correctly. If the real DevTools is present, lite mode logs a console warning because some profiling hooks may be claimed by DevTools first — measurement is still possible, but `profiling-hooks-status` may report `available: false` for some renderers.
-
-For Playwright tests, do **not** install the DevTools extension into the test browser profile. Use a clean Chromium and let react-scan own the hook.
+- **Compiled line numbers only:** `source` reads `_debugSource` (React 16 to 18) or `_debugStack` (React 19+) and reports compiled file/line. Resolve against `.map` files with `source-map` if needed.
+- **No hook names or network/paint data:** `hooks` gives numeric indices only; combine with `chrome-devtools-mcp` for paint/layout/network visibility.
+- **React DevTools coexistence:** both share `__REACT_DEVTOOLS_GLOBAL_HOOK__`, though DevTools may claim profiling hooks first (causing `profiling-hooks-status.available: false`). Keep React DevTools out of automated Playwright profiles.

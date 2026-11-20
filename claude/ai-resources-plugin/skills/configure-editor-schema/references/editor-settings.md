@@ -1,57 +1,52 @@
-# Editor Schema Settings Reference
+# Editor schema settings reference
 
-Complete reference for wiring JSON Schemas into VS Code, Cursor, and Zed for JSON and YAML files.
+Settings paths, JSON shapes, examples, and prerequisites for VS Code, Cursor, and Zed on macOS and Linux (Windows is not supported).
 
-## Settings File Paths
+## Settings file paths
 
-### User Scope (default)
+### User scope (default)
 
-| Editor  | macOS                                                        | Linux (XDG)                                  |
-| ------- | ------------------------------------------------------------ | -------------------------------------------- |
-| VS Code | `~/Library/Application Support/Code/User/settings.json`      | `~/.config/Code/User/settings.json`          |
-| Cursor  | `~/Library/Application Support/Cursor/User/settings.json`    | `~/.config/Cursor/User/settings.json`        |
-| Zed     | `~/.config/zed/settings.json`                                | `~/.config/zed/settings.json`                |
+| Editor | macOS | Linux (XDG) |
+| --- | --- | --- |
+| VS Code | `~/Library/Application Support/Code/User/settings.json` | `~/.config/Code/User/settings.json` |
+| Cursor | `~/Library/Application Support/Cursor/User/settings.json` | `~/.config/Cursor/User/settings.json` |
+| Zed | `~/.config/zed/settings.json` | `~/.config/zed/settings.json` |
 
-On Linux, honor `$XDG_CONFIG_HOME` when set (e.g., `$XDG_CONFIG_HOME/Code/User/settings.json`).
+On Linux, prefer `$XDG_CONFIG_HOME` when set (for example `$XDG_CONFIG_HOME/Code/User/settings.json`).
 
-Windows is not supported.
+### Project scope
 
-### Project Scope
+| Editor | Path | Notes |
+| --- | --- | --- |
+| VS Code | `.vscode/settings.json` | Standard |
+| Cursor | `.cursor/settings.json` | Preferred on current Cursor |
+| Cursor (legacy) | `.vscode/settings.json` | Fallback only if `.cursor/` is unsupported |
+| Zed | `.zed/settings.json` | Standard |
 
-| Editor  | Path                                              | Notes                                                                  |
-| ------- | ------------------------------------------------- | ---------------------------------------------------------------------- |
-| VS Code | `.vscode/settings.json`                           | Standard.                                                              |
-| Cursor  | `.cursor/settings.json`                           | Preferred for newer Cursor versions.                                   |
-| Cursor  | `.vscode/settings.json` (legacy fallback)         | Inherited via fork compatibility; use only when `.cursor/` is unsupported. |
-| Zed     | `.zed/settings.json`                              | Standard.                                                              |
+## Settings shapes
 
-## Settings Shapes
+Each block shows only the schema slice to merge into existing JSONC settings. Match the file's existing indentation, or default to two spaces for a new file.
 
-All shapes below show only the schema-relevant slice. They must be merged into existing settings — **never** replace the whole file.
-
-### VS Code / Cursor — JSON
+### VS Code and Cursor: JSON
 
 ```jsonc
 {
   "json.schemas": [
     {
       "fileMatch": ["<glob>", "<another-glob>"],
-      "url": "<absolute-path | workspace-relative-path | https-url>"
+      "url": "<absolute-path | ./workspace-relative | https-url>"
     }
   ]
 }
 ```
 
-- `json.schemas` is a **top-level array**. Append new entries; don't rebuild it.
-- `fileMatch` supports `*` wildcards and `!`-prefixed exclusions. At least one pattern must match and the last matching pattern must not be an exclusion.
-- `url` accepts:
-  - HTTPS URLs (e.g., `https://json.schemastore.org/...`)
-  - Workspace-relative paths starting with `./` (project scope)
-  - Absolute paths (user scope)
+- `json.schemas` is a top-level array. Append new objects to it.
+- `fileMatch` supports `*` wildcards and `!`-prefixed exclusions. At least one pattern must match, and the last matching pattern cannot be an exclusion.
+- `url` accepts HTTPS URLs, `./` workspace-relative paths (project scope), or absolute paths (user scope).
 
-### VS Code / Cursor — YAML
+### VS Code and Cursor: YAML
 
-Requires the **Red Hat YAML extension** (`redhat.vscode-yaml`). Without it, `yaml.schemas` is inert. The skill documents this prerequisite but does not probe for the extension.
+Requires the **Red Hat YAML extension** (`redhat.vscode-yaml`); without it, `yaml.schemas` does nothing.
 
 ```jsonc
 {
@@ -62,14 +57,9 @@ Requires the **Red Hat YAML extension** (`redhat.vscode-yaml`). Without it, `yam
 }
 ```
 
-- `yaml.schemas` is a **map** from schema source → glob (string) or globs (array).
-- Schema source accepts:
-  - HTTPS URLs
-  - Absolute file paths
-  - Workspace-relative paths (resolved relative to the YAML file's workspace root)
-  - Reserved keyword `kubernetes` (built-in Kubernetes schema)
+`yaml.schemas` maps each schema source (HTTPS URL, absolute path, workspace-relative path, or the reserved `kubernetes` keyword) to a glob string or array of globs.
 
-### Zed — JSON
+### Zed: JSON
 
 ```jsonc
 {
@@ -90,13 +80,9 @@ Requires the **Red Hat YAML extension** (`redhat.vscode-yaml`). Without it, `yam
 }
 ```
 
-Path resolution in Zed:
+In Zed, `./` resolves relative to the worktree root (avoid it in user-scope config), `~/` expands to the home directory (preferred for user-scope local schemas), and absolute paths or HTTPS URLs work in either scope.
 
-- `./` — relative to the worktree (project) root. **Avoid in user-scope settings**; it resolves unpredictably outside a project.
-- `~/` — expands to the home directory. Preferred for user-scope local schemas.
-- Absolute paths and HTTPS URLs — work in both scopes.
-
-### Zed — YAML
+### Zed: YAML
 
 ```jsonc
 {
@@ -115,48 +101,29 @@ Path resolution in Zed:
 }
 ```
 
-Same value rules as VS Code/Cursor YAML (string or array of strings). Same Zed path resolution as Zed JSON.
+Uses the same map value rules as VS Code/Cursor YAML and the same path resolution rules as Zed JSON. To turn off Zed's bundled SchemaStore, add `"schemaStore": { "enable": false }` inside `settings.yaml`.
 
-To disable the bundled SchemaStore in Zed:
+## Merge cases
 
-```jsonc
-{
-  "lsp": {
-    "yaml-language-server": {
-      "settings": {
-        "yaml": {
-          "schemaStore": { "enable": false }
-        }
-      }
-    }
-  }
-}
-```
+| Existing file state | Action |
+| --- | --- |
+| File missing | Create parent directory, write `{}` with the full nested entry |
+| File is `{}` | Insert the full nested structure and entry |
+| Parent keys exist, schemas key missing | Add the schemas key under the existing parent |
+| Schemas key exists, no conflict | Append to the array (JSON) or add a key (YAML) |
+| Schemas key exists, conflicting entry | Ask the user to overwrite, skip the editor, or abort |
 
-## JSONC Handling
+## Prerequisites
 
-All three editors permit comments and trailing commas in their settings files. When editing:
+| Editor and file type | Prerequisite |
+| --- | --- |
+| VS Code / Cursor JSON | Built in |
+| VS Code / Cursor YAML | Red Hat YAML extension (`redhat.vscode-yaml`) |
+| Zed JSON / YAML | Built in (`json-language-server` / `yaml-language-server`) |
 
-- Use the `Edit` tool, not `Write`, to preserve existing comments and formatting.
-- Do not strip comments to round-trip via `JSON.parse`/`JSON.stringify` — that destroys user-visible documentation.
-- Indentation: match the file's existing indentation. Default to two spaces if creating a new file.
-- After editing, re-read once to confirm braces balance and the new entry is present.
+## Worked examples
 
-## Merge Decision Table
-
-| Existing state of the relevant slice                | Action                                                          |
-| --------------------------------------------------- | --------------------------------------------------------------- |
-| File does not exist                                 | `mkdir -p` parent, then `Write` minimal `{}` shape with the entry. |
-| File is `{}` (empty object)                         | Insert the full nested structure plus the new entry.            |
-| Parent keys exist but schemas section is missing    | Add the schemas section under existing parents.                 |
-| Schemas section exists, no conflict                 | Append the new entry (array) or new key (map).                  |
-| Schemas section exists, conflicting glob/source     | `AskUserQuestion` per conflict (overwrite / skip / abort).      |
-
-## Quick Examples
-
-### Example 1 — VS Code user-scope, JSON schema for `**/myconfig.json` from an HTTPS URL
-
-File: `~/.config/Code/User/settings.json` (Linux)
+VS Code user-scope JSON (`~/.config/Code/User/settings.json`):
 
 ```jsonc
 {
@@ -169,9 +136,7 @@ File: `~/.config/Code/User/settings.json` (Linux)
 }
 ```
 
-### Example 2 — Cursor project-scope, YAML schema from a local file
-
-File: `.cursor/settings.json`
+Cursor project-scope YAML (`.cursor/settings.json`, requires `redhat.vscode-yaml`):
 
 ```jsonc
 {
@@ -181,11 +146,7 @@ File: `.cursor/settings.json`
 }
 ```
 
-Reminder: requires `redhat.vscode-yaml` extension.
-
-### Example 3 — Zed user-scope, JSON schema from `~/.config/schemas/foo.json`
-
-File: `~/.config/zed/settings.json`
+Zed user-scope JSON (`~/.config/zed/settings.json`):
 
 ```jsonc
 {
@@ -206,9 +167,7 @@ File: `~/.config/zed/settings.json`
 }
 ```
 
-### Example 4 — Zed project-scope, YAML schema for `k8s/**/*.yaml`
-
-File: `.zed/settings.json`
+Zed project-scope YAML (`.zed/settings.json`):
 
 ```jsonc
 {
@@ -225,16 +184,3 @@ File: `.zed/settings.json`
   }
 }
 ```
-
-## Prerequisites Summary
-
-| Editor + Type    | Prerequisite                                                  |
-| ---------------- | ------------------------------------------------------------- |
-| VS Code JSON     | None — built in.                                              |
-| VS Code YAML     | **Red Hat YAML extension** (`redhat.vscode-yaml`).            |
-| Cursor JSON      | None — built in (forked from VS Code).                        |
-| Cursor YAML      | **Red Hat YAML extension** (`redhat.vscode-yaml`).            |
-| Zed JSON         | None — `json-language-server` ships with Zed.                 |
-| Zed YAML         | None — `yaml-language-server` ships with Zed.                 |
-
-Surface the YAML extension prerequisite to the user when configuring VS Code or Cursor for YAML.

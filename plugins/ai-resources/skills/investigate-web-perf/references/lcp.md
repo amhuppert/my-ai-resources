@@ -1,47 +1,37 @@
-# Scenario: LCP Regression
+# Scenario: LCP regression
 
-Largest Contentful Paint investigation. Load this reference when the symptom is slow first paint, LCP > 2.5s at p75 on Slow 4G + 4× CPU, or a regression in `LCPBreakdown`.
+Load when first paint is slow, LCP exceeds 2.5s at p75 under Slow 4G + 4x CPU, or `LCPBreakdown` regresses.
 
-## The LCP Subpart Model
+## Four-subpart model
 
-LCP is the sum of four subparts. Your hypothesis must name which subpart dominates. Fixing a 100 ms render-delay when TTFB is 1800 ms is the wrong fight.
+LCP is the sum of four subparts. Name the dominant subpart before proposing any fix; trimming 100 ms of render delay while TTFB is 1,800 ms wastes time.
 
-| Subpart | What it covers | Typical fixes |
-|---------|----------------|---------------|
-| **TTFB** | Server response time | Caching, edge deploy, faster backend, skip waterfall |
-| **Resource load delay** | Time from TTFB until LCP resource starts loading | Preload, fetchpriority=high, remove render-blocking earlier, move out of lazy-loaded chunk |
-| **Resource load duration** | Actual download time | Compress, resize, modern formats (AVIF/WebP), CDN, fewer render-blocking requests competing |
-| **Element render delay** | Time from resource loaded until painted | Remove blocking JS, hydration cost, Suspense fallback blocking paint |
+| Subpart | What it measures | Typical fixes |
+| --- | --- | --- |
+| TTFB | Server response time | Caching, edge deploy, faster queries, removing redirects |
+| Resource load delay | Time from TTFB until the LCP resource starts fetching | Preload, `fetchpriority="high"`, removing earlier render-blocking resources, moving out of lazy chunks |
+| Resource load duration | Download time of the LCP asset | Compression, resizing, AVIF/WebP, CDN, reducing competing requests |
+| Element render delay | Time from resource loaded until painted | Cutting blocking JS, hydration overhead, or Suspense fallbacks delaying paint |
 
-## Insight Sequence
+## Insight sequence
 
-Call these in order. Stop when you have a clear dominant subpart.
+Capture a cache-cold reload trace saved to `trace.json.gz`, then call these insights in order and stop once one subpart clearly dominates:
 
-1. `LCPBreakdown` — returns the four-subpart split. This is the scoreboard.
-2. `LCPDiscovery` — how the browser found (or failed to find) the LCP resource. Catches `loading="lazy"` on above-the-fold images, late-discovered hero images, CSS background-images that should be `<img>`.
-3. `DocumentLatency` — is TTFB the dominant subpart? Redirect chains, slow origins, non-compressible HTML.
-4. `RenderBlocking` — stylesheets and scripts blocking the critical path.
+1. `LCPBreakdown`: returns the four-subpart split.
+2. `LCPDiscovery`: shows how the browser discovered the LCP asset (catches `loading="lazy"` on hero images, late-discovered heroes, CSS `background-image` heroes).
+3. `DocumentLatency`: checks TTFB causes (redirect chains, slow origins, uncompressed HTML).
+4. `RenderBlocking`: identifies stylesheets and scripts blocking first paint.
 
-Escalate to `NetworkDependencyTree` and `LongCriticalNetworkTree` only if steps 1–4 don't produce a clear dominant subpart.
+Escalate to `NetworkDependencyTree` and `LongCriticalNetworkTree` only if steps 1 to 4 do not isolate the dominant subpart. Use `evaluate_script` solely to inspect the LCP element's tag, `src`, and timing if the insight does not already name it.
 
-## Canonical Prompt
+## Common gotchas
 
-> Record a reload trace of `<URL>` with Slow 4G + 4× CPU, cache-cold. Save to `trace.json.gz`. Call `performance_analyze_insight` for `LCPBreakdown`, then for `LCPDiscovery`, `DocumentLatency`, and `RenderBlocking`. Use `evaluate_script` only to identify the LCP element (tag, src, timing). Compute the dominant subpart. Propose the single smallest change, implement it, re-trace, and show before/after LCP with subpart deltas. Stop if LCP improves <10% or any other Core Web Vital regresses.
+- **`loading="lazy"` on a hero image** is the most frequent LCP bug on content sites (`LCPDiscovery` flags it directly).
+- **CSS `background-image` hero** cannot be discovered early by the preload scanner; switch to `<img fetchpriority="high">` or add a matching `<link rel="preload" as="image">`.
+- **Text LCP blocked by fonts:** run `FontDisplay`; `font-display: swap` or `optional` usually resolves text-LCP stalls.
+- **Streaming SSR / RSC:** the LCP element may arrive in a later RSC chunk (`text/x-component`). Correlate chunk arrival in `list_network_requests` against LCP paint rather than running `querySelector` at `DOMContentLoaded` (see [`nextjs.md`](nextjs.md)).
+- **Priority hints:** adding `fetchpriority="high"` on the hero `<img>` or preload link is often a one-line win before larger refactors.
 
-## Known Gotchas
+## Validation report
 
-- **`loading="lazy"` on a hero image** is the #1 cause of LCP regressions on content sites. `LCPDiscovery` catches this directly. Documented case: Substack's LCP dropped from 1383 ms to 628 ms after removing `loading="lazy"` from the hero (DebugBear walkthrough, Oct 2025).
-- **CSS background-image hero** cannot be preloaded without `<link rel="preload" as="image" imagesrcset="...">` gymnastics. If the LCP element is a background-image, recommend switching to `<img fetchpriority="high">`.
-- **Font-blocked LCP text.** If the LCP element is text, check `FontDisplay` — `font-display: swap` or `optional` often fixes text-LCP regressions.
-- **Streaming SSR / RSC.** The LCP element may live in a later Suspense chunk. Correlate `list_network_requests` RSC chunk arrival (content-type `text/x-component`) to LCP paint timestamp. `querySelector` at DOMContentLoaded lies. See `nextjs.md` for the RSC flow.
-- **Priority Hints.** Modern Chrome respects `fetchpriority="high"` on `<img>` and `<link rel="preload">`. Worth a single-line fix before heavier restructuring.
-
-## Validation Template
-
-The PR or report must include:
-
-- Before trace path and after trace path (both `.json.gz`)
-- `LCPBreakdown` output before and after, with subpart deltas
-- Confirmation that INP, CLS, and bundle size did not regress (cite insights or `next build` output)
-- The single-variable change
-- The subpart that was dominant and is now no longer dominant (or dominant by less)
+Include before/after `.json.gz` trace paths, `LCPBreakdown` subpart deltas (showing the dominant subpart shrank), confirmation that INP, CLS, and route bundle size did not regress, and the single-variable diff.

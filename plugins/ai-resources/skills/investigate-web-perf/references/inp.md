@@ -1,53 +1,46 @@
-# Scenario: INP / Slow Interaction
+# Scenario: INP and slow interactions
 
-Interaction to Next Paint investigation. Load this reference when the symptom is a sluggish click/tap/type, INP > 200 ms at p75, or a regression in `INPBreakdown`.
+Load when clicks, taps, or typing feel sluggish, INP exceeds 200 ms at p75, or `INPBreakdown` regresses.
 
-## The INP Subpart Model
+## Three-phase model
 
-INP is the sum of three phases for a single interaction. Your hypothesis must name which phase dominates.
+Every interaction splits into three phases. Name the dominant phase before touching code.
 
 | Phase | What it covers | Typical fixes |
-|-------|----------------|---------------|
-| **Input delay** | Time from user input until event handler starts | Long tasks blocking the main thread *before* the interaction (hydration, third-party scripts, route transitions) |
-| **Processing** | Event handler execution, React re-render, state updates | `useTransition` for non-urgent state updates, memoization, bailing out of expensive renders, `useDeferredValue` |
-| **Presentation** | Commit + paint after handler returns | Heavy layout/paint, large DOM, `content-visibility`, `will-change`, avoid layout thrash |
+| --- | --- | --- |
+| Input delay | Time from input until the event handler starts | Main-thread long tasks running before input (hydration, third-party scripts, route transitions) |
+| Processing | Event handler execution, state updates, React re-render | `useTransition` or `useDeferredValue`, stabilizing props/selectors, bailing out of expensive renders |
+| Presentation | Style, layout, commit, and paint after the handler returns | Reducing DOM size, `content-visibility`, eliminating forced synchronous layout |
 
-## Insight Sequence
+## Capture and insight sequence
 
-1. `INPBreakdown` — the three-phase split + the worst interactions captured in the trace.
-2. `LongCriticalNetworkTree` — are fetches inside the interaction blocking paint?
-3. `ForcedReflow` — did the handler cause a forced synchronous layout? This commonly appears inside presentation-phase cost but is its own insight for attribution.
-4. `ThirdParties` — did a third-party script (analytics, Sentry, PostHog, feature flags) eat main-thread time during the interaction?
+1. Load the page under pinned emulation and take an accessibility-tree snapshot to obtain target element UIDs.
+2. Start a manual trace with `autoStop: false, reload: false` saved to `trace.json.gz`. Perform the exact interaction (click target, type input, press Enter, wait for settle), then stop the trace.
+3. Run insights in order:
+   - `INPBreakdown`: returns the three-phase split and worst captured interactions.
+   - `LongCriticalNetworkTree`: checks whether fetches triggered by the interaction block paint.
+   - `ForcedReflow`: checks for forced synchronous layout inside the handler (often shows up under presentation cost).
+   - `ThirdParties`: checks whether analytics, telemetry, or feature-flag scripts consumed main-thread time during the interaction.
 
-## Long Animation Frames API (for attribution)
+## Long Animation Frames attribution
 
-`PerformanceLongAnimationFrameTiming` (Chrome 123+) supersedes Long Tasks. When the insight output points to "long task during interaction", the per-script attribution lives in `entry.scripts[]`:
+When `INPBreakdown` points to a long task during the interaction, use `PerformanceLongAnimationFrameTiming` (Chrome 123+, replacing Long Tasks) via `evaluate_script` to inspect `entry.scripts[]`:
 
-- `entry.scripts[i].invoker` — how the callback was scheduled (user listener, rAF, timer, resolve of Promise, ...)
-- `entry.scripts[i].sourceURL` — maps straight to your React files with source maps
-- `entry.scripts[i].forcedStyleAndLayoutDuration` — catches layout thrashing inside a handler
-- `entry.blockingDuration` — the portion that caused the slow interaction
+- `invoker`: how the callback fired (event listener, rAF, timer, promise resolution)
+- `sourceURL`: source-mapped file path
+- `forcedStyleAndLayoutDuration`: layout thrashing inside the callback
+- `blockingDuration`: time directly contributing to the slow interaction
 
-Use this via `evaluate_script` only *after* `performance_analyze_insight("INPBreakdown")` has already pointed at a long task. Do not grovel through LoAF entries before consulting insights.
+Only inspect LoAF entries after `INPBreakdown` identifies a long task.
 
-## Canonical Prompt
+## Common gotchas
 
-> Navigate to `<URL>` under Slow 4G + 4× CPU. Take an accessibility-tree snapshot to get UIDs for the interactive targets. Start a trace with `autoStop: false, reload: false`, saved to `trace.json.gz`. Click the `<target>` UID, type `<input>`, press Enter, wait for network idle, stop. Run `performance_analyze_insight` for `INPBreakdown` then `LongCriticalNetworkTree`. Report: the interaction target; input delay / processing / presentation split; top 3 long tasks >50 ms with source-mapped stacks; the React component owning each. No fixes yet — return the report and wait for direction on which phase to attack.
+- **First-load hydration:** interacting while the page is still hydrating inflates input delay. Test a post-hydration interaction separately to separate hydration cost from handler cost.
+- **Synchronous analytics on click:** move beacon/telemetry work out of click handlers into `scheduler.postTask({ priority: "background" })` or `requestIdleCallback`.
+- **Unstable Zustand/Redux selectors:** selectors returning new object references re-render subscribers on unrelated updates, inflating processing time (see [`react.md`](react.md)).
+- **Controlled `<input>` triggering heavy parent renders:** defer downstream work with `useDeferredValue` or move input state down to a smaller component.
+- **Focus/blur reading layout geometry:** reading `offsetHeight` or `getBoundingClientRect()` inside focus handlers triggers `ForcedReflow`.
 
-## Known Gotchas
+## Validation report
 
-- **Hydration during first interaction** is a classic input-delay killer. If the interaction is on the first page load, INP will look pathological until hydration completes. Test INP on a second-load interaction for a cleaner signal.
-- **Third-party analytics on click.** Sending a beacon synchronously from a click handler adds processing time. Wrap in `scheduler.postTask({ priority: 'background' })` or `requestIdleCallback`.
-- **Expensive selectors in Zustand/Redux** that don't use equality checks will re-render subscribed components on every unrelated state change — appears as processing-phase cost. See `react.md` on over-subscribed context.
-- **`<input>` with a controlled value and heavy parent re-render** — typing is slow because every keystroke re-renders the whole tree. `useDeferredValue` or move state down.
-- **Focus/blur events firing layout.** `ForcedReflow` insight catches this; common when a parent reads `offsetHeight` in response to focus.
-
-## Validation Template
-
-The PR or report must include:
-
-- Before and after trace paths
-- `INPBreakdown` output before and after, with the dominant phase and its delta
-- The specific interaction tested (target + inputs), identical before and after
-- Confirmation that LCP, CLS, and bundle did not regress
-- The single-variable change
+Include before/after `.json.gz` trace paths for the identical interaction (exact target and inputs), `INPBreakdown` phase deltas, confirmation that LCP, CLS, and bundle size did not regress, and the single-variable change.

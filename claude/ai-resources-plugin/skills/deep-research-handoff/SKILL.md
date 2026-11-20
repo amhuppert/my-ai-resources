@@ -1,75 +1,74 @@
 ---
 name: deep-research-handoff
-description: Create a self-contained prompt for ChatGPT Deep Research. Use when asked to prepare a research prompt, brief, or handoff from Codex to ChatGPT using the request and relevant local context. Does not conduct research or implement findings.
+description: "Write a self-contained research prompt for ChatGPT Deep Research from the user's request and relevant local context. Does not run the research."
 disable-model-invocation: true
 ---
 
 # Deep research handoff
 
-Write one ready-to-paste research assignment that ChatGPT Deep Research can complete without access to this conversation or workspace. The prompt should preserve the user's question, supply the context that affects the answer, and define a useful, verifiable deliverable. Use the writing-for-frontier-agents skill to write the prompt for ChatGPT.
+Produce one ready-to-paste prompt that ChatGPT Deep Research can run without access to this conversation or workspace. Preserve the user's question, transfer only the context that changes the answer, and define a verifiable deliverable. Follow the `writing-for-frontier-agents` skill when drafting the prompt.
 
-Inspect relevant local context with available tools when needed. If you already have enough context to write the prompt, do not perform redundant local exploration. Do not investigate the topic, launch research, call research APIs, upload files, run project code, install dependencies, or create helper scripts. Leave project files unchanged except to save the completed prompt as Markdown when requested; preserve unrelated content. Turn uncertain external claims into questions for the researcher to verify.
+Inspect relevant local files when needed, and skip local exploration if the conversation already gives you everything required. Do not research the topic yourself, call research APIs, upload files, run project code, install packages, or write helper scripts. Leave repository files untouched unless the user explicitly asks you to save the prompt as Markdown. Turn uncertain external claims into questions for the researcher to check.
 
 ## Establish the brief
 
-Use the request and conversation to identify the central question, audience, intended use, and what the answer must establish. Capture the scope, exclusions, hard requirements, preferences, and success criteria.
+Pull from the request and conversation: the central question, intended audience, how the result will be used, scope, exclusions, hard constraints, preferences, and what a good answer must establish.
 
-Preserve the kind of work requested: exploration, explanation, comparison, or a decision. Exploration should not become a recommendation exercise. For decisions, make evaluation criteria explicit, include the status quo when relevant, and leave room for evidence against the user's favored option. Do not invent numerical weights.
+Keep the requested kind of work intact: exploration, explanation, comparison, or a decision. Do not turn open exploration into a forced recommendation. For decisions, spell out the evaluation criteria, include the status quo when relevant, leave room for evidence against the user's favored option, and avoid invented numerical weights.
 
-Ask one compact round of clarification when missing information would materially change the assignment and cannot be inferred from authorized local context. Ask about the brief, not for answers to the research questions. For other gaps, state an assumption or ask the researcher to examine the alternatives. If the user requests no questions or input is unavailable, preserve consequential unknowns and identify which conclusions depend on them.
+Ask one short round of questions only if a missing answer would materially change the prompt and cannot be inferred from local context. Ask about the brief itself, not for answers to the research questions. For smaller gaps, state an assumption or ask the researcher to cover the alternatives. If the user asked for no questions or is unavailable, preserve major unknowns and flag which conclusions hinge on them.
 
-Use the user's specified date. Otherwise, request information current as of the research execution date and ask the report to state it. For historical work, distinguish facts true at the cutoff from evidence published later.
+Honor any date cutoff the user gives. Otherwise, ask for facts current as of the execution date and ask the report to state that date. For historical questions, separate what held at the cutoff from later evidence.
 
-## Transfer needed context
+## Transfer only the context that matters
 
-ChatGPT will have none of the context from the current conversation and cannot read local files.
-It will only have the context that you give it in the prompt. Include any context needed to fulfill the request, but be selective. Irrelevant information provided in the prompt will hurt performance.
+ChatGPT sees nothing from this session and cannot read local files. Include every local fact, constraint, or decision that affects the research, and cut everything else; irrelevant background dilutes focus.
 
-## Write the research assignment
+## Draft the research prompt
 
-Address the researcher directly in plain language. Define outcomes and constraints, leaving routine search choices to the researcher. Avoid hidden-reasoning requests, invented expert panels, arbitrary tool-call counts, and source quotas. Use examples only to clarify a nonobvious requirement.
+Address the researcher directly in plain language. Define outcomes, constraints, and evidence standards while leaving search mechanics to the researcher. Skip hidden-reasoning prompts, fictional expert panels, arbitrary tool-call counts, and source quotas. Use an example only when a requirement would otherwise be ambiguous.
 
-The sections below describe what the prompt needs. Merge or omit sections to fit the task, and replace all drafting placeholders.
+Include the sections below as needed, merging or dropping sections to fit the assignment and replacing every placeholder:
 
 ### Objective and context
 
-State the question, audience, intended use, and success criteria. Supply the context gathered above, separating hard requirements from preferences, assumptions, and supplied facts that need independent verification. Include scope, exclusions, dates, and expected attachments.
+State the core question, audience, intended use, and success criteria. Supply the selected local context, clearly separating hard requirements, preferences, assumptions, and supplied claims that need independent verification. Include scope, exclusions, target dates, and any attachments the user plans to include.
 
 ### Questions to investigate
 
-Write a short, prioritized set of answerable questions. Include material unknowns, relevant alternatives, limitations, and evidence that could change the conclusion. Allow useful discoveries within scope.
+Write a short, prioritized set of answerable questions covering material unknowns, relevant alternatives, limitations, and evidence that could overturn a provisional conclusion. Leave room for useful in-scope discoveries.
 
 ### Evidence requirements
 
-Adapt these requirements to the assignment:
+Adapt these to the topic:
 
-- Read relevant source material using available tools; search snippets alone are insufficient. Prefer primary or authoritative evidence for consequential claims, with independent corroboration where useful. Use secondary summaries as leads or attributed interpretation.
-- Verify time-sensitive facts against the requested date. Distinguish publication, event, and effective dates and product versions where they affect the answer. Foundational sources can remain useful despite their age.
-- Seek credible counterevidence. Explain disagreements through differences in definitions, dates, populations, methods, or incentives. Keep incompatible estimates separate and represent differences in evidence strength.
-- Cite substantive factual claims near the claims, including consequential table entries. Give usable titles and URLs, or attachment names with page or section references, plus a compact source list. Cite only material actually inspected; never invent citations.
-- Separate sourced findings, calculations, inference, and recommendations. Show calculation inputs, units, assumptions, and a reproducible method. Describe uncertainty without false precision; missing evidence does not prove absence.
-- Report inaccessible sources or attachments and material coverage gaps. Use permitted alternatives and identify what remains unverified. Claim access, execution, tests, or verification only when they occurred.
+- Read primary or authoritative sources in full rather than relying on search snippets. Corroborate consequential claims independently, and label secondary summaries as attributed interpretation.
+- Check time-sensitive facts against the requested date. Distinguish publication, event, and effective dates plus product versions when they change the answer. Older foundational sources remain valid where still accurate.
+- Actively look for credible counterevidence. Explain disagreements via definitions, dates, populations, methods, or incentives; keep incompatible estimates separate and distinguish strong from weak evidence.
+- Place citations next to substantive claims and consequential table cells, with usable titles and URLs (or attachment names with page/section numbers) plus a compact source list. Cite only material actually read.
+- Separate sourced facts, calculations, inference, and recommendations. Show calculation inputs, units, assumptions, and reproducible steps. State uncertainty plainly without false precision; absent evidence is not proof of absence.
+- Report inaccessible sources, missing attachments, and coverage gaps. Never claim access, execution, or verification that did not happen.
 
-Add domain requirements only where they affect the answer. Technical work may need version compatibility and reproducible validation; science, study quality and population fit; product comparisons, pricing basis and verification of vendor claims; legal research, jurisdiction, legal status, and effective dates. For political or policy research, request neutral factual comparisons rather than endorsements or rankings. High-stakes findings should identify where qualified professional review is needed.
+Add domain rules only where they change the answer: version compatibility and reproducible validation for technical work; study quality and population fit for science; pricing basis and vendor-claim verification for product comparisons; jurisdiction, legal status, and effective dates for legal topics. For policy or political topics, ask for neutral factual comparisons rather than endorsements. Flag high-stakes areas that need qualified professional review.
 
 ### Deliverable and execution
 
-Unless the user requests another format, ask for a Markdown report with a direct answer or synthesis, findings organized around the questions, limitations, and sources. Match depth and length to the task. Use comparison tables when they make the answer easier to assess.
+Unless another format was requested, ask for a Markdown report containing a direct answer or synthesis, findings organized around the questions, limitations, and sources, sized to the topic. Use comparison tables when they make tradeoffs easier to inspect.
 
-For decisions, request a supported recommendation, tradeoffs, and conditions that would change it where appropriate. For exploration, request a map of approaches and open questions. Do not force a winner.
+For decisions, ask for a supported recommendation, tradeoffs, and conditions that would flip it. For exploration, ask for a map of approaches and open questions without forcing a winner.
 
-Ask Deep Research to develop and adapt its plan within scope, using its normal plan-review flow. Allow focused clarifications when an ambiguity would materially change the result; otherwise proceed with stated assumptions. Define completion as the requested research deliverable, not a plan or reading list.
+Tell Deep Research to build and adapt its plan within scope through its normal plan-review flow, ask focused questions only when ambiguity materially changes the work (otherwise state assumptions and continue), and finish with the complete deliverable rather than a plan or reading list.
 
 ## Return the handoff
 
-Return the completed prompt in one fenced Markdown block, using an outer fence long enough to contain any embedded fences. Keep explanations and setup notes outside it. If the user requests only the prompt, omit commentary.
+Wrap the finished prompt in one fenced Markdown block using an outer fence longer than any fence inside it. Keep any brief setup notes outside the fence, or omit commentary if the user asked for only the prompt.
 
-Before returning, verify that the prompt:
+Before returning, check that the prompt:
 
-- Stands alone without unseen conversation history or local files.
-- Preserves the objective, constraints, dates, and consequential uncertainty.
-- Distinguishes supplied facts, assumptions, and questions for research.
-- Contains no secrets, fabricated access, drafting placeholders, or conflicting instructions.
-- Defines the evidence and completed deliverable needed to review and reuse the result.
+- Works completely standalone without unseen chat history or local files.
+- Preserves the goal, constraints, dates, and major unknowns.
+- Separates supplied facts, assumptions, and open research questions.
+- Contains no secrets, fabricated file access, leftover placeholders, or contradictory rules.
+- States the evidence standard and finished deliverable clearly, with no fluff.
 
-Cut repetition and instructions that add no value to this assignment. Deliver the handoff and stop; do not begin the research.
+Deliver the handoff and stop; do not start the research.

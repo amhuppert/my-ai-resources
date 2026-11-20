@@ -1,101 +1,66 @@
 # Framework: Next.js
 
-Load this reference when the project uses Next.js (any 13+ version; most guidance targets 15–16). Load `react.md` alongside this file.
+Load alongside [`react.md`](react.md) and the scenario reference for Next.js projects (targeting Next.js 15 and 16+).
 
-## Tools Specific to Next.js
+## Next.js diagnostic tools
 
-### `next-devtools-mcp`
+### `next-devtools-mcp` (Next.js 16+)
 
-Bridges the `/_next/mcp` dev-server endpoint (Next.js 16+). Surfaces:
+Connects to `/_next/mcp` in dev mode for live compile/runtime errors, route trees, Suspense boundaries (and Next 16.2+ experimental Agent DevTools), and Cache Components migration checks. Call it before `chrome-devtools-mcp` for build-time or route-structure problems; go straight to `chrome-devtools-mcp` for runtime traces.
 
-- Live compile + runtime errors
-- Route structure (which segments, which boundaries)
-- Suspense boundary automation (Next 16.2+: experimental Agent DevTools for React component trees)
-- Cache Components migration tools
-
-Call these MCP tools *before* chrome-devtools-mcp when investigating build-time or route-level issues. For runtime trace work, go straight to chrome-devtools-mcp.
-
-### Turbopack Tracing (Next.js 16 Default)
+### Turbopack tracing (dev-server slowness)
 
 ```bash
 NEXT_TURBOPACK_TRACING=1 next dev
 next internal turbo-trace-server
 ```
 
-This is the only way to attribute module-resolution and compilation cost in dev. Useful when "dev server is slow on file change"; rarely needed for production perf.
+Attributes module-resolution and compilation hotspots in dev. Rarely needed for production runtime perf.
 
-### `next build` Output
+### `next build` stdout
 
-The stdout table is authoritative for per-route First Load JS. Parse it instead of relying on bundle analyzer totals — the numbers are compressed + include everything the route actually ships.
+Treat `next build` stdout as authoritative for compressed per-route First Load JS (`route-specific JS` vs. `shared + route First Load JS`).
 
-Example row interpretation:
-```
-/products                                 5.2 kB          142 kB
-  |-- route-specific JS ----------------- ^               ^
-  |-- First Load JS (shared + route) --------------------/
-```
+## Debugging RSC payloads
 
-## RSC Payload Debugging
+Server Component streams use `content-type: text/x-component`. Inspect them via:
 
-Server Components payload uses content-type `text/x-component`. Two ways to inspect:
-
-Direct curl:
 ```bash
 curl -H "RSC: 1" http://localhost:3000/path
+# or in the browser Network tab: http://localhost:3000/path?_rsc=1
 ```
 
-Query-param trigger (useful in browser Network tab):
-```
-http://localhost:3000/path?_rsc=1
-```
+When an LCP element paints late, filter `list_network_requests` by `text/x-component` and compare chunk arrival timestamps against LCP paint.
 
-When the LCP element seems to appear "late," correlate chunk arrival in `list_network_requests` (filter by content-type) to LCP paint timestamp. The LCP element often lives in a chunk that arrives after the initial HTML.
+## OpenTelemetry (`instrumentation.ts`, stable in Next 15+)
 
-## `instrumentation.ts` (Stable in Next 15)
+No experimental flag needed. Use `@vercel/otel` inside `instrumentation.ts` (`registerOTel({ serviceName: "my-app" })`) and set `NEXT_OTEL_VERBOSE=1` when you need extra spans.
 
-No longer behind `experimental.instrumentationHook`. Use `@vercel/otel` for edge-compatible OpenTelemetry:
+## Cache Components (Next.js 16)
 
-```ts
-// instrumentation.ts
-import { registerOTel } from "@vercel/otel";
-export function register() {
-  registerOTel({ serviceName: "my-app" });
-}
-```
+Replaces `"use cache"` / `unstable_cache` for component-level caching:
 
-Add `NEXT_OTEL_VERBOSE=1` for extra spans when debugging.
+- Caching a Server Component caches its HTML and RSC payload together (trading freshness for lower TTFB/LCP).
+- Invalidate via tags (`revalidateTag()` from a Server Action).
+- Client Component bundles inside a Cache Component still come from the normal static asset cache.
+- For post-deploy regressions in Next 16, check whether a Cache Component was invalidated and left cold.
 
-## Cache Components (Next 16)
-
-New rendering primitive that replaces `"use cache"`/`unstable_cache` for fine-grained component caching. Pay attention:
-
-- Caching a Server Component means its HTML and RSC payload are cached together. LCP improvements here can be large but trade off with freshness.
-- Invalidation happens via tags; `revalidateTag()` from a Server Action.
-- If a Cache Component contains a Client Component, the client bundle is NOT re-cached — it's served from the normal static asset cache.
-
-When investigating a "why is this page slow after deploy" regression in Next 16, check whether a Cache Component was invalidated and hasn't been re-warmed.
-
-## Next.js-Specific Perf Bugs
+## Common Next.js perf bugs
 
 | Bug | Signal | Fix |
-|-----|--------|-----|
-| `<Image>` without `priority` on LCP image | `LCPDiscovery` flags late resource discovery | Add `priority` to the above-the-fold image |
-| Dynamic imports without `ssr: false` on client-only lib | Hydration error + slow first paint | `ssr: false` in `next/dynamic` options |
-| `use client` boundary too high in the tree | Entire subtree ships as client JS; bundle bloat | Move `'use client'` down to the smallest subtree that actually needs interactivity |
-| Server Action firing a chain of awaits | INP processing phase dominated by network | Parallelize with `Promise.all`, or split the action |
-| Route handler doing synchronous DB calls | `DocumentLatency` high | Parallelize; add caching; check for N+1 |
-| Middleware doing per-request work | TTFB inflated on every route | Move to layout or page; middleware runs on every request including RSC and static |
-| `fetch()` inside a Server Component not using Next's cache | Repeated origin hits | Default cache behavior differs between Next 14/15/16 — check version; use `cache: 'force-cache'` or Next 16 Cache Components explicitly |
+| --- | --- | --- |
+| `<Image>` missing `priority` on hero | `LCPDiscovery` flags late discovery | Add `priority` to the above-the-fold image |
+| Dynamic import of client-only lib without `ssr: false` | Hydration mismatch + slow first paint | Pass `{ ssr: false }` to `next/dynamic` |
+| `'use client'` placed too high in the tree | Large client JS bundle across subtrees | Push `'use client'` down to the smallest interactive leaf |
+| Sequential `await` chain in a Server Action | Network latency inflates INP processing | Parallelize with `Promise.all` or split the action |
+| Uncached/serial DB queries in Route Handler | High `DocumentLatency` | Parallelize, cache, check for N+1 queries |
+| Heavy work in `middleware.ts` | Elevated TTFB on every route and RSC request | Move logic to a layout or page where possible |
+| Uncached `fetch()` in Server Component | Repeated origin hits | Check Next 14/15/16 cache defaults; set `cache: "force-cache"` or Cache Components explicitly |
 
-## Build-Time vs Runtime
+## Narrow the layer before digging in
 
-When the user says "Next.js is slow", clarify:
-
-- **Dev server slow** → Turbopack tracing; `next-devtools-mcp` compile errors
-- **Build slow** → `next build --profile`; often a bundler plugin or large monorepo graph
-- **Prod page slow** → chrome-devtools-mcp + the relevant scenario reference
-- **Prod page slow *after deploy*** → cache invalidation (Cache Components, CDN edge cache); check `x-vercel-cache` header
-
-## Route-Level vs App-Level
-
-A perf issue on `/products` but not `/about` is route-level — start with the route's specific imports and layout nesting. A perf issue on every route points to root layout, middleware, global CSS, or a global provider. Don't conflate them.
+- **Dev server slow:** Turbopack tracing and `next-devtools-mcp` compile errors.
+- **Production build slow:** `next build --profile` (bundler plugins or monorepo graph).
+- **One route slow (`/products`, not `/about`):** inspect that route's imports and nested layouts.
+- **Every route slow:** inspect root layout, middleware, global CSS, or root providers.
+- **Slow right after deploy:** check Cache Components invalidation, CDN edge cache, and `x-vercel-cache`.

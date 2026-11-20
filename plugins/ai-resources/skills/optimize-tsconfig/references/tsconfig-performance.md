@@ -1,46 +1,10 @@
-# TypeScript Configuration Performance Reference
+# TypeScript configuration performance reference
 
-## watchOptions
+Option syntax, tradeoffs, diagnostic commands, and type-level patterns that affect `tsc` speed, memory, and watch overhead.
 
-Controls how `tsc --watch` detects file changes. These settings are the highest-impact optimizations for developer experience.
+## Watch mode (`watchOptions`)
 
-### excludeDirectories
-
-Prevents tsc from placing inotify/FSEvents watchers on specified directories. This is the single most impactful watch setting — a typical project has 10,000+ directory watchers inside `node_modules` alone.
-
-```jsonc
-"watchOptions": {
-  "excludeDirectories": ["**/node_modules", "dist", "build", ".next", "coverage"]
-}
-```
-
-- Separate from top-level `exclude` (which controls program inclusion, not watching)
-- tsc still resolves types from excluded directories at startup; it just won't watch them for changes
-- Paths resolve relative to cwd, not tsconfig location — use `**/*` glob patterns to be safe
-
-### watchFile
-
-Controls how individual files are monitored.
-
-| Strategy | Mechanism | CPU Cost | Notes |
-|----------|-----------|----------|-------|
-| `useFsEvents` | `fs.watch()` per file | Low (event-driven) | Best default for macOS/Linux/Windows |
-| `useFsEventsOnParentDirectory` | `fs.watch()` on parent dirs | Lowest | Good for very large codebases; slightly less precise |
-| `dynamicPriorityPolling` | Adaptive polling queue | Medium | Frequently modified files polled more often |
-| `fixedPollingInterval` | `fs.watchFile()` at fixed rate | Highest | Only when FS events are broken |
-
-### watchDirectory
-
-Controls how directories are monitored for new file creation.
-
-- `useFsEvents` — best default (requires OS support for recursive watching)
-- Polling strategies available as fallback
-
-### fallbackPolling
-
-Used when `fs.watch()` fails. `dynamicPriorityPolling` is the best choice — adapts frequency based on file change patterns.
-
-### Recommended watchOptions
+`watchOptions` controls how `tsc --watch` monitors files and has the largest impact on CPU and open-watcher limits.
 
 ```jsonc
 "watchOptions": {
@@ -51,31 +15,28 @@ Used when `fs.watch()` fails. `dynamicPriorityPolling` is the best choice — ad
 }
 ```
 
-## Type Checking Speed
+- **`excludeDirectories`:** highest-impact watch setting (often cuts 90%+ of watchers by skipping `node_modules`). Independent from top-level `exclude`: `tsc` still loads types from these directories at startup, it just stops watching them. Paths resolve relative to cwd rather than tsconfig location, so prefer `**/` globs.
+- **`watchFile` / `watchDirectory`:** `useFsEvents` uses OS-native events (low CPU, best default). `useFsEventsOnParentDirectory` uses even fewer watchers on huge trees with slightly coarser granularity. `dynamicPriorityPolling` is the best `fallbackPolling` option when OS events fail; avoid `fixedPollingInterval` unless FS events are broken.
 
-### skipLibCheck
+## Type checking and program size
+
+### `skipLibCheck`
 
 ```jsonc
 { "compilerOptions": { "skipLibCheck": true } }
 ```
 
-Skips type-checking of all `.d.ts` files (both project-authored and from `node_modules/@types`). Significant speedup with many dependencies.
+Skips type-checking `.d.ts` files (both project and `node_modules/@types`). High speedup with many dependencies. Tradeoff: misses errors inside declaration files or conflicts between `@types` packages. `skipDefaultLibCheck: true` skips only TypeScript's built-in `lib.d.ts` files.
 
-- Tradeoff: won't catch type errors in declaration files or conflicts between `@types` packages
-- For partial checking, `skipDefaultLibCheck: true` skips only TypeScript's built-in `lib.d.ts` files
-
-### types Array
+### `types` array
 
 ```jsonc
 { "compilerOptions": { "types": ["node", "jest"] } }
 ```
 
-By default, TypeScript auto-includes every `@types/*` package visible in `node_modules`. Setting `types` to a specific list prevents unnecessary type packages from being loaded — reduces program construction time.
+By default, TypeScript loads every `@types/*` package found in `node_modules`. Restricting `types` trims program construction time in monorepos or dependency-heavy repos, but requires manual updates whenever a new global `@types` package is added. Recommend only when `--listFilesOnly` or `--explainFiles` proves irrelevant `@types` are being loaded.
 
-- Tradeoff: must be kept in sync manually; missing entries cause confusing "cannot find type" errors when adding new dependencies
-- Best used in monorepos where `@types` packages from sibling packages leak in, or when there are clearly irrelevant `@types` installed
-
-### exclude Patterns
+### `exclude` patterns
 
 ```jsonc
 {
@@ -83,118 +44,66 @@ By default, TypeScript auto-includes every `@types/*` package visible in `node_m
 }
 ```
 
-- Once any `exclude` entry is defined, `node_modules` is no longer automatically excluded — always include it explicitly
-- Excluding test files from the main tsconfig reduces program size (use a separate `tsconfig.test.json` if needed)
+Defining any `exclude` entry overrides TypeScript's default `node_modules` exclusion, so always keep `**/node_modules` listed. Excluding test files from the main config (paired with a `tsconfig.test.json`) trims main-program size.
 
-## Build Speed
+## Build speed
 
-### incremental
+- **`incremental` + `tsBuildInfoFile`:** caches compiler state so rebuilds only re-check changed files and dependents. Point `tsBuildInfoFile` into the build output directory (e.g., `./dist/.tsbuildinfo`) and gitignore it. Enabled automatically when `composite: true`.
+- **`isolatedModules: true`:** enforces single-file transpilation (no cross-file `const enum` inlining or namespace merging), enabling fast transpilers (esbuild, SWC, Babel) for emit while `tsc` checks types. Already standard in Vite, Next.js, and Expo.
+- **`isolatedDeclarations: true` (TS 5.5+):** requires explicit type annotations on all exports so `.d.ts` generation runs in parallel without type checking (up to ~3x faster emit when paired with `noCheck`).
+- **`noCheck: true` (TS 5.6+):** skips type checking during emit so pipelines can split `tsc --noCheck` (fast emit) and `tsc --noEmit` (checking) in parallel with separate `tsBuildInfoFile` paths. Keep type checking enforced in CI.
 
-```jsonc
-{
-  "compilerOptions": {
-    "incremental": true,
-    "tsBuildInfoFile": "./dist/.tsbuildinfo"
-  }
-}
-```
+## Monorepos: project references and editor memory
 
-Saves compiler state to disk for faster rebuilds — subsequent builds only re-check changed files and dependents. Place `.tsbuildinfo` in the build output directory and gitignore it. Automatically enabled when `composite: true`.
-
-### isolatedModules
-
-```jsonc
-{ "compilerOptions": { "isolatedModules": true } }
-```
-
-Ensures each file can be transpiled independently (no cross-file const enum inlining, no namespace merging). Enables using fast transpilers (SWC, esbuild, Babel) for emit while tsc only does type checking. Already required by many modern tools (Vite, Next.js, Expo).
-
-### isolatedDeclarations (TypeScript 5.5+)
-
-```jsonc
-{ "compilerOptions": { "isolatedDeclarations": true } }
-```
-
-Requires explicit type annotations on all exports. Enables parallel `.d.ts` generation without type checking. Combined with `noCheck`, gives maximum build parallelism — up to 3x build time improvement.
-
-- Tradeoff: requires annotation discipline on all exported functions, variables, etc.
-
-### noCheck (TypeScript 5.6+)
-
-```jsonc
-{ "compilerOptions": { "noCheck": true } }
-```
-
-Skips type checking while still emitting JS output. Use case: split builds into `tsc --noCheck` (fast emit) + `tsc --noEmit` (type checking), run in parallel with separate `tsBuildInfoFile` paths.
-
-- Development speed optimization only — still need type checking in CI
-
-## Project References (Monorepos)
+For monorepos with roughly 5 to 20 packages, composite project references split one massive program into cached units rebuilt via `tsc --build`:
 
 ```jsonc
 // Root tsconfig.json
 { "references": [{ "path": "./packages/core" }, { "path": "./packages/ui" }] }
 
-// packages/core/tsconfig.json
+// Package tsconfig.json
 { "compilerOptions": { "composite": true, "declaration": true, "declarationMap": true } }
 ```
 
-Splits one large program into smaller projects. Each is checked independently, reducing per-project memory footprint. `tsc --build` only rebuilds changed projects.
-
-- Sweet spot: 5-20 projects
-- Tradeoff: significant configuration complexity
-
-## Editor/tsserver Memory (Large Monorepos)
-
-These flags affect the language server only, not `tsc` command-line builds.
+For large monorepos where the IDE language server (`tsserver`) runs out of memory (these flags do not affect CLI `tsc` builds):
 
 | Flag | Effect | Tradeoff |
-|------|--------|----------|
-| `disableReferencedProjectLoad` | Prevents loading all referenced projects at once | "Find All References" may be incomplete across projects |
-| `disableSolutionSearching` | Opts project out of solution search | Can break cross-project navigation |
-| `disableSourceOfProjectReferenceRedirect` | Uses `.d.ts` output instead of source files | Lose "go to source" for referenced projects |
+| --- | --- | --- |
+| `disableReferencedProjectLoad` | Delays loading all referenced projects at startup | "Find All References" may be incomplete across projects |
+| `disableSolutionSearching` | Excludes project from cross-project solution search | Breaks some cross-project navigation |
+| `disableSourceOfProjectReferenceRedirect` | Reads emitted `.d.ts` files instead of source | Loses "Go to Source" into referenced packages |
 
-## Code Patterns That Affect Performance
+## Code patterns affecting compiler speed
 
-- **Interfaces over type intersections**: `interface Foo extends Bar, Baz {}` creates a single flat cached object type; `type Foo = Bar & Baz` does not
-- **Avoid large unions (>12 members)**: Union comparison is quadratic; use base type + inheritance instead
-- **Explicit return type annotations**: Reduces inference work, especially on exported functions
-- **Break up complex conditional types**: Extract into named type aliases for caching
+- Prefer `interface Foo extends Bar, Baz {}` over `type Foo = Bar & Baz`: interfaces create a single cached object type.
+- Avoid very large union types (>12 complex members): union comparison scales quadratically.
+- Add explicit return type annotations on complex exported functions to cut inference work.
+- Name intermediate complex conditional types as type aliases so TypeScript can cache them.
 
-## Diagnostic Commands
+## Diagnostic commands
 
 ```bash
-# Detailed timing breakdown
-tsc --extendedDiagnostics
-
-# See which files are included and why
-tsc --listFilesOnly
-tsc --explainFiles
-
-# Generate trace for Chrome DevTools (chrome://tracing)
-tsc --generateTrace ./trace-output
-
-# Analyze trace hotspots
+tsc --extendedDiagnostics                 # timing, file count, memory breakdown
+tsc --listFilesOnly                       # every file included in the program
+tsc --explainFiles                        # why each file was pulled in
+tsc --generateTrace ./trace-output        # Chrome DevTools trace
 npx @typescript/analyze-trace ./trace-output
-
-# Count file watchers for a running tsc process (Linux)
-# Requires inotifywait or /proc/PID/fdinfo inspection
 ```
 
-## Future: TypeScript Native Port (tsgo)
+## Native TypeScript port (`tsgo`)
 
-The TypeScript compiler is being rewritten in Go (project "Corsa", shipping as TypeScript 7). Available now as `@typescript/native-preview` with a `tsgo` CLI — same CLI API as `tsc`. Benchmarks show ~10x faster type checking. Current gaps: declaration emit, full `--build` parity, some JSX/downlevel emits.
+TypeScript's Go rewrite (`@typescript/native-preview` / `tsgo`, targeting TypeScript 7) uses the same CLI surface as `tsc` and offers roughly an order-of-magnitude speedup on type checking. Verify current feature parity (declaration emit, `--build`, JSX/downlevel emit) before recommending it for production builds.
 
-## Impact Summary (Ordered by Payoff)
+## Payoff summary
 
-| Setting | Impact | Effort |
-|---------|--------|--------|
-| `watchOptions.excludeDirectories` | High — fewer watchers, less CPU | Trivial |
-| `skipLibCheck: true` | High — skips all `.d.ts` checking | Trivial |
-| `incremental: true` | High — only re-checks changes | Trivial |
-| `watchFile: "useFsEvents"` | Medium-High — event-driven vs polling | Trivial |
-| `isolatedModules: true` | Medium-High — enables fast transpilers | Minor code changes |
-| `exclude` patterns | Medium — smaller program | Maintain list |
-| Project references | High for monorepos | Significant setup |
-| `isolatedDeclarations` + `noCheck` | High — 3x build improvement | Annotation discipline |
-| `disableReferencedProjectLoad` | Medium for editors | Loses some cross-project features |
+| Optimization | Impact | Effort |
+| --- | --- | --- |
+| `watchOptions.excludeDirectories` | High (fewer watchers and CPU) | Trivial |
+| `skipLibCheck: true` | High (skips `.d.ts` checks) | Trivial |
+| `incremental: true` | High (faster rebuilds) | Trivial |
+| `watchFile: "useFsEvents"` | Medium-high | Trivial |
+| `isolatedModules: true` | Medium-high (unlocks fast transpilers) | Minor fixes |
+| `exclude` cleanup | Medium | Low |
+| Project references | High (large monorepos) | High setup |
+| `isolatedDeclarations` + `noCheck` | High (parallel emit/check) | Annotation discipline |
+| `disableReferencedProjectLoad` | Medium (editor memory) | Navigation tradeoff |

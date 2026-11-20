@@ -1,87 +1,50 @@
 ---
 name: browser-automation
-description: "Automate browser interaction with Playwright: open pages, take
-  screenshots, verify UI, test flows, debug pages, inspect elements."
+description: "Automate browser interaction with Playwright: open pages, inspect
+  elements, verify UI, debug running apps, test flows, or take screenshots."
 ---
 
-# Browser Automation with Playwright
+# Browser automation with Playwright
 
-Route the request to the right tool and let the dedicated skill drive the interaction. This file does **not** teach Playwright usage — it picks the tool, ensures the right skill is installed, and hands off.
+Pick the right Playwright interface, make sure the official CLI skill is installed, and hand off execution. This skill is a router; it does not teach Playwright commands or duplicate the upstream skill.
 
-## Routing Decision
+## Choose CLI or MCP
 
-Pick **one** based on the use case:
+| Use case | Tool | Next step |
+| --- | --- | --- |
+| Interactive automation, debugging a running app, ad-hoc verification | Playwright CLI | Use the official `playwright-cli` skill (see Setup) |
+| Running an existing Playwright test suite | `npx playwright test` | Official `playwright-cli` skill (`references/playwright-tests.md`) |
+| Recording new test code | `npx playwright codegen` | Official `playwright-cli` skill (`references/test-generation.md`) |
+| Client without shell/filesystem access, or a 1 to 3 step check where CLI setup costs more than it saves | Playwright MCP (fallback) | Read [`references/playwright-mcp-reference.md`](references/playwright-mcp-reference.md) |
 
-| Use case | Tool | Where to go |
-|----------|------|-------------|
-| Interactive automation, debugging a running app, ad-hoc verification | **Playwright CLI** | The official `playwright-cli` skill (see Setup) |
-| Running an existing Playwright test suite | `npx playwright test` | Official `playwright-cli` skill → `references/playwright-tests.md` |
-| Generating new test code from a recorded session | `npx playwright codegen` | Official `playwright-cli` skill → `references/test-generation.md` |
-| MCP-only client (Claude Desktop, Cursor) where shell isn't an option, or a single quick interaction where launching the CLI isn't worth it | **Playwright MCP** (fallback) | `references/playwright-mcp-reference.md` |
+Default to the CLI. It saves page snapshots to disk instead of streaming them into conversation history (~4x fewer tokens over a session) and avoids the ~3,400-token MCP tool schema overhead on every turn. See [`references/token-optimization.md`](references/token-optimization.md) for the cost model and architecture patterns.
 
-**Default to the CLI.** Microsoft's own guidance: coding agents are better served by CLI + skills than by MCP. CLI saves snapshots to disk instead of streaming them into context (~4× fewer tokens per session) and avoids the ~3,400-token MCP tool-schema overhead on every message. See `references/token-optimization.md` for the full breakdown.
+## CLI setup and handoff
 
-Use MCP only when no shell/filesystem is available, or for a one-shot interaction where setup overhead beats the per-action token savings.
+The Playwright CLI ships its own `playwright-cli` skill containing the current command reference and playbooks (test running, request mocking, tracing, video, storage state, element inspection, sessions). Never invent CLI flags or paraphrase that skill here; read it directly.
 
-## Setup: Required Before Any CLI Workflow
+1. Check whether the binary and skill are already installed:
 
-The Playwright CLI ships its own Claude Code skill (`playwright-cli`) — the canonical, always-up-to-date command reference plus task playbooks (test running, request mocking, tracing, video recording, storage state, spec-driven testing, element-attribute inspection, session management). This skill **never** duplicates that content. It either defers to the official skill or installs it.
+   ```bash
+   which playwright-cli || npx --no-install playwright-cli --version
+   test -f .claude/skills/playwright-cli/SKILL.md && echo "project skill installed"
+   test -f ~/.claude/skills/playwright-cli/SKILL.md && echo "user skill installed"
+   ```
 
-### Step 1 — Detect
+2. If either is missing, install without asking (authorized for this workflow), then briefly state the installed binary and skill path:
 
-```bash
-# Is the binary on PATH?
-which playwright-cli || npx --no-install playwright-cli --version
+   ```bash
+   npm install -g @playwright/cli@latest
+   playwright-cli install --skills
+   ```
 
-# Is the skill installed (project-level or user-level)?
-test -f .claude/skills/playwright-cli/SKILL.md && echo "project skill installed"
-test -f ~/.claude/skills/playwright-cli/SKILL.md && echo "user skill installed"
-```
+3. Read the installed `playwright-cli/SKILL.md` and the specific `references/*.md` file matching the task, then execute the user's request.
 
-### Step 2 — Install if missing
+## Delegate multi-step sessions when supported
 
-Install without asking — Alex always wants the official skill present:
-
-```bash
-# Install the global binary if `which playwright-cli` failed
-npm install -g @playwright/cli@latest
-
-# Scaffold .playwright/ workspace, install default browser,
-# and copy the skill to ./.claude/skills/playwright-cli/
-playwright-cli install --skills
-```
-
-Briefly state what was installed (binary + skill path) so Alex can see it.
-
-### Step 3 — Hand off
-
-After install, **all CLI command reference and patterns come from the official `playwright-cli` skill**. Do not invent commands, paraphrase its content here, or fall back to memory. Read its `SKILL.md` and the relevant `references/*.md` for the task at hand.
-
-If you find yourself wanting to add CLI command examples to *this* skill, stop — the right place is upstream (the official skill) or, for our own router-level concerns, in `references/token-optimization.md`.
-
-## Architecture: Use Subagents for Browser Work
-
-For sessions involving more than a few interactions, **delegate to a subagent**. The Playwright maintainer recommends this pattern explicitly: each subagent gets its own context loop, so browser snapshots and intermediate state accumulate there instead of in the main conversation.
-
-```
-"Use a subagent to: navigate to http://localhost:3000/settings,
- verify the theme toggle exists, click it, confirm dark mode applies.
- Report back pass/fail."
-```
-
-## Self-Improvement
-
-Watch for inefficiency or struggle:
-
-- **Repeated failed interactions** (wrong refs, stale snapshots, elements not found)
-- **Excessive navigation** when `eval` or direct URLs would suffice
-- **Tool mismatch** (using MCP for a 30+ step session, or CLI for a single-step check inside an MCP-only client)
-- **Token waste** (screenshots when snapshots suffice, redundant snapshots, full-page snapshots on huge apps)
-- **Missing knowledge in the official skill** (auth flows, dynamic content, SPA edge cases, framework-specific quirks)
-
-Surface concrete suggestions to Alex after the immediate task. For CLI command gaps, the fix is upstream in the official `playwright-cli` skill, not here. For routing, MCP, or token-economics gaps, propose specific edits to this skill or its references.
+When the environment supports subagents and the task requires more than a few browser interactions, delegate the browser loop to a subagent with a concrete URL, actions, and pass/fail checks. Snapshots and intermediate DOM state stay inside the subagent instead of filling the main conversation.
 
 ## References
 
-- **`references/playwright-mcp-reference.md`** — MCP setup, full tool catalog, configuration flags, and patterns. Use only when CLI isn't an option.
-- **`references/token-optimization.md`** — Token cost analysis, per-tool optimization patterns, architecture-level decisions.
+- [`references/playwright-mcp-reference.md`](references/playwright-mcp-reference.md): MCP setup, flags, tool catalog, and scoping patterns. Load only when falling back to MCP.
+- [`references/token-optimization.md`](references/token-optimization.md): CLI vs. MCP token math, subagent isolation, auth-state reuse, and prompt/workflow cost habits.

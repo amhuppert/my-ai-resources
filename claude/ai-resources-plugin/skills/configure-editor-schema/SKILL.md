@@ -1,101 +1,49 @@
 ---
 name: configure-editor-schema
-description: "Wire an existing JSON Schema into VS Code, Cursor, and/or Zed so it provides validation and IntelliSense for matching JSON or YAML files."
+description: "Wire an existing JSON Schema into VS Code, Cursor, or Zed settings for matching JSON or YAML files."
 argument-hint: "[<schema-path-or-url>] [--type json|yaml] [--match <glob>] [--editor vscode|cursor|zed] [--scope user|project]"
-allowed-tools: Read, Edit, Write, Glob, AskUserQuestion, Bash(ls:*), Bash(mkdir:*)
+allowed-tools: Read, Edit, Write, Glob, AskUserQuestion, Bash(ls:*), Bash(mkdir:*), Bash(uname:*)
 disable-model-invocation: true
 ---
 
-# Editor Schema Configurator
+# Configure editor schema
 
-Associate an existing JSON Schema with a file-match glob in one or more editors (VS Code, Cursor, Zed) for both JSON and YAML files. Authoring the schema itself is **out of scope** — the schema must already exist on disk or be reachable at an HTTPS URL.
+Wire an existing JSON Schema to one or more file-match globs in VS Code, Cursor, or Zed for JSON or YAML files. Authoring the schema itself is out of scope; the schema must already exist on disk or at an HTTPS URL.
 
-<arguments>
-Use the arguments supplied in the user's invocation.
-</arguments>
+## 1. Resolve inputs
 
-## Step 1: Parse Inputs
+Extract five values from the invocation:
 
-Extract these inputs from the user's invocation. Collect anything missing in Step 2.
+- **Schema source:** local file path (absolute or project-relative) or HTTPS URL. Treat vague descriptions like "the schema for X" as missing.
+- **File type:** `json` or `yaml`.
+- **File-match glob(s):** one or more patterns such as `**/myconfig.json` or `.foo/*.yaml`.
+- **Editor(s):** any combination of VS Code, Cursor, and Zed.
+- **Scope:** `user` (default) or `project`.
 
-- **Schema source**: a local file path (absolute or project-relative) OR an HTTPS URL.
-- **File type**: `json` or `yaml` — which file type the schema validates.
-- **File-match glob(s)**: one or more glob patterns matching the config files that should use this schema (e.g., `**/myconfig.json`, `.foo/*.yaml`).
-- **Editor(s)**: any combination of VS Code, Cursor, Zed.
-- **Scope**: `user` (default) or `project`.
+Ask only for inputs that are missing or ambiguous, using one compact round of questions. If all required inputs are already present, proceed without asking for extra confirmation.
 
-If the schema source is ambiguous (e.g., the user said "the schema for X" without giving a path), treat it as missing.
+## 2. Locate settings files
 
-## Step 2: Collect Missing Inputs
+Read [`references/editor-settings.md`](references/editor-settings.md) for OS-specific settings paths, exact JSON/YAML schema shapes, and prerequisites. Only macOS and Linux are supported; multi-root workspaces are out of scope (treat the current working directory as the project root).
 
-Use the active client's user-question mechanism to fill gaps. One question per missing input. Suggested prompts:
+Detect the OS from environment context or `uname`. On Linux, use `$XDG_CONFIG_HOME` when set, falling back to `~/.config`. If a target settings file or its parent directory does not exist, create the parent directory and initialize the file with `{}`.
 
-- **Schema source**: "Where is the schema? Provide an absolute path, a project-relative path, or an HTTPS URL."
-- **File type**: "Is this schema for JSON files or YAML files?" (options: `json`, `yaml`)
-- **Glob(s)**: "Which files should this schema apply to? Provide one or more glob patterns."
-- **Editors**: "Which editors should I configure?" (options: `VS Code`, `Cursor`, `Zed`, plus combinations — allow multi-select)
-- **Scope**: "User-level (applies across all your projects) or project-level (committed to this repo)?" Default: user.
-
-Confirm the resolved inputs back to the user in one short summary before writing anything.
-
-## Step 3: Resolve Settings File Paths
-
-For each chosen editor and scope, determine the absolute path of the settings file. Consult `references/editor-settings.md` for the per-OS path table and project-level conventions.
-
-Use `uname` or known environment context to detect the OS. On Linux, prefer `$XDG_CONFIG_HOME` when set, falling back to `~/.config`.
-
-If a settings file or its parent directory does not exist, create them:
-
-- `mkdir -p <parent-dir>`
-- `Write` an empty `{}` if the file is missing.
-
-## Step 4: Read Existing Settings and Detect Conflicts
+## 3. Check for conflicts and edit safely
 
 For each target settings file:
 
-1. Read the file with the `Read` tool.
-2. Locate the relevant schemas section based on editor + file type. See `references/editor-settings.md` for the exact shape per editor.
-3. Detect conflicts:
-   - **VS Code/Cursor JSON** (`json.schemas` array): conflict = an existing entry whose `fileMatch` overlaps with the new glob.
-   - **VS Code/Cursor YAML** (`yaml.schemas` map): conflict = an existing key (schema source) already bound to an overlapping glob, OR a different schema source bound to the same glob.
-   - **Zed JSON / Zed YAML**: same logic, but nested under `lsp.{json|yaml}-language-server.settings.{json|yaml}.schemas`.
+1. Read the file and locate its schema section (see [`references/editor-settings.md`](references/editor-settings.md)).
+2. Check for conflicts using exact string equality on globs or schema keys (do not attempt set-overlap math; if unsure, ask):
+   - **JSON arrays** (`json.schemas` or Zed's `json.schemas`): conflict if an existing entry's `fileMatch` shares a glob with the new entry.
+   - **YAML maps** (`yaml.schemas` or Zed's `yaml.schemas`): conflict if the same schema key already maps to an overlapping glob, or a different schema key maps to the same glob.
+   - When a conflict exists, ask whether to overwrite, skip that editor, or abort.
+3. Apply the smallest targeted text edit that inserts the new entry while preserving existing JSONC comments, trailing commas, and indentation. Never overwrite an existing settings file wholesale or round-trip it through `JSON.parse`/`JSON.stringify`.
+4. For user-level Zed config, prefer absolute paths or `~/` over `./`, because `./` resolves relative to a project worktree.
+5. Re-read the edited file to confirm balanced braces, intact comments, and the new entry in place.
 
-"Overlap" means the new glob equals or is a string-identical match of an existing one. Don't try to compute true set-overlap — when in doubt, surface the candidate to the user.
+## 4. Report results
 
-If conflicts exist, ask about each conflicting entry: "Overwrite the existing mapping `<existing>` with `<new>`?" Options: `overwrite`, `skip this editor`, `abort`.
+Done when every requested editor's settings file has been updated (or explicitly skipped on conflict) and re-read for valid JSONC. Report:
 
-## Step 5: Apply Additive Edits
-
-For each settings file:
-
-1. Use the `Edit` tool to make the smallest possible surgical change. **Never** rewrite the whole file with `Write` when settings already exist.
-2. Preserve JSONC content — comments, trailing commas, formatting. All three editors permit JSONC in their settings files.
-3. Insert into existing structure when the parent keys exist; otherwise create the nested keys.
-4. Use the exact shape documented in `references/editor-settings.md`.
-
-Two common patterns:
-
-- **Empty file (`{}`)**: extend `{}` to include the full required nested structure.
-- **Existing schemas section**: append to the array (VS Code/Cursor JSON, Zed JSON) or add a new key (VS Code/Cursor YAML, Zed YAML).
-
-After editing, re-read the file once to confirm the change parses as valid JSONC (look for matching braces and the new entry being present).
-
-## Step 6: Report Results
-
-Return a short summary:
-
-- For each editor configured: the settings file path and a one-line description of what was added.
-- If YAML was configured for VS Code or Cursor, surface the prerequisite: **the Red Hat YAML extension (`redhat.vscode-yaml`) must be installed**, otherwise `yaml.schemas` does nothing. The skill does not probe for it.
-- If a file or directory was created, mention that.
-- If the user chose to skip an editor due to a conflict, mention that too.
-
-## Edge Cases
-
-- **HTTPS schema URL with YAML**: works in all three editors.
-- **Zed paths**: `./` resolves to the worktree root, `~/` to the home directory. For user-level Zed config, prefer absolute paths or `~/` over `./` — `./` may resolve unpredictably.
-- **Multi-root workspaces**: out of scope. Treat the current working directory as the single workspace root for project-scope edits.
-- **OS support**: Linux and macOS only. Windows is not supported.
-
-## Additional Resources
-
-- **`references/editor-settings.md`** — Per-OS settings paths, exact settings shapes for every editor+file-type combination, JSONC notes, and the Red Hat YAML extension prerequisite.
+- Each configured editor, its settings file path, and what was added (plus any created directories/files or skipped editors).
+- If YAML was configured for VS Code or Cursor, note that the **Red Hat YAML extension** (`redhat.vscode-yaml`) is required for `yaml.schemas` to work (this skill does not probe installed extensions).

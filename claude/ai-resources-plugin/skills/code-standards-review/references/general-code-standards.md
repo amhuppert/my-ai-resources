@@ -1,53 +1,40 @@
-# General Code Standards
+# General code standards
 
-## Control Flow
+## Control flow
 
-- Prefer early returns over nested conditionals for readability.
+Prefer early returns and guard clauses over deeply nested conditionals.
 
-## Code Comments
+## Comments
 
-- You MUST NEVER add commends without considering whether the comment is actually needed.
-- When changing code, never document the old behavior or the behavior change (the reader only cares about the CURRENT state)
-- NEVER add comments explaining that something is "improved", "better", "new", "enhanced", or referencing what it used to be
-- If you're refactoring, remove old comments - don't add new ones explaining the refactoring
-- YOU MUST NEVER remove code comments unless you can PROVE they are actively false. Comments are important documentation and must be preserved.
-- YOU MUST NEVER refer to temporal context in comments (like "recently refactored" "moved") or code. Comments should be evergreen and describe the code as it is. If you name something "new" or "enhanced" or "improved", you've probably made a mistake and MUST STOP and ask me what to do.
+Write comments only when the code cannot express the information directly:
 
-Only comment when code cannot convey the information:
-
-- Why approach was chosen over alternatives
-- Business constraints/requirements
+- Why an approach was chosen over alternatives
+- Business constraints or external requirements
 - Non-obvious gotchas or edge cases
-- Complex algorithms requiring explanation
+- Complex algorithms that need plain-language explanation
 
-<example type="invalid">
+Do not add comments that restate what the code already shows:
+
 ```ts
-// Get the role for this account from the session
+// Bad: restates the line below
 const role = session.accountMappings[accountId];
+
+// Good: explains an external constraint invisible in the code
+// Delay 2s because the Stripe webhook arrives before the DB commit finishes
+await new Promise((resolve) => setTimeout(resolve, 2000));
 ```
-❌ Restates what code already shows clearly.
-</example>
 
-<example type="valid">
-```ts
-// Intentionally delay 2s - Stripe webhook arrives before DB commit completes
-await new Promise(resolve => setTimeout(resolve, 2000));
-```
-✅ Explains constraint impossible to know from code alone
-</example>
+Keep comments evergreen. Describe the current state of the code, never what changed, what was removed, or words like "new", "improved", "enhanced", or "recently refactored". Remove obsolete comments when refactoring, and do not delete existing comments unless you have verified they are factually wrong.
 
-## Error Handling
+## Error handling
 
-- Handle errors only at system boundaries where unexpected failures can occur (external APIs, file operations, user input)
-- Do not add error handling for scenarios that cannot realistically happen
-- Within application code, let errors propagate: if something shouldn't happen, an error message is valuable debugging information
-- Services validate external data with Zod immediately upon receipt; let validation failures propagate as exceptions
+- Handle errors at system boundaries where external failures realistically happen (APIs, filesystem, network, user input).
+- Let unexpected internal errors propagate instead of swallowing them; an uncaught failure surfaces bugs faster than defensive fallbacks for impossible states.
+- Validate external payloads with Zod at the boundary where they enter the service layer, and let validation errors throw immediately.
 
-## Designing Software
+## Software design
 
-- YAGNI. The best code is no code. Don't add features we don't need right now.
-- When it doesn't conflict with YAGNI, architect for extensibility and flexibility.
-- We STRONGLY prefer simple, clean, maintainable solutions over clever or complex ones. Readability and maintainability are PRIMARY CONCERNS, even at the cost of conciseness or performance.
-- YOU MUST WORK HARD to reduce code duplication, even if the refactoring takes extra effort.
-- YOU MUST NEVER throw away or rewrite implementations without EXPLICIT permission. If you're considering this, YOU MUST STOP and ask first.
-- YOU MUST get Alex's explicit approval before implementing ANY backward compatibility.
+- **YAGNI:** do not add speculative features, hooks, or abstractions beyond current needs. When it does not conflict with YAGNI, keep boundaries clean enough to extend later.
+- **Clarity over cleverness:** favor simple, readable, maintainable code even when a denser or slightly faster alternative exists.
+- **Deduplicate real repetition:** factor out duplicated logic when the shared behavior is genuine, not accidental.
+- **Explicit approval for high-risk scope changes:** stop and ask the user before discarding and rewriting an existing implementation from scratch, or before adding backward-compatibility shims.

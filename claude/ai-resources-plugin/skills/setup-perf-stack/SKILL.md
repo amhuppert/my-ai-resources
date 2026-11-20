@@ -1,108 +1,81 @@
 ---
 name: setup-perf-stack
-description: "Bootstrap web performance debugging tooling: install chrome-devtools-mcp and related MCP servers/skills."
+description: "Install and smoke-test web performance debugging tooling: chrome-devtools-mcp, Chrome DevTools Skills, optional Next.js/Lighthouse/react-scan tools, and Chrome debug profiles."
 disable-model-invocation: true
 ---
 
-# Setup: Performance Debugging Stack
+# Setup performance debugging stack
 
-Bootstrap the MCP servers and skills required for Claude Code to autonomously investigate performance issues in web applications.
+Install and verify the MCP servers and plugins needed for trace-based web performance work. This skill covers **setup only**; once the smoke test passes, use `investigate-web-perf` for actual diagnosis and optimization.
 
-This skill only handles **installation**. For the actual investigation workflow (the reproduce → capture → analyze → fix → validate loop, framework-specific rules, per-scenario playbooks), use the `investigate-web-perf` skill once setup is complete.
+## Stack components
 
-## What This Skill Installs
+`chrome-devtools-mcp` is the required core: it wraps Puppeteer + CDP and exposes `performance_analyze_insight`, which compresses ~30 MB traces into ~4 kB summaries across 18 named insights. Everything else is optional by project stack:
 
-The anchor is `chrome-devtools-mcp` — it wraps Puppeteer + CDP and exposes `performance_analyze_insight`, which compresses a ~30 MB Chrome trace into a ~4 KB summary across 18 named insights (LCPBreakdown, INPBreakdown, ForcedReflow, DuplicatedJavaScript, CLSCulprits, etc.). Without this compression, raw traces blow the context window. Everything else layers on top.
+| Component | Role | Install when |
+| --- | --- | --- |
+| `chrome-devtools-mcp` | Lab traces, CDP, 18 insights, built-in `lighthouse_audit` | Always |
+| Chrome DevTools Skills plugin | Curated LCP/a11y workflows that curb Perf-API hallucinations (`chrome-devtools-mcp#1114`) | Always |
+| `next-devtools-mcp` | `/_next/mcp` route, Suspense, and compile-error introspection | Next.js 16+ only |
+| `@danielsogl/lighthouse-mcp` | Batch Lighthouse scoring and regression diffs | Only if batch Lighthouse runs are needed |
+| `react-scan` (dev dep) | Runtime React render profiler | React projects |
+| Dedicated Chrome debug profile | Remote debugging on Chrome 136+ (default profile is blocked) | Authenticated flows only |
 
-| Component | Role | Required? |
-|-----------|------|-----------|
-| `chrome-devtools-mcp` | Lab traces, CDP, insights, Lighthouse-in-MCP | **Yes** |
-| Chrome DevTools Skills plugin | Curated LCP + a11y workflows that prevent Perf-API hallucinations | **Yes** |
-| `next-devtools-mcp` | Next.js 16+ dev-server bridge, route tree, Suspense automation | Next.js 16+ only |
-| `@danielsogl/lighthouse-mcp` | Batch scoring + regression diff | Optional; CDT MCP has `lighthouse_audit` |
-| `react-scan` dev dep | Runtime render profiler (successor to why-did-you-render) | React projects |
-| Dedicated Chrome debug profile | Required for authenticated sites (Chrome 136+ blocks default profile) | Auth flows only |
+Do not install speculatively: each MCP server adds ~13k to 18k tokens of tool schemas per session. Never install `@million/lint` (deprecated), `why-did-you-render` for new projects (maintenance-only since Jan 2025), or unofficial "react-scan MCP" packages.
 
-## Before You Start
+## 1. Confirm project needs
 
-Ask the user (or infer from the repo) and confirm:
+Infer from the repository where possible, and ask only what cannot be inferred:
 
-1. **Framework** — Next.js 16+ / Next.js 15 / plain React / Vite / other. Only install `next-devtools-mcp` for Next.js 16+.
-2. **Auth** — Does the perf scenario require logging in? If yes, do step 5.
-3. **Scope** — User-level (`--scope user`, every project inherits) or project-level (`--scope project`, only this repo). Default to `user` for the core tools.
+1. **Framework:** Next.js 16+, Next.js 15, plain React, Vite, or other (install `next-devtools-mcp` only for Next.js 16+).
+2. **Authentication:** whether performance runs must load logged-in pages (determines Step 4).
+3. **Install scope:** user-level (`--scope user`, default for core MCPs) or project-level (`--scope project`).
 
-Never install speculatively. Each MCP costs ~13–18k tokens of tool definitions per session; a minimal stack is the right default.
+## 2. Install `chrome-devtools-mcp` and its skills plugin
 
-## Step 1 — Install the Anchor: `chrome-devtools-mcp`
+Commands below show Claude Code CLI syntax; for Codex CLI or another MCP client, add the same `npx` command and flags to that client's MCP config.
 
 ```bash
+# Standard user-scope install
 claude mcp add chrome-devtools --scope user -- npx chrome-devtools-mcp@latest
+
+# Privacy-sensitive or offline environments
+claude mcp add chrome-devtools --scope user -- \
+  npx chrome-devtools-mcp@latest --no-performance-crux --no-usage-statistics
 ```
 
-Privacy-sensitive or offline contexts:
+On WSL, Chrome must be installed inside the Linux distro (`which google-chrome`), not only on the Windows host.
 
-```bash
-claude mcp add chrome-devtools --scope user -- npx chrome-devtools-mcp@latest --no-performance-crux --no-usage-statistics
-```
+Install the companion Chrome DevTools Skills plugin (provides `chrome-devtools-cli`, `debug-optimize-lcp`, and accessibility debugging):
 
-**WSL:** Chrome must be installed *inside* the Linux distro, not via the Windows host. Check with `which google-chrome`.
-
-## Step 2 — Install the Chrome DevTools Skills Plugin
-
-These are the curated skills Google ships alongside the MCP. They encode the capture→analyze loop and counter the documented failure mode where models hallucinate non-existent Performance-API calls (`chrome-devtools-mcp#1114`).
-
-```bash
+```text
 /plugin marketplace add ChromeDevTools/chrome-devtools-mcp
 /plugin install chrome-devtools-mcp@chrome-devtools-mcp
 ```
 
-This brings in at minimum: `chrome-devtools-cli`, `debug-optimize-lcp`, and the accessibility debug skill.
+## 3. Optional stack additions
 
-## Step 3 — Framework-Specific MCP (Next.js 16+ Only)
+- **Next.js 16+ only:**
+  ```bash
+  claude mcp add next-devtools --scope user -- npx -y next-devtools-mcp@latest
+  ```
+- **Batch Lighthouse only** (`chrome-devtools-mcp` already provides single-run `lighthouse_audit`):
+  ```bash
+  claude mcp add lighthouse --scope user -- npx @danielsogl/lighthouse-mcp@latest
+  ```
+- **React projects (`react-scan`):**
+  ```bash
+  npm install --save-dev react-scan
+  ```
+  Optional `package.json` script: `"scan": "react-scan http://localhost:3000"`.
 
-Bridges the `/_next/mcp` dev-server endpoint for route/Suspense/compile-error introspection.
+## 4. Authenticated pages only: dedicated Chrome profile
 
-```bash
-claude mcp add next-devtools --scope user -- npx -y next-devtools-mcp@latest
-```
-
-Skip this step for non-Next.js projects and for Next.js 15 or earlier.
-
-## Step 4 — Optional Lab Tooling
-
-**Lighthouse MCP** (batch scoring, regression diffs, reusable prompts) — skip unless the user explicitly needs batch Lighthouse runs. `chrome-devtools-mcp` already exposes `lighthouse_audit` for one-off runs.
-
-```bash
-claude mcp add lighthouse --scope user -- npx @danielsogl/lighthouse-mcp@latest
-```
-
-**`react-scan`** as a dev dependency for in-browser render inspection:
+Chrome 136+ blocks remote debugging against the default user profile. Launch a dedicated profile, sign in once so cookies persist, and point `chrome-devtools-mcp` at it:
 
 ```bash
-npm install --save-dev react-scan
+google-chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-debug"
 ```
-
-Optional convenience script for `package.json`:
-
-```json
-"scripts": {
-  "scan": "react-scan http://localhost:3000"
-}
-```
-
-**Do not install:** `@million/lint` (deprecated on npm), `why-did-you-render` for new projects (maintenance-only since Jan 2025), any community "react-scan MCP" (none is officially supported; the one on LobeHub is an unrelated static analyzer).
-
-## Step 5 — Dedicated Chrome Debug Profile (Auth Flows Only)
-
-Chrome 136+ blocks remote debugging against the default profile. For any authenticated page, launch a dedicated profile:
-
-```bash
-google-chrome \
-  --remote-debugging-port=9222 \
-  --user-data-dir="$HOME/.chrome-debug"
-```
-
-Log in once in this profile (cookies persist across sessions), then reconfigure the MCP to attach to the running instance:
 
 ```bash
 claude mcp remove chrome-devtools
@@ -112,32 +85,17 @@ claude mcp add chrome-devtools --scope user -- \
   --user-data-dir "$HOME/.chrome-debug"
 ```
 
-## Step 6 — Smoke-Test the Install
+## 5. Smoke-test the stack
 
-Ask the agent to record a trace against a known URL:
+Run a reload trace against `https://example.com` with Slow 4G + 4x CPU, call `performance_analyze_insight` for `LCPBreakdown`, and report the LCP element and dominant subpart.
 
-> Record a reload trace of `https://example.com` with Slow 4G + 4× CPU. Call `performance_analyze_insight` for `LCPBreakdown`. Report the LCP element and the dominant subpart.
+- **Pass:** `performance_start_trace` runs with emulation params, `performance_analyze_insight` returns a compact summary (not raw trace JSON), and no invented `performance.*` API calls are needed.
+- **Fail** (missing `performance_analyze_insight`, raw JSON dump, or invented Perf-API calls): recheck Step 2 and restart the client so newly added MCP tools load.
 
-**Success signals:**
-- Agent calls `performance_start_trace` with emulation params, not freeform `evaluate_script`.
-- Agent calls `performance_analyze_insight` with a valid insight name from the fixed list of 18.
-- Agent receives a compact summary, not raw trace JSON.
+## Known issues and security
 
-**Failure signals** (reinstall steps 1–2):
-- Agent invents `performance.getEntriesByType("largest-contentful-paint-v2")` or similar non-existent APIs.
-- Agent dumps raw trace JSON into the response.
-- `performance_analyze_insight` is not available as a tool.
+- **Codex CLI process leak (`openai/codex#17574`):** long sessions can leak `chrome-devtools-mcp` helper processes; run `pkill -f chrome-devtools-mcp` between sessions if memory climbs.
+- **Authenticated page timeouts:** caused by skipping Step 4 on Chrome 136+.
+- **Third-party skill safety:** Snyk's ToxicSkills audit found critical security issues (including credential exfiltration) in ~13% of community skill packs. Inspect every `SKILL.md` and bundled script before installing external skills; trusted defaults include Anthropic's `skills/` repo, `addyosmani/web-quality-skills`, and `ChromeDevTools/chrome-devtools-mcp`.
 
-Once the smoke test passes, hand off to the `investigate-web-perf` skill for real work.
-
-## Troubleshooting
-
-- **`chrome-devtools-mcp` process leak on Codex CLI** — Open issue `openai/codex#17574`. Long sessions leak helper processes consuming tens of GB of swap. Run `pkill -f chrome-devtools-mcp` between sessions until patched.
-- **Context pollution** — Each screenshot is ~2k tokens; verbose tool outputs degrade instruction-following past ~60% context. Use `/clear` between unrelated perf investigations, delegate trace triage to subagents, prefer snapshots over screenshots.
-- **Non-deterministic numbers** — LCP/INP vary ±15–30% from CPU thermal state and GC. This is a property of the metric, not a setup issue. The `investigate-web-perf` skill handles this by always pinning emulation and running N=3.
-- **Authenticated page times out** — You skipped step 5. Default profile debugging is blocked since Chrome 136.
-- **Agent hallucinates Perf-API methods** — You skipped step 2. The curated skills exist specifically for this failure mode.
-
-## Community Skills Security Caveat
-
-Snyk's ToxicSkills study found ~13% of community "awesome-skill" packages had critical security issues, some exfiltrating credentials. Review every `SKILL.md` and bundled script before installing community skills. Safe base: Anthropic's own `skills/` repo, `addyosmani/web-quality-skills`, and skills bundled with `ChromeDevTools/chrome-devtools-mcp`.
+Done when required components are installed for the user's stack, the `example.com` smoke test passes (or restart instructions are given if the client requires reload to expose new MCP tools), and the user is pointed to `investigate-web-perf` for investigation work.

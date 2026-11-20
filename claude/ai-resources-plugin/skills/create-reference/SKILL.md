@@ -1,147 +1,63 @@
 ---
 name: create-reference
-description: "Create or update an AI-optimized reference document for a tool, library, framework, or API via thorough research."
+description: "Create or update a compact technical reference for a tool, library, framework, or local codebase, grounded in current docs or source."
 argument-hint: "<subject> [--update <existing-file>] [--language <language>]"
 allowed-tools: Read, Write, Glob, Grep, WebSearch, WebFetch, Agent, AskUserQuestion, Bash(ls:*)
 disable-model-invocation: true
 ---
 
-# Reference Document Creator
+# Create reference document
 
-Create or update reference documents that provide AI agents with comprehensive knowledge of a tool, technology, library, framework, or API. The resulting document enables an AI agent to work effectively with the subject without prior knowledge.
+Write or update a dense, accurate reference document that gives an AI agent everything non-obvious it needs to use a tool, library, framework, or local codebase without hunting through external docs.
 
-<subject>
-Use the subject and options supplied in the user's invocation.
-</subject>
+## 1. Establish mode and scope
 
-## Step 1: Parse the Request
+Read the user's invocation for the subject, target language (`--language`), and whether this is an update (`--update <path>`):
 
-Determine the mode and subject from the arguments:
+- **Update mode:** read the existing reference in full before researching. Research only the new or changed areas, integrate them into the existing structure (unless the user asks to reorganize), and remove contradicted or obsolete details.
+- **Create mode (default):** write a new reference.
 
-- **Create mode** (default): Generate a new reference document
-- **Update mode**: If `--update <path>` is specified or the user asks to update an existing document, read the existing document in full first, then research only the new topic areas and integrate them into the existing structure. Where old and new content contradict, new content takes precedence; remove outdated information. Preserve the overall structure unless the user requests restructuring.
+Determine the source type: public tool/library (use primary web documentation), local codebase/path (inspect the repository), or both. When combining web docs and local source, local implementation wins on any conflict.
 
-Determine the subject source:
+Ask one brief round of questions only if a missing detail materially changes the reference (such as which language binding to document for a multi-language tool, or which module of a large platform to cover).
 
-- **Public tool/library/framework**: Subject is identified by name (e.g., "Zod", "React Router v7", "Playwright"). Perform web research.
-- **Local codebase/tool**: Subject is a local directory or file path. Explore the codebase.
-- **Both**: Some subjects benefit from combining web research with local codebase analysis.
+## 2. Research from primary sources
 
-If the subject or scope is ambiguous, ask the user to clarify:
+Verify APIs, CLI flags, config keys, types, and version-specific behavior against primary sources rather than memory:
 
-- What specific aspects to cover (full API, specific module, common patterns)
-- Target language if the tool supports multiple (e.g., BAML supports TypeScript and Python)
-- Intended audience context (what types of projects will use this reference)
+- **Public tools:** read official API references, config docs, and recent changelogs or migration guides in full rather than relying on search snippets. Look for version-breaking changes and common gotchas.
+- **Local codebases:** inspect entry points, package manifests, exported types and functions, config files, tests, and existing docs.
 
-## Step 2: Research the Subject
+Distinguish verified facts from anything you could not confirm, and note the documented version wherever behavior varies across versions.
 
-Conduct thorough research to build comprehensive understanding.
+## 3. Write the reference
 
-### For Public Tools/Libraries
+Adapt the structure to fit the subject rather than forcing empty sections. Most references need some subset of:
 
-1. **Search for official documentation**: API references, getting started guides, configuration docs
-2. **Search for guides and tutorials**: Practical usage patterns, common recipes, best practices
-3. **Search for changelogs and migration guides**: Recent breaking changes or important version-specific behavior
-4. **Fetch key documentation pages**: Read official docs pages in full with the active client's browsing capability to extract precise API details, function signatures, configuration options, and examples
-5. **Search for common pitfalls**: Known gotchas, common mistakes, debugging tips
+- Short overview (what it does, primary use case, core mental model)
+- Setup or installation (only what is non-obvious or version-specific)
+- Core concepts and terminology
+- API, CLI, or configuration reference (exact signatures, parameter types, defaults, flags)
+- Common patterns (minimal, runnable examples showing the main path first, plus expected output when non-obvious)
+- Gotchas and troubleshooting (real pitfalls and fixes)
 
-### For Local Codebases
+Writing standards:
 
-1. **Explore the project structure**: Search files and list directories to understand organization
-2. **Read key files**: Entry points, configuration files, READMEs, type definitions, public API surfaces
-3. **Identify the public API**: Exported functions, classes, types, CLI commands, configuration options
-4. **Find usage examples**: Tests, examples directories, README snippets
-5. **Check for existing documentation**: Internal docs, JSDoc comments, docstrings
+- Match format to content: short paragraphs for mental models, tables for options and flags, code blocks for commands and signatures, lists for peers, Mermaid diagrams only when a visual beats prose.
+- Optimize for signal per token. Omit concepts any frontier model already knows, avoid repeating rules across sections, and state "why" only when it prevents misuse.
+- Use direct, plain language and consistent terminology throughout.
 
-When combining both sources, local code takes precedence where web documentation contradicts the actual implementation.
+## 4. Verify and save
 
-## Step 3: Organize and Draft the Reference
+Before writing the final file, verify:
 
-### Document Structure Template
+- Every documented signature, CLI flag, config key, and code snippet matches primary docs or inspected source for the stated version.
+- No obsolete statements remain (in update mode) and no essential API surface within scope is missing.
+- No filler sections or redundant summaries pad the document.
 
-```markdown
-# [Subject Name] Reference Guide for AI Agents
+Save location:
 
-<Overview>
-[1-3 sentence description of what the tool does and its primary use case.]
-[Key workflow or mental model in one sentence.]
-</Overview>
+- **Create mode:** `agent-docs/<subject-name>-reference.md` (kebab-case) in the project root, or `agent-docs/<subject-name>-reference-<language>.md` for language-specific docs. If the subject clearly warrants multiple files, place them in `agent-docs/<subject-name>/`.
+- **Update mode:** edit the target file in place.
 
-## Installation / Setup
-
-[Commands, dependencies, prerequisites]
-
-## Core Concepts
-
-[Key mental models and terminology the agent must understand]
-
-## API Reference / Key APIs
-
-[Function signatures, parameters, return types]
-[Organized by logical groupings]
-
-## Configuration
-
-[Config files, environment variables, options]
-
-## Common Patterns
-
-[Practical recipes for frequent tasks]
-
-## Commands / CLI
-
-[If applicable: command syntax, flags, examples]
-
-## Troubleshooting / Gotchas
-
-[Common pitfalls and their solutions]
-```
-
-Adapt this structure to the subject — not all sections apply to every tool, and the structure should follow the natural workflow of using it.
-
-### Writing Standards
-
-Format:
-
-- Use bulleted lists over prose, one concept per bullet
-- Imperative form for instructions ("Run `npm install`", not "You should run `npm install`")
-- Include code blocks for all commands, API calls, and configuration examples
-- Use tables for reference data (options, flags, type mappings)
-- Use Mermaid diagrams for architectural concepts or workflows when clearer than text
-- Use XML tags (`<Overview>`, `<critical>`, `<example>`) for structural clarity where appropriate
-
-Content:
-
-- Optimize for AI agent consumption: high information density, minimal tokens, no redundancy between sections
-- Include precise API signatures with types, and concrete code examples rather than abstract descriptions
-- Specify versions when version-specific behavior exists
-- Include the "why" only when it prevents common misuse
-- Omit information any LLM would already know
-- Focus on actionable knowledge: what to do, how to do it, what to avoid
-
-Code examples:
-
-- Keep examples minimal but complete (runnable when possible)
-- Show the most common usage first, then variations
-- Include expected output or return values when non-obvious
-- Annotate with inline comments for non-obvious behavior
-
-## Step 4: Validate the Document
-
-Before saving, verify:
-
-- [ ] Covers installation/setup, core concepts, all major API surfaces with signatures, and common real-world patterns
-- [ ] Code examples exist for each major feature and use correct syntax for the documented version
-- [ ] Document enables an agent to start using the tool without any other resources
-
-## Step 5: Save the Document
-
-For new documents:
-
-- Save to `agent-docs/` directory in the project root
-- Filename: `<subject-name>-reference.md` (kebab-case), or `<subject-name>-reference-<language>.md` for language-specific variants
-- If the subject warrants multiple files, create a subdirectory: `agent-docs/<subject-name>/`
-
-For updates, edit the existing file in place.
-
-After saving, report the file path and a brief summary of what the document covers.
+Report the saved file path, the version or source commit documented, and a brief summary of what is covered (plus anything that could not be verified).

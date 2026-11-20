@@ -1,35 +1,21 @@
-# Monorepos and Workspaces
+# Knip in monorepos and workspaces
 
-Load this BEFORE running knip in any project with workspaces (`workspaces` array, `pnpm-workspace.yaml`, `turbo.json`, `nx.json`). Monorepo misconfiguration cascades into hundreds of false positives.
+Load this before running knip in any repository using npm/Yarn/Bun `workspaces`, `pnpm-workspace.yaml`, Turborepo, or Nx.
 
-## How knip detects workspaces
+## Workspace detection
 
-Knip auto-detects from these sources, in priority order:
+Knip discovers workspaces in this order:
 
 1. `workspaces` array in root `package.json` (npm, Bun, Yarn, Lerna)
 2. `packages` array in `pnpm-workspace.yaml` (pnpm)
 3. Legacy `workspaces.packages` in `package.json`
-4. The `workspaces` object in knip config (manual override)
+4. Explicit `workspaces` map in `knip.json`
 
-Every workspace must have a `package.json`. If a directory lacks one, knip skips it.
+Every workspace directory must contain its own `package.json`; directories without one are skipped. Run `npx knip --debug` first to confirm every expected workspace appears.
 
-## The root workspace gotcha
+## Root workspace trap (`"."`)
 
-**In a project with workspaces, top-level `entry` and `project` options are ignored.** This is the most common monorepo mistake.
-
-Wrong (root-level scripts never analyzed):
-
-```json
-{
-  "entry": ["scripts/*.ts"],
-  "project": ["scripts/**/*.ts"],
-  "workspaces": {
-    "packages/*": {}
-  }
-}
-```
-
-Right (use `"."` as the root workspace key):
+When workspaces exist, top-level `entry` and `project` fields in `knip.json` are ignored. Put root-level scripts and tooling under the `"."` workspace key:
 
 ```json
 {
@@ -40,35 +26,6 @@ Right (use `"."` as the root workspace key):
     },
     "packages/*": {
       "entry": ["{index,cli}.ts"],
-      "project": ["**/*.ts"]
-    }
-  }
-}
-```
-
-Always configure `"."` if there is any code (build scripts, dev tooling, root-level entries) outside `packages/`.
-
-## Use workspace globs, not per-package entries
-
-Wrong (repeats the same config for every package):
-
-```json
-{
-  "workspaces": {
-    "packages/auth": { "entry": ["index.ts"] },
-    "packages/api":  { "entry": ["index.ts"] },
-    "packages/ui":   { "entry": ["index.ts"] }
-  }
-}
-```
-
-Right (one glob, with specific overrides where needed):
-
-```json
-{
-  "workspaces": {
-    "packages/*": {
-      "entry": ["{index,main}.ts"],
       "project": ["src/**/*.ts", "!src/**/*.test.ts"]
     },
     "packages/cli": {
@@ -78,111 +35,36 @@ Right (one glob, with specific overrides where needed):
 }
 ```
 
-Workspaces matched by both a glob and a specific path: the specific path wins.
+Use workspace globs (`packages/*`) with targeted per-package overrides; an exact path overrides the glob.
 
-## Configure plugins per workspace when packages diverge
+## Divergent per-workspace plugins
 
-If one package uses Vitest and another uses Jest, configure them per-workspace:
+When workspaces use different tools (such as Vitest in one package and Jest in another), configure plugins inside each workspace block and set inapplicable plugins to `false`:
 
 ```json
 {
   "workspaces": {
-    "packages/app": {
-      "vitest": true,
-      "jest": false
-    },
-    "packages/api": {
-      "jest": { "config": "jest.config.ts" }
-    },
-    "packages/shared": {
-      "vitest": true
-    }
+    "packages/app": { "vitest": true, "jest": false },
+    "packages/api": { "jest": { "config": "jest.config.ts" } }
   }
 }
 ```
 
-Set a plugin to `false` to disable an auto-detected plugin that doesn't apply to that workspace.
+## Cross-workspace imports
 
-## Cross-workspace imports: declare them in `package.json`
+Knip cannot track cross-workspace `tsconfig` path aliases (`"@packages/*": ["../*/src"]`). Declare real workspace dependencies in each consumer's `package.json` (`"@myorg/shared": "workspace:*"`) and import by package name. This also avoids publish-time resolution failures.
 
-Wrong (a path alias hops between workspaces, knip can't track it):
+## Ignoring workspaces and scoping runs
 
-```jsonc
-// root tsconfig.json
-{ "paths": { "@packages/*": ["../*/src"] } }
-```
-```typescript
-// packages/api/src/auth.ts
-import { User } from '@packages/shared/types';
-```
+Skip generated packages or forks with `"ignoreWorkspaces": ["packages/legacy-fork", "packages/generated-api"]`.
 
-Right (use a real workspace dependency):
-
-```jsonc
-// packages/api/package.json
-{
-  "name": "@myorg/api",
-  "dependencies": {
-    "@myorg/shared": "workspace:*"
-  }
-}
-```
-```typescript
-// packages/api/src/auth.ts
-import { User } from '@myorg/shared/types';
-```
-
-This is the right pattern regardless of knip — it also makes the package-manager-level workspace link real and stops local-only resolution that breaks at publish time.
-
-## Ignore workspaces you don't want to analyze
-
-Useful for third-party forks, generated packages, or packages on the way out:
-
-```json
-{
-  "ignoreWorkspaces": [
-    "packages/legacy-fork",
-    "packages/generated-api"
-  ],
-  "workspaces": {
-    "packages/*": { "entry": ["index.ts"] }
-  }
-}
-```
-
-## Targeting a single workspace from CLI
-
-`--workspace` / `-W` accepts a package name, glob, or directory path. Knip automatically pulls in ancestor and dependent workspaces so cross-workspace deps stay coherent.
+Narrow local debugging to one or more packages with `--workspace` / `-W` (knip automatically pulls in ancestor and dependent workspaces):
 
 ```bash
 npx knip --workspace @myorg/my-lib
-npx knip --workspace './apps/*'
-npx knip --workspace '@myorg/*' --workspace '!@myorg/legacy'
+npx knip --workspace './apps/*' --workspace '!./apps/legacy'
 ```
 
-Use this for local debugging — narrowing scope makes runs much faster while iterating on one package.
+## Catching phantom hoisted dependencies (`--strict`)
 
-## Strict / isolated workspace mode
-
-Hoisting in the root `node_modules` lets a package import dependencies it has not declared in its own `package.json`. This breaks at publish time. Catch it locally:
-
-```bash
-npx knip --strict
-# or, equivalently
-npx knip --isolate-workspaces
-```
-
-In strict mode, each workspace's dependencies are checked against its **own** `package.json`, not the root. Phantom deps are reported as unlisted.
-
-Recommended CI pattern: a default `npx knip` check (any-mode, any-workspace) plus a strict production check (`npx knip --production --strict`). See [`ci-integration.md`](ci-integration.md).
-
-## Quick monorepo checklist
-
-When you first run knip in a monorepo:
-
-1. Verify auto-detection: `npx knip --debug` and confirm every expected workspace appears.
-2. Add `"."` to `workspaces` if there is any root-level code.
-3. If a workspace uses a different test runner / bundler / etc., set per-workspace plugin config.
-4. Replace any cross-workspace path aliases with real `workspace:*` deps.
-5. Add `ignoreWorkspaces` for packages you intentionally don't want analyzed.
-6. Add `--strict` to your CI run once the default run is clean.
+Hoisted root `node_modules` lets packages import undeclared dependencies that break when published or isolated. Run `npx knip --strict` (alias `--isolate-workspaces`) to check every workspace strictly against its own `package.json`. Note that `--strict` implies `--production`. In CI, pair `npx knip` with `npx knip --strict` (see [`ci-integration.md`](ci-integration.md)).
