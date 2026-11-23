@@ -1,25 +1,26 @@
 ---
 name: change-review-guide
-description: "Write a reviewer's guide to a set of code changes: purpose, fundamental decisions, file-by-file review path, and diff noise to skip."
+description: "Write a reviewer's guide to a set of code changes (purpose, fundamental decisions, file-by-file review path, and diff noise) and render an interactive HTML page."
 disable-model-invocation: true
-argument-hint: "[PR/MR number or URL | branch | path | description of the changes]"
+argument-hint: "[PR/MR number or URL | branch | path | description | existing guide .md/.yaml]"
 ---
 
 # Change review guide
 
-A reviewer is about to read changes they did not write. Raw diffs give every hunk equal weight in alphabetical order, so the reviewer spends attention reconstructing intent instead of judging it. Write a guide that puts intent up front: what the change is for, which few decisions drive it, where to read closely, in what order, and what they can safely skim.
+A reviewer is about to read changes they did not write. Raw diffs give every hunk equal weight in alphabetical order, so the reviewer spends attention reconstructing intent instead of judging it. Write a markdown guide that puts intent up front: what the change is for, which few decisions drive it, where to read closely, in what order, and what they can safely skim. Once the markdown guide is complete and verified, delegate generating the interactive HTML version to a cheaper subagent.
 
 ## Scope
 
 Resolve the user's argument to a concrete diff:
 
-- **PR/MR number or URL:** fetch it and diff its head against its merge base. Use its description and commit messages as evidence for intent.
+- **PR/MR number or URL:** fetch it locally and diff its head against its merge base. Use its description and commit messages as evidence for intent.
 - **Branch:** diff against its merge base with the main branch.
 - **Path or area of code:** changes touching that area, from the working tree if dirty, otherwise from the current branch against main.
 - **Description in words** ("the auth refactor", "the last three commits"): match against recent commits and changed files, and state in the guide which commits or files you resolved it to.
+- **Existing guide (`*-review-guide.md` or `*-review-guide.yaml`):** skip diff analysis and go straight to [HTML rendering](#html-rendering).
 - **No argument:** the working tree if dirty, otherwise the current branch against main.
 
-When the user narrows scope to an area, cover that area and mention outside changes only where they explain something inside it. If the resolved scope has no changes, say so and stop rather than guessing a different target.
+When the user narrows scope to an area, cover that area and mention outside changes only where they explain something inside it. If the resolved scope has no changes, say so and stop rather than guessing a different target. Explicit user instructions (such as markdown-only output, regenerating markdown from YAML, or a custom output path) override the defaults below.
 
 ## Understanding the change
 
@@ -46,7 +47,7 @@ Save to `<slug>-review-guide.md` (or the path the user requested), where `<slug>
 ```markdown
 # Review guide: <change title>
 
-**Scope:** <what was reviewed and how it was resolved, e.g. PR #123, 14 files>
+**Scope:** <what was reviewed and how it was resolved, including exact git base and head refs when reviewing commits, e.g. PR #123, branch `feat/auth` against `main`, 14 files>
 
 ## Purpose
 <A few sentences: what the change makes true, and why. Mark inferred reasons.>
@@ -66,9 +67,29 @@ Save to `<slug>-review-guide.md` (or the path the user requested), where `<slug>
 
 Write for a developer who knows the codebase but has not seen this change. Quote code only when reading the snippet is faster than describing it. Selection and ordering are the whole point; a guide that merely summarizes every hunk has failed.
 
-Before saving, verify both completion checks:
+Before saving and moving to HTML rendering, verify both completion checks:
 
 - Every changed file in scope appears either as a stop on the review path or inside a skim cluster.
 - Reading the Fundamental changes section alone lets a reader predict most of what the diff contains.
 
-After saving, report the file path, the one or two decisions that shape the change most, and that `/review-guide-html` can render the guide as an interactive HTML page.
+## HTML rendering
+
+After saving the verified markdown guide, generate the interactive HTML version (`<slug>-review-guide.html` and its backing `<slug>-review-guide.yaml`) unless the user asked for markdown only.
+
+The renderer (`scripts/render-review-guide.mjs`) pulls file lists and line stats from a local git commit range (`base..head`) and fails while any file in that range is unassigned. If the reviewed scope is uncommitted working-tree changes, a path-filtered subset of a wider diff, or lacks local git refs, skip HTML rendering and explain why in the final report.
+
+When the host supports subagents, delegate HTML rendering to a subagent on a cheaper, faster model tier: select a lower-cost model via the subagent tool's model parameter when supported, rather than inheriting the flagship model. The lead agent has already completed the analysis; porting markdown to YAML and running validation is mechanical. If the host does not support subagents, read [`references/html-rendering.md`](references/html-rendering.md) and run the rendering step directly.
+
+Give the subagent a self-contained prompt containing:
+
+- Path to `<slug>-review-guide.md` (or the existing `.yaml` file when re-rendering)
+- Paths to [`references/html-rendering.md`](references/html-rendering.md) and `scripts/render-review-guide.mjs` (resolved relative to this skill directory)
+- Resolved git `base` and `head` refs (plus `merge_base: false` if comparing a direct commit range rather than a merge base), the repository root, and any ticket key or display branch label
+- Desired output paths (default `<slug>-review-guide.yaml` and `<slug>-review-guide.html`; note if the user also asked to regenerate the markdown from YAML)
+- Instruction to follow `references/html-rendering.md`: port the guide one-to-one without re-reviewing the diff, fix validation errors until `--check` prints `ok`, render the HTML, and return the written paths, file/stop counts, and any changed files that had been missing from the markdown guide
+
+Review the subagent's result before replying. Confirm `--check` passed and the output files were written. If rendering fails, report the error and keep the markdown guide as the completed output.
+
+## Reporting
+
+Report the saved file paths (`.md`, `.html`, and `.yaml`, or `.md` plus why HTML was skipped), the one or two decisions that shape the change most, and any files missing from the initial markdown guide that the renderer surfaced and placed.

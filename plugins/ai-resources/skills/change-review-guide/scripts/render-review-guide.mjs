@@ -684,7 +684,7 @@ function cmdInit(args) {
   let branch = head;
   try { if (head === "HEAD") branch = git(repo, ["rev-parse", "--abbrev-ref", "HEAD"]).trim(); } catch { /* detached */ }
   const y = [];
-  y.push(`# Review guide content. Schema: references/content-schema.md beside the renderer.`);
+  y.push(`# Review guide content. Schema: references/html-rendering.md beside the renderer.`);
   y.push(`# Inline markup in any text: \`code\`, **bold**, [text](https://…), [[Key]] for a keycap.`);
   y.push(`title: ""                 # e.g. Scheduled report exports`);
   y.push(`ticket: ""                # optional, e.g. EXP-412`);
@@ -694,6 +694,7 @@ function cmdInit(args) {
   y.push(`  base: ${args.base}`);
   y.push(`  head: ${head}`);
   y.push(`  label: ${branch}`);
+  if (args["merge-base"] === "false") y.push(`  merge_base: false`);
   y.push(`intent: "Intent is taken from … and code comments."`);
   y.push(``);
   y.push(`purpose:`);
